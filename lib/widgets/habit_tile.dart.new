@@ -1,0 +1,209 @@
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:streakoo/models/habit.dart';
+import 'package:streakoo/providers/habit_provider.dart';
+import 'package:streakoo/utils/constants.dart';
+
+class HabitTile extends StatefulWidget {
+  final Habit habit;
+  final dynamic habitKey; // Key to identify the habit in Hive
+
+  const HabitTile({super.key, required this.habit, required this.habitKey});
+
+  @override
+  State<HabitTile> createState() => _HabitTileState();
+}
+
+class _HabitTileState extends State<HabitTile> {
+  bool _loading = false;
+
+  IconData _getIconForHabit(String iconName) {
+    switch (iconName.toLowerCase()) {
+      case 'gym':
+        return Icons.fitness_center_rounded;
+      case 'book':
+        return Icons.book_rounded;
+      case 'water':
+        return Icons.local_drink_rounded;
+      case 'meditate':
+        return Icons.self_improvement_rounded;
+      default:
+        return Icons.task_alt_rounded;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final habit = widget.habit;
+    final habitKey = widget.habitKey;
+    final today = DateTime.now();
+    final normalizedToday = DateTime(today.year, today.month, today.day);
+    final isDone = habit.completedDays.contains(normalizedToday);
+    final streakCount = habit.completedDays.length;
+
+    final surface = Theme.of(context).colorScheme.surface;
+    final onSurface = Theme.of(context).colorScheme.onSurface;
+
+    final Widget leadingWidget = (habit.iconName.isNotEmpty &&
+            habit.iconName.runes.length <= 4)
+        ? CircleAvatar(
+            radius: 22,
+            backgroundColor: surface,
+            child: Text(habit.iconName,
+                style: TextStyle(fontSize: 20, color: onSurface)),
+          )
+        : CircleAvatar(
+            radius: 22,
+            backgroundColor: surface,
+            child: Icon(_getIconForHabit(habit.iconName), color: onSurface),
+          );
+
+    final titleBaseStyle = Theme.of(context).textTheme.titleMedium?.copyWith(
+          fontSize: 16,
+          fontWeight: FontWeight.w700,
+        ) ??
+        TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: onSurface);
+
+    return Card(
+      margin: const EdgeInsets.symmetric(vertical: 10.0),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+      child: InkWell(
+        onTap: () async {
+          if (_loading) return;
+          setState(() => _loading = true);
+          final provider = context.read<HabitProvider>();
+          final messenger = ScaffoldMessenger.of(context);
+          try {
+            await provider.toggleHabitCompletion(habitKey, DateTime.now());
+
+            final done = provider.isCompletedToday(habitKey);
+            if (done) {
+              final box = provider.habitBoxNotifier.value;
+              final updated = box.get(habitKey);
+              final streak = updated?.completedDays.length ?? 1;
+              final snack = SnackBar(
+                behavior: SnackBarBehavior.floating,
+                margin: const EdgeInsets.symmetric(horizontal: 56).copyWith(bottom: 80),
+                duration: const Duration(milliseconds: 1400),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+                content: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.whatshot, color: Colors.white),
+                    const SizedBox(width: 8),
+                    Text('🔥 $streak day${streak == 1 ? '' : 's'} streak!'),
+                  ],
+                ),
+              );
+              messenger.hideCurrentSnackBar();
+              messenger.showSnackBar(snack);
+            }
+          } finally {
+            if (mounted) setState(() => _loading = false);
+          }
+        },
+        borderRadius: BorderRadius.circular(14),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          child: Row(
+            children: [
+              leadingWidget,
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    AnimatedDefaultTextStyle(
+                      duration: const Duration(milliseconds: 300),
+                      style: titleBaseStyle.copyWith(
+                        color: isDone
+                            ? Theme.of(context).disabledColor
+                            : Theme.of(context).textTheme.titleMedium?.color ?? onSurface,
+                        decoration: isDone ? TextDecoration.lineThrough : TextDecoration.none,
+                      ),
+                      child: Text(habit.name),
+                    ),
+                    const SizedBox(height: 6),
+                    Text('Daily', style: Theme.of(context).textTheme.bodySmall?.copyWith(fontSize: 12)),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              Column(
+                children: [
+                  Row(
+                    children: [
+                      AnimatedSwitcher(
+                        duration: const Duration(milliseconds: 350),
+                        transitionBuilder: (child, anim) => ScaleTransition(scale: anim, child: FadeTransition(opacity: anim, child: child)),
+                        child: Text(
+                          '$streakCount',
+                          key: ValueKey<int>(streakCount),
+                          style: Theme.of(context).textTheme.titleLarge?.copyWith(fontSize: 18),
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      const Text('🔥'),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Container(
+                    decoration: BoxDecoration(
+                      color: isDone ? AppColors.primary : Colors.transparent,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: isDone ? Colors.transparent : Theme.of(context).disabledColor),
+                    ),
+                    child: Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        IconButton(
+                          icon: Icon(isDone ? Icons.check : Icons.check_box_outline_blank,
+                              color: isDone ? Colors.white : Theme.of(context).iconTheme.color),
+                          onPressed: _loading
+                              ? null
+                              : () async {
+                                  setState(() => _loading = true);
+                                  final provider = context.read<HabitProvider>();
+                                  final messenger = ScaffoldMessenger.of(context);
+                                  try {
+                                    await provider.toggleHabitCompletion(habitKey, DateTime.now());
+                                    final done = provider.isCompletedToday(habitKey);
+                                    if (done) {
+                                      final box = provider.habitBoxNotifier.value;
+                                      final updated = box.get(habitKey);
+                                      final streak = updated?.completedDays.length ?? 1;
+                                      final snack = SnackBar(
+                                        behavior: SnackBarBehavior.floating,
+                                        margin: const EdgeInsets.symmetric(horizontal: 56).copyWith(bottom: 80),
+                                        duration: const Duration(milliseconds: 1400),
+                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+                                        content: Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            const Icon(Icons.whatshot, color: Colors.white),
+                                            const SizedBox(width: 8),
+                                            Text('🔥 $streak day${streak == 1 ? '' : 's'} streak!'),
+                                          ],
+                                        ),
+                                      );
+                                      messenger.hideCurrentSnackBar();
+                                      messenger.showSnackBar(snack);
+                                    }
+                                  } finally {
+                                    if (mounted) setState(() => _loading = false);
+                                  }
+                                },
+                        ),
+                        if (_loading) const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2.2)),
+                      ],
+                    ),
+                  )
+                ],
+              )
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}

@@ -1,0 +1,61 @@
+name: streakoo
+description: A habit-building platform that motivates users through gamification.
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+    
+  # State Management
+  provider: ^6.1.2
+  
+  # Local Database
+  hive: ^2.2.3
+  hive_flutter: ^1.1.0
+  
+  # UI & Utilities
+  table_calendar: ^3.1.2
+  lottie: ^3.1.2 # For animations
+  url_launcher: ^6.1.12
+  emoji_picker_flutter: ^1.1.5
+  file_picker: ^5.3.2
+  path_provider: ^2.0.15
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+    
+  # Code Generation for Hive
+  hive_generator: ^2.0.1
+  build_runner: ^2.4.10
+  
+  flutter_lints: ^3.0.0
+  flutter_launcher_icons: ^0.10.0
+
+flutter:
+  uses-material-design: true
+
+  # --- Assets ---
+  # This tells Flutter to include your animations
+  assets:
+    - assets/animations/
+
+  # --- Fonts ---
+  # You can add your 'Inter' font here if you have the files
+  # fonts:
+  #   - family: Inter
+  #     fonts:
+  #       - asset: assets/fonts/Inter-Regular.ttf
+  #       - asset: assets/fonts/Inter-Bold.ttf
+  #         weight: 700
+
+# Configuration for generating app launcher icons from a single source image
+flutter_icons:
+  android: true
+  ios: true
+  macos: true
+  image_path: "assets/animations/ChatGPT Image Nov 8, 2025 at 08_13_27 PM.png"

@@ -1,0 +1,90 @@
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:streakoo/providers/app_provider.dart';
+import 'package:streakoo/utils/constants.dart';
+import 'package:flutter/services.dart';
+import 'package:url_launcher/url_launcher.dart';
+
+class SettingsTab extends StatelessWidget {
+  const SettingsTab({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final app = context.watch<AppProvider>();
+    return Scaffold(
+      appBar: AppBar(title: const Text('Settings')),
+      body: ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          const Text('Appearance', style: AppColors.subheadingStyle),
+          RadioListTile<ThemeMode>(
+            title: const Text('System Default'),
+            value: ThemeMode.system,
+            groupValue: app.themeMode,
+            onChanged: (v) => app.setThemeMode(v!),
+          ),
+          RadioListTile<ThemeMode>(
+            title: const Text('Light'),
+            value: ThemeMode.light,
+            groupValue: app.themeMode,
+            onChanged: (v) => app.setThemeMode(v!),
+          ),
+          RadioListTile<ThemeMode>(
+            title: const Text('Dark'),
+            value: ThemeMode.dark,
+            groupValue: app.themeMode,
+            onChanged: (v) => app.setThemeMode(v!),
+          ),
+          const SizedBox(height: 24),
+          const Text('About', style: AppColors.subheadingStyle),
+          Card(
+            child: ListTile(
+              title: const Text('About this app'),
+              subtitle: const Text('Streakoo — build habits, track streaks'),
+            ),
+          ),
+          const SizedBox(height: 12),
+          Card(
+            child: ListTile(
+              leading: const Icon(Icons.email_outlined),
+              title: const Text('Contact Developer'),
+              // Hide email to avoid exposing it in the app UI
+              subtitle: const Text(''),
+              trailing: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  IconButton(
+                    tooltip: 'Send email',
+                    icon: const Icon(Icons.send),
+                    onPressed: () async {
+                      final Uri emailLaunchUri = Uri(
+                        scheme: 'mailto',
+                        path: 'policeakshithreddy@gmail.com',
+                      );
+                      if (await canLaunchUrl(emailLaunchUri)) {
+                        await launchUrl(emailLaunchUri);
+                      } else {
+                        // fallback: copy to clipboard
+                        await Clipboard.setData(const ClipboardData(text: 'policeakshithreddy@gmail.com'));
+                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Cannot open mail app — email copied')));
+                      }
+                    },
+                  ),
+                  IconButton(
+                    tooltip: 'Share app',
+                    icon: const Icon(Icons.share),
+                    onPressed: () async {
+                      const shareText = 'Check out Streakoo — build habits and track streaks!';
+                      await Clipboard.setData(const ClipboardData(text: shareText));
+                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Share text copied to clipboard')));
+                    },
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
