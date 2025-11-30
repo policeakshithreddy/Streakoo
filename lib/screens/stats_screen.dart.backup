@@ -1,0 +1,1192 @@
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+
+import '../state/app_state.dart';
+import '../models/habit.dart';
+
+import '../widgets/streak_flame_graph.dart';
+import '../widgets/category_radar_chart.dart';
+import '../widgets/level_badge.dart';
+import '../widgets/mood_state_card.dart';
+import '../services/behavior_mood_detector.dart';
+import '../widgets/habit_heatmap.dart';
+
+class StatsScreen extends StatefulWidget {
+  const StatsScreen({super.key});
+
+  @override
+  State<StatsScreen> createState() => _StatsScreenState();
+}
+
+class _StatsScreenState extends State<StatsScreen>
+    with SingleTickerProviderStateMixin {
+  late TabController _tabController;
+
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: 4, vsync: this);
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Stats'),
+        bottom: TabBar(
+          controller: _tabController,
+          isScrollable: true,
+          tabs: const [
+            Tab(text: 'Overview', icon: Icon(Icons.dashboard_outlined)),
+            Tab(text: 'Trends', icon: Icon(Icons.trending_up)),
+            Tab(text: 'Daily Track', icon: Icon(Icons.calendar_today)),
+            Tab(text: 'Achievements', icon: Icon(Icons.emoji_events_outlined)),
+          ],
+        ),
+      ),
+      body: TabBarView(
+        controller: _tabController,
+        children: const [
+          _OverviewTab(),
+          _TrendsTab(),
+          _DailyTrackTab(),
+          _AchievementsTab(),
+        ],
+      ),
+    );
+  }
+}
+
+// ============ OVERVIEW TAB ============
+class _OverviewTab extends StatelessWidget {
+  const _OverviewTab();
+
+  @override
+  Widget build(BuildContext context) {
+    final appState = context.watch<AppState>();
+    final habits = appState.habits;
+    final userLevel = appState.userLevel;
+
+    final totalHabits = habits.length;
+    final completedToday = habits.where((h) => h.completedToday).length;
+    final totalStreaks = habits.fold<int>(0, (sum, h) => sum + h.streak);
+    final perfectDay = totalHabits > 0 && completedToday == totalHabits;
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Level Badge
+          Center(
+            child: LevelBadge(
+              userLevel: userLevel,
+              showProgress: true,
+              size: 120,
+            ),
+          ),
+
+          const SizedBox(height: 24),
+
+          // Quick stats
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                'Total XP: ${appState.totalXP}',
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 24),
+
+          // Streak Freeze Card
+          Card(
+            color: const Color(0xFFE3F2FD), // Light blue for freeze
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                children: [
+                  const Text('❄️', style: TextStyle(fontSize: 32)),
+                  const SizedBox(width: 16),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Streak Freezes',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF1565C0),
+                        ),
+                      ),
+                      Text(
+                        '${appState.streakFreezes} available',
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w600,
+                          color: Color(0xFF0D47A1),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const Spacer(),
+                  if (appState.streakFreezes == 0)
+                    TextButton(
+                      onPressed: () {
+                        // TODO: Show how to earn
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                              content: Text(
+                                  'Earn freezes by maintaining a 7-day streak!')),
+                        );
+                      },
+                      child: const Text('How to earn?'),
+                    ),
+                ],
+              ),
+            ),
+          ),
+
+          const SizedBox(height: 24),
+
+          // Auto-detected mood state
+          Builder(
+            builder: (context) {
+              final detector = BehaviorBasedMoodDetector.instance;
+              final moodState = detector.detectMood(habits);
+              final displayInfo = detector.getMoodDisplay(moodState);
+
+              return MoodStateCard(
+                moodState: moodState,
+                displayInfo: displayInfo,
+              );
+            },
+          ),
+          const SizedBox(height: 24),
+
+          // Today's metrics
+          Row(
+            children: [
+              const Icon(Icons.today_outlined, size: 28),
+              const SizedBox(width: 8),
+              Text(
+                'Today',
+                style: Theme.of(context).textTheme.titleLarge,
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 12),
+
+          Row(
+            children: [
+              Expanded(
+                child: _StatCard(
+                  label: 'Habits',
+                  value: '$totalHabits',
+                  icon: Icons.track_changes,
+                  color: Colors.blue,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _StatCard(
+                  label: 'Completed',
+                  value: '$completedToday',
+                  icon: Icons.check_circle,
+                  color: Colors.green,
+                ),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 12),
+
+          Row(
+            children: [
+              Expanded(
+                child: _StatCard(
+                  label: 'Total Streaks',
+                  value: '$totalStreaks',
+                  icon: Icons.local_fire_department,
+                  color: Colors.orange,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _StatCard(
+                  label: 'XP Today',
+                  value:
+                      '${habits.where((h) => h.completedToday).fold<int>(0, (sum, h) => sum + h.actualXP)}',
+                  icon: Icons.stars,
+                  color: Colors.purple,
+                ),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 24),
+
+          const SizedBox(height: 24),
+
+          // Weekly Consistency Card
+          Card(
+            elevation: 2,
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            child: Padding(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Weekly Consistency',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.grey,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Text(
+                        '${_calculateWeeklyConsistency(habits)}%',
+                        style: TextStyle(
+                          fontSize: 36,
+                          fontWeight: FontWeight.bold,
+                          color: Theme.of(context).colorScheme.onSurface,
+                        ),
+                      ),
+                      const Spacer(),
+                      SizedBox(
+                        width: 60,
+                        height: 60,
+                        child: CircularProgressIndicator(
+                          value: _calculateWeeklyConsistency(habits) / 100,
+                          backgroundColor: Theme.of(context)
+                              .colorScheme
+                              .surfaceContainerHighest,
+                          color: Theme.of(context).colorScheme.primary,
+                          strokeWidth: 8,
+                          strokeCap: StrokeCap.round,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Based on your last 7 days of activity',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.grey[600],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+          const SizedBox(height: 24),
+
+          // Perfect day status
+          if (perfectDay)
+            _AchievementTile(
+              title: 'Perfect Day 🎉',
+              description:
+                  'You completed every habit today. You\'re on fire! 🔥',
+              color: Colors.green,
+            )
+          else
+            _AchievementTile(
+              title: 'Keep going',
+              description:
+                  'Complete all habits today to unlock the Perfect Day badge.',
+              color: Colors.grey,
+            ),
+        ],
+      ),
+    );
+  }
+
+  int _calculateWeeklyConsistency(List<Habit> habits) {
+    if (habits.isEmpty) return 0;
+
+    final now = DateTime.now();
+    final startOfWeek = now.subtract(const Duration(days: 6));
+    int completedCount = 0;
+    int expectedCount = 0;
+
+    for (final habit in habits) {
+      // Calculate expected days based on frequency
+      final frequencyDays = habit.frequencyDays; // [1..7]
+
+      for (int i = 0; i < 7; i++) {
+        final day = startOfWeek.add(Duration(days: i));
+        final weekday = day.weekday;
+
+        if (frequencyDays.contains(weekday)) {
+          expectedCount++;
+
+          // Check if completed on this day
+          final dateKey =
+              '${day.year.toString().padLeft(4, '0')}-${day.month.toString().padLeft(2, '0')}-${day.day.toString().padLeft(2, '0')}';
+          if (habit.completionDates.contains(dateKey)) {
+            completedCount++;
+          }
+        }
+      }
+    }
+
+    if (expectedCount == 0) return 0;
+    return ((completedCount / expectedCount) * 100).round();
+  }
+}
+
+// ============ TRENDS TAB ============
+class _TrendsTab extends StatelessWidget {
+  const _TrendsTab();
+
+  @override
+  Widget build(BuildContext context) {
+    final appState = context.watch<AppState>();
+    final habits = appState.habits;
+
+    // Prepare heatmap data
+    final now = DateTime.now();
+    final startDate = now.subtract(const Duration(days: 90)); // Last 3 months
+    final datasets = <DateTime, int>{};
+
+    for (final habit in habits) {
+      for (final dateStr in habit.completionDates) {
+        final date = DateTime.parse(dateStr);
+        final key = DateTime(date.year, date.month, date.day);
+        if (key.isAfter(startDate.subtract(const Duration(days: 1)))) {
+          datasets[key] = (datasets[key] ?? 0) + 1;
+        }
+      }
+    }
+
+    // Prepare frozen dates
+    final frozenDates =
+        appState.frozenDates.map((d) => DateTime.parse(d)).toList();
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Heatmap
+          HabitHeatmap(
+            datasets: datasets,
+            frozenDates: frozenDates,
+            startDate: startDate,
+            endDate: now,
+          ),
+
+          const SizedBox(height: 24),
+
+          // Streak flame graph
+          if (habits.isNotEmpty) ...[
+            StreakFlameGraph(habits: habits),
+            const SizedBox(height: 20),
+          ],
+
+          // Category radar chart
+          if (habits.length >= 3) ...[
+            CategoryRadarChart(habits: habits),
+            const SizedBox(height: 20),
+          ] else
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  children: [
+                    const Icon(
+                      Icons.insights_outlined,
+                      size: 48,
+                      color: Colors.grey,
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      'Not enough data',
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Add at least 3 habits to see category trends',
+                      style: Theme.of(context).textTheme.bodySmall,
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+          // Mood analysis if available
+          if (appState.moodHistory.isNotEmpty) ...[
+            const SizedBox(height: 20),
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      '😊 Mood Insights',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    _MoodInsights(appState: appState),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+// ============ DAILY TRACK TAB ============
+class _DailyTrackTab extends StatelessWidget {
+  const _DailyTrackTab();
+
+  @override
+  Widget build(BuildContext context) {
+    final appState = context.watch<AppState>();
+    final habits = appState.habits;
+
+    // Get completion data for the last 30 days
+    final now = DateTime.now();
+    final List<Map<String, dynamic>> dailyData = [];
+
+    for (int i = 29; i >= 0; i--) {
+      final date = now.subtract(Duration(days: i));
+      final dateStr = DateTime(date.year, date.month, date.day)
+          .toIso8601String()
+          .split('T')[0];
+
+      int completed = 0;
+      int total = habits.length;
+
+      for (final habit in habits) {
+        if (habit.completionDates.contains(dateStr)) {
+          completed++;
+        }
+      }
+
+      dailyData.add({
+        'date': date,
+        'completed': completed,
+        'total': total,
+        'percentage': total > 0 ? (completed / total * 100).round() : 0,
+      });
+    }
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header
+          Text(
+            'Daily Completion Tracker',
+            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Last 30 days of habit completion',
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color:
+                      Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                ),
+          ),
+          const SizedBox(height: 24),
+
+          // Daily completion cards
+          ...dailyData.map((day) {
+            final date = day['date'] as DateTime;
+            final completed = day['completed'] as int;
+            final total = day['total'] as int;
+            final percentage = day['percentage'] as int;
+            final isToday = date.day == now.day &&
+                date.month == now.month &&
+                date.year == now.year;
+
+    return ListView.builder(
+      padding: const EdgeInsets.all(16),
+      itemCount: dailyData.length,
+      itemBuilder: (context, index) {
+        final data = dailyData[index];
+        final date = data['date'] as DateTime;
+        final completed = data['completed'] as int;
+        final total = data['total'] as int;
+        final percentage = data['percentage'] as int;
+        
+        final isToday = date.day == now.day &&
+            date.month == now.month &&
+            date.year == now.year;
+
+        Color cardColor;
+        String emoji;
+        if (percentage == 100) {
+          cardColor = Colors.green;
+          emoji = '🔥';
+        } else if (percentage >= 50) {
+          cardColor = Colors.orange;
+          emoji = '💪';
+        } else {
+          cardColor = Colors.red;
+          emoji = '😴';
+        }
+
+        return Card(
+          margin: const EdgeInsets.only(bottom: 12),
+          elevation: isToday ? 4 : 2,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+            side: isToday
+                ? BorderSide(color: Theme.of(context).colorScheme.primary, width: 2)
+                : BorderSide.none,
+          ),
+          child: Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(16),
+              gradient: LinearGradient(
+                colors: [
+                  cardColor.withOpacity(0.1),
+                  cardColor.withOpacity(0.05),
+                ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(20),
+              child: Row(
+                children: [
+                  // Date section
+                  Container(
+                    width: 70,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          isToday ? 'Today' : _getWeekday(date.weekday),
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: isToday ? FontWeight.bold : FontWeight.w600,
+                            color: Theme.of(context).colorScheme.onSurface,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          '${_getMonthAbbrev(date.month)} ${date.day}',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  
+                  const SizedBox(width: 16),
+                  
+                  // Progress section
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              '$completed/$total habits',
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: cardColor,
+                              ),
+                            ),
+                            Text(
+                              emoji,
+                              style: const TextStyle(fontSize: 24),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(8),
+                          child: LinearProgressIndicator(
+                            value: total > 0 ? completed / total : 0,
+                            minHeight: 12,
+                            backgroundColor: Colors.grey.shade200,
+                            valueColor: AlwaysStoppedAnimation<Color>(cardColor),
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          '$percentage% complete',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: cardColor,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  String _getMonthAbbrev(int month) {
+    const months = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec'
+    ];
+    return months[month - 1];
+  }
+
+  String _getWeekday(int weekday) {
+    const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    return days[weekday - 1];
+  }
+}
+
+// ============ ACHIEVEMENTS TAB ============
+class _AchievementsTab extends StatelessWidget {
+  const _AchievementsTab();
+
+  @override
+  Widget build(BuildContext context) {
+    final appState = context.watch<AppState>();
+    final habits = appState.habits;
+
+    // Calculate achievement stats
+    final totalCompletedDays = _getTotalCompletedDays(habits);
+    final longestStreak = habits.isEmpty
+        ? 0
+        : habits.map((h) => h.streak).reduce((a, b) => a > b ? a : b);
+    final totalHabits = habits.length;
+    final perfectDays = _getPerfectDays(habits);
+
+    // Build achievement list - simpler approach
+    final List<Widget> achievementWidgets = [];
+    bool hasDailyHeader = false;
+    bool hasStreakHeader = false;
+    bool hasCollectionHeader = false;
+    bool hasCompletionHeader = false;
+
+    // Daily Completion achievements
+    if (perfectDays >= 1) {
+      if (!hasDailyHeader) {
+        achievementWidgets
+            .add(_buildCategoryHeader(context, '🎯 Daily Completion'));
+        achievementWidgets.add(const SizedBox(height: 12));
+        hasDailyHeader = true;
+      }
+      achievementWidgets.add(_AchievementCard(
+          icon: '⭐',
+          title: 'First Perfect Day',
+          description: 'Completed all habits in one day',
+          color: Colors.amber,
+          unlocked: true));
+    }
+    if (perfectDays >= 7) {
+      if (!hasDailyHeader) {
+        achievementWidgets
+            .add(_buildCategoryHeader(context, '🎯 Daily Completion'));
+        achievementWidgets.add(const SizedBox(height: 12));
+        hasDailyHeader = true;
+      }
+      achievementWidgets.add(_AchievementCard(
+          icon: '🌟',
+          title: 'Week Warrior',
+          description: '7 perfect days achieved',
+          color: Colors.orange,
+          unlocked: true));
+    }
+    if (perfectDays >= 30) {
+      if (!hasDailyHeader) {
+        achievementWidgets
+            .add(_buildCategoryHeader(context, '🎯 Daily Completion'));
+        achievementWidgets.add(const SizedBox(height: 12));
+        hasDailyHeader = true;
+      }
+      achievementWidgets.add(_AchievementCard(
+          icon: '💫',
+          title: 'Month Master',
+          description: '30 perfect days achieved',
+          color: Colors.purple,
+          unlocked: true));
+    }
+
+    // Streak achievements
+    if (longestStreak >= 3 || longestStreak >= 7 || longestStreak >= 30) {
+      if (achievementWidgets.isNotEmpty)
+        achievementWidgets.add(const SizedBox(height: 24));
+      achievementWidgets
+          .add(_buildCategoryHeader(context, '🔥 Streak Achievements'));
+      achievementWidgets.add(const SizedBox(height: 12));
+      hasStreakHeader = true;
+
+      if (longestStreak >= 3)
+        achievementWidgets.add(_AchievementCard(
+            icon: '🔥',
+            title: 'Streak Starter',
+            description: 'Maintained a 3-day streak',
+            color: Colors.red,
+            unlocked: true));
+      if (longestStreak >= 7)
+        achievementWidgets.add(_AchievementCard(
+            icon: '💥',
+            title: 'Week Streak',
+            description: 'Maintained a 7-day streak',
+            color: Colors.deepOrange,
+            unlocked: true));
+      if (longestStreak >= 30)
+        achievementWidgets.add(_AchievementCard(
+            icon: '🚀',
+            title: 'Unstoppable',
+            description: 'Maintained a 30-day streak!',
+            color: Colors.indigo,
+            unlocked: true));
+    }
+
+    // Habit Collection achievements
+    if (totalHabits >= 1 || totalHabits >= 5 || totalHabits >= 10) {
+      if (achievementWidgets.isNotEmpty)
+        achievementWidgets.add(const SizedBox(height: 24));
+      achievementWidgets.add(_buildCategoryHeader(context, '📚 Collection'));
+      achievementWidgets.add(const SizedBox(height: 12));
+      hasCollectionHeader = true;
+
+      if (totalHabits >= 1)
+        achievementWidgets.add(_AchievementCard(
+            icon: '🌱',
+            title: 'First Habit',
+            description: 'Created your first habit',
+            color: Colors.green,
+            unlocked: true));
+      if (totalHabits >= 5)
+        achievementWidgets.add(_AchievementCard(
+            icon: '🌿',
+            title: 'Habit Apprentice',
+            description: '5 habits created',
+            color: Colors.teal,
+            unlocked: true));
+      if (totalHabits >= 10)
+        achievementWidgets.add(_AchievementCard(
+            icon: '🌳',
+            title: 'Habit Master',
+            description: '10 habits created',
+            color: Colors.cyan,
+            unlocked: true));
+    }
+
+    // Total Completions achievements
+    if (totalCompletedDays >= 10 ||
+        totalCompletedDays >= 50 ||
+        totalCompletedDays >= 100) {
+      if (achievementWidgets.isNotEmpty)
+        achievementWidgets.add(const SizedBox(height: 24));
+      achievementWidgets
+          .add(_buildCategoryHeader(context, '💪 Total Completions'));
+      achievementWidgets.add(const SizedBox(height: 12));
+      hasCompletionHeader = true;
+
+      if (totalCompletedDays >= 10)
+        achievementWidgets.add(_AchievementCard(
+            icon: '💪',
+            title: 'Committed',
+            description: '10 total completions',
+            color: Colors.blue,
+            unlocked: true));
+      if (totalCompletedDays >= 50)
+        achievementWidgets.add(_AchievementCard(
+            icon: '🏆',
+            title: 'Dedicated',
+            description: '50 total completions',
+            color: Colors.yellow.shade700,
+            unlocked: true));
+      if (totalCompletedDays >= 100)
+        achievementWidgets.add(_AchievementCard(
+            icon: '👑',
+            title: 'Legendary',
+            description: '100 total completions!',
+            color: Colors.deepPurple,
+            unlocked: true));
+    }
+
+    // Show empty state if no achievements
+    if (achievementWidgets.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.emoji_events_outlined,
+                size: 80, color: Colors.grey),
+            const SizedBox(height: 16),
+            Text('No achievements yet',
+                style: Theme.of(context).textTheme.titleLarge),
+            const SizedBox(height: 8),
+            Text(
+              'Complete habits to unlock achievements!',
+              style: Theme.of(context).textTheme.bodyMedium,
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      );
+    }
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header
+          Text(
+            'Achievements',
+            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Your earned milestones',
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color:
+                      Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                ),
+          ),
+          const SizedBox(height: 24),
+
+          ...achievementWidgets,
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCategoryHeader(BuildContext context, String title) {
+    return Row(
+      children: [
+        Container(
+          height: 2,
+          width: 4,
+          color: Theme.of(context).colorScheme.primary,
+        ),
+        const SizedBox(width: 8),
+        Text(
+          title,
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: Theme.of(context).colorScheme.primary,
+          ),
+        ),
+      ],
+    );
+  }
+
+  int _getTotalCompletedDays(List<Habit> habits) {
+    int total = 0;
+    for (final habit in habits) {
+      total += habit.completionDates.length;
+    }
+    return total;
+  }
+
+  int _getPerfectDays(List<Habit> habits) {
+    if (habits.isEmpty) return 0;
+
+    // Get all unique dates where all habits were completed
+    final allDates = <String>{};
+    for (final habit in habits) {
+      allDates.addAll(habit.completionDates);
+    }
+
+    int perfectDays = 0;
+    for (final date in allDates) {
+      bool allCompleted = true;
+      for (final habit in habits) {
+        if (!habit.completionDates.contains(date)) {
+          allCompleted = false;
+          break;
+        }
+      }
+      if (allCompleted) perfectDays++;
+    }
+
+    return perfectDays;
+  }
+}
+
+class _AchievementCard extends StatelessWidget {
+  final String icon;
+  final String title;
+  final String description;
+  final Color color;
+  final bool unlocked;
+
+  const _AchievementCard({
+    required this.icon,
+    required this.title,
+    required this.description,
+    required this.color,
+    required this.unlocked,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        color: unlocked ? color.withOpacity(0.1) : Theme.of(context).cardColor,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: unlocked ? color : Colors.grey.shade300,
+          width: 2,
+        ),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          children: [
+            Container(
+              width: 60,
+              height: 60,
+              decoration: BoxDecoration(
+                color: unlocked ? color : Colors.grey.shade200,
+                shape: BoxShape.circle,
+              ),
+              child: Center(
+                child: Text(
+                  icon,
+                  style: const TextStyle(fontSize: 32),
+                ),
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                      color: unlocked
+                          ? Theme.of(context).colorScheme.onSurface
+                          : Colors.grey,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    description,
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: unlocked
+                          ? Theme.of(context)
+                              .colorScheme
+                              .onSurface
+                              .withOpacity(0.7)
+                          : Colors.grey,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            if (!unlocked)
+              const Icon(
+                Icons.lock_outline,
+                color: Colors.grey,
+                size: 24,
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ============ HELPER WIDGETS ============
+
+class _StatCard extends StatelessWidget {
+  final String label;
+  final String value;
+  final IconData icon;
+  final Color color;
+
+  const _StatCard({
+    required this.label,
+    required this.value,
+    required this.icon,
+    required this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      elevation: 2,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(icon, color: color, size: 32),
+            const SizedBox(height: 8),
+            Text(
+              value,
+              style: const TextStyle(
+                fontSize: 28,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 12,
+                color: Colors.grey[600],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _AchievementTile extends StatelessWidget {
+  final String title;
+  final String description;
+  final Color color;
+
+  const _AchievementTile({
+    required this.title,
+    required this.description,
+    required this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      color: color.withOpacity(0.1),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          children: [
+            Icon(
+              Icons.emoji_events_outlined,
+              color: color,
+              size: 32,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    description,
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _MoodInsights extends StatelessWidget {
+  final AppState appState;
+
+  const _MoodInsights({required this.appState});
+
+  @override
+  Widget build(BuildContext context) {
+    final analysis = appState.getMoodAnalysis(days: 7);
+
+    if (analysis.dominantMood == null) {
+      return const Text('Not enough mood data yet');
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'This week you\'ve been mostly feeling:',
+          style: Theme.of(context).textTheme.bodyMedium,
+        ),
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            Text(
+              appState.moodHistory.last.emoji,
+              style: const TextStyle(fontSize: 32),
+            ),
+            const SizedBox(width: 12),
+            Text(
+              appState.moodHistory.last.displayName,
+              style: const TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Text(
+          'Mood score: ${(analysis.averageMoodScore * 100).toStringAsFixed(0)}%',
+          style: Theme.of(context).textTheme.bodySmall,
+        ),
+      ],
+    );
+  }
+}
