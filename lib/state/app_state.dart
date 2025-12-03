@@ -13,6 +13,7 @@ import '../models/health_challenge.dart';
 import '../models/milestone.dart';
 import '../services/local_notification_service.dart';
 import '../services/milestone_detector.dart';
+import '../services/home_widget_service.dart';
 
 class AppState extends ChangeNotifier {
   AppState();
@@ -520,6 +521,31 @@ class AppState extends ChangeNotifier {
 
     await prefs.setString(
         _prefsKeyShownMilestones, jsonEncode(_shownMilestoneIds));
+
+    // Update Home Screen Widget
+    try {
+      final completedToday = _habits.where((h) => h.completedToday).length;
+      final totalHabits = _habits.length;
+      // Calculate max streak among all habits for the "Fire" display
+      final maxStreak = _habits.isEmpty
+          ? 0
+          : _habits
+              .map((h) => h.streak)
+              .reduce((curr, next) => curr > next ? curr : next);
+
+      // Get steps from HealthService cache or 0
+      final steps =
+          0; // We'll need to fetch this properly or pass it in, for now 0 to avoid async complexity here
+
+      await HomeWidgetService.updateWidgetData(
+        completedHabits: completedToday,
+        totalHabits: totalHabits,
+        currentStreak: maxStreak,
+        steps: steps,
+      );
+    } catch (e) {
+      print('Widget update failed: $e');
+    }
   }
 
   // ... (existing methods)

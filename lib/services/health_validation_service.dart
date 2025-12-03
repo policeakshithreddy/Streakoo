@@ -205,9 +205,9 @@ class HealthValidationService {
     }
 
     // Age contribution (0-15 points)
-    if (age > 65)
+    if (age > 65) {
       score += 15;
-    else if (age > 50)
+    } else if (age > 50)
       score += 10;
     else if (age < 18) score += 10;
 

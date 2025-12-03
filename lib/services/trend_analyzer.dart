@@ -91,13 +91,13 @@ class TrendAnalyzer {
 
     // Convert to readable time range
     if (bestHour! >= 5 && bestHour! < 12) {
-      return 'Morning (${bestHour}:00 - ${bestHour! + 1}:00)';
+      return 'Morning ($bestHour:00 - ${bestHour! + 1}:00)';
     } else if (bestHour! >= 12 && bestHour! < 17) {
-      return 'Afternoon (${bestHour}:00 - ${bestHour! + 1}:00)';
+      return 'Afternoon ($bestHour:00 - ${bestHour! + 1}:00)';
     } else if (bestHour! >= 17 && bestHour! < 21) {
-      return 'Evening (${bestHour}:00 - ${bestHour! + 1}:00)';
+      return 'Evening ($bestHour:00 - ${bestHour! + 1}:00)';
     } else {
-      return 'Night (${bestHour}:00 - ${bestHour! + 1}:00)';
+      return 'Night ($bestHour:00 - ${bestHour! + 1}:00)';
     }
   }
 

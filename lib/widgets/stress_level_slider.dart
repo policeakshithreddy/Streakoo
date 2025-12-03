@@ -20,11 +20,11 @@ class _StressLevelSliderState extends State<StressLevelSlider> {
   late double _value;
 
   final List<StressLevel> _levels = [
-    StressLevel(emoji: '😌', label: 'Very Low', color: Color(0xFF4CAF50)),
-    StressLevel(emoji: '🙂', label: 'Low', color: Color(0xFF8BC34A)),
-    StressLevel(emoji: '😐', label: 'Moderate', color: Color(0xFFFFC107)),
-    StressLevel(emoji: '😟', label: 'High', color: Color(0xFFFF9800)),
-    StressLevel(emoji: '😰', label: 'Very High', color: Color(0xFFF44336)),
+    StressLevel(emoji: '😌', label: 'Very Low', color: const Color(0xFF4CAF50)),
+    StressLevel(emoji: '🙂', label: 'Low', color: const Color(0xFF8BC34A)),
+    StressLevel(emoji: '😐', label: 'Moderate', color: const Color(0xFFFFC107)),
+    StressLevel(emoji: '😟', label: 'High', color: const Color(0xFFFF9800)),
+    StressLevel(emoji: '😰', label: 'Very High', color: const Color(0xFFF44336)),
   ];
 
   @override

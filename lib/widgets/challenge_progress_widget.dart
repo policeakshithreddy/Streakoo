@@ -366,7 +366,7 @@ class _ChallengeProgressWidgetState extends State<ChallengeProgressWidget>
                 ),
                 child: Row(
                   children: [
-                    Icon(
+                    const Icon(
                       Icons.local_fire_department,
                       size: 16,
                       color: Colors.orange,
@@ -404,12 +404,12 @@ class _ChallengeProgressWidgetState extends State<ChallengeProgressWidget>
                 ),
                 elevation: 0,
               ),
-              child: Row(
+              child: const Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Icon(Icons.insights, size: 20),
-                  const SizedBox(width: 8),
-                  const Text(
+                  Icon(Icons.insights, size: 20),
+                  SizedBox(width: 8),
+                  Text(
                     'View Detailed Progress',
                     style: TextStyle(fontWeight: FontWeight.bold),
                   ),
