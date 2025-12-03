@@ -77,7 +77,7 @@ class _HealthCoachingIntroScreenState extends State<HealthCoachingIntroScreen> {
                   child: SingleChildScrollView(
                     padding: const EdgeInsets.all(24),
                     child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                      crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
                         const SizedBox(height: 20),
                         // Hero Icon
@@ -97,7 +97,7 @@ class _HealthCoachingIntroScreenState extends State<HealthCoachingIntroScreen> {
                           ).animate().scale(
                               duration: 600.ms, curve: Curves.easeOutBack),
                         ),
-                        const SizedBox(height: 40),
+                        const SizedBox(height: 32),
 
                         // Title & Pitch
                         Text(
@@ -121,7 +121,7 @@ class _HealthCoachingIntroScreenState extends State<HealthCoachingIntroScreen> {
                             .fadeIn(delay: 200.ms)
                             .slideY(begin: 0.2, end: 0),
 
-                        const SizedBox(height: 48),
+                        const SizedBox(height: 32),
 
                         // Features List
                         _buildFeatureItem(

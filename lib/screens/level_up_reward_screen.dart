@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:confetti/confetti.dart';
+import 'package:lottie/lottie.dart';
 
 import '../models/level_reward.dart';
 import '../models/user_level.dart';
@@ -57,6 +58,8 @@ class _LevelUpRewardScreenState extends State<LevelUpRewardScreen>
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return Scaffold(
       backgroundColor: Colors.black.withOpacity(0.85),
       body: Stack(
@@ -84,92 +87,103 @@ class _LevelUpRewardScreenState extends State<LevelUpRewardScreen>
               children: [
                 const Spacer(),
 
-                // Level up badge
-                TweenAnimationBuilder<double>(
-                  tween: Tween(begin: 0.0, end: 1.0),
-                  duration: const Duration(milliseconds: 800),
-                  curve: Curves.elasticOut,
-                  builder: (context, value, child) {
-                    return Transform.scale(
-                      scale: value,
-                      child: child,
-                    );
-                  },
-                  child: Container(
-                    width: 160,
-                    height: 160,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      gradient: const LinearGradient(
-                        colors: [
-                          Color(0xFFFFD700),
-                          Color(0xFFFFA500),
-                        ],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
+                // Fire animations around level badge
+                Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    // Left fire
+                    Positioned(
+                      left: -20,
+                      child: Lottie.asset(
+                        'assets/lottie/flame_burst.json',
+                        width: 120,
+                        repeat: true,
                       ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: const Color(0xFFFFD700).withOpacity(0.5),
-                          blurRadius: 40,
-                          spreadRadius: 10,
-                        ),
-                      ],
                     ),
-                    child: Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const Text(
-                            '⭐',
-                            style: TextStyle(fontSize: 50),
+                    // Right fire
+                    Positioned(
+                      right: -20,
+                      child: Lottie.asset(
+                        'assets/lottie/flame_burst.json',
+                        width: 120,
+                        repeat: true,
+                      ),
+                    ),
+                    // Top fire
+                    Positioned(
+                      top: -10,
+                      child: Lottie.asset(
+                        'assets/lottie/flame_burst.json',
+                        width: 100,
+                        repeat: true,
+                      ),
+                    ),
+                    // Bottom fire
+                    Positioned(
+                      bottom: -10,
+                      child: Lottie.asset(
+                        'assets/lottie/flame_burst.json',
+                        width: 100,
+                        repeat: true,
+                      ),
+                    ),
+                    // Level up badge
+                    TweenAnimationBuilder<double>(
+                      tween: Tween(begin: 0.0, end: 1.0),
+                      duration: const Duration(milliseconds: 800),
+                      curve: Curves.elasticOut,
+                      builder: (context, value, child) {
+                        return Transform.scale(
+                          scale: value,
+                          child: child,
+                        );
+                      },
+                      child: Container(
+                        width: 160,
+                        height: 160,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          gradient: const LinearGradient(
+                            colors: [
+                              Color(0xFFFFD700),
+                              Color(0xFFFFA500),
+                            ],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
                           ),
-                          Text(
-                            '${widget.newLevel}',
-                            style: const TextStyle(
-                              fontSize: 42,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
+                          boxShadow: [
+                            BoxShadow(
+                              color: const Color(0xFFFFD700).withOpacity(0.5),
+                              blurRadius: 40,
+                              spreadRadius: 10,
                             ),
+                          ],
+                        ),
+                        child: Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Text(
+                                '⭐',
+                                style: TextStyle(fontSize: 50),
+                              ),
+                              Text(
+                                '${widget.newLevel}',
+                                style: const TextStyle(
+                                  fontSize: 42,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ],
                           ),
-                        ],
+                        ),
                       ),
                     ),
-                  ),
+                  ],
                 ),
 
-                const SizedBox(height: 24),
-
-                // Level up text
-                const Text(
-                  'LEVEL UP!',
-                  style: TextStyle(
-                    fontSize: 32,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                    letterSpacing: 2,
-                  ),
-                )
-                    .animate()
-                    .fadeIn(delay: 300.ms, duration: 600.ms)
-                    .slideY(begin: 0.3, end: 0),
-
-                const SizedBox(height: 8),
-
-                // Title
-                Text(
-                  widget.title,
-                  style: TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.white.withOpacity(0.9),
-                  ),
-                )
-                    .animate()
-                    .fadeIn(delay: 500.ms, duration: 600.ms)
-                    .slideY(begin: 0.3, end: 0),
-
-                const SizedBox(height: 40),
+                const SizedBox(height: 60),
 
                 // Rewards section
                 if (_showRewards && widget.rewards.isNotEmpty)
@@ -177,19 +191,11 @@ class _LevelUpRewardScreenState extends State<LevelUpRewardScreen>
                     margin: const EdgeInsets.symmetric(horizontal: 24),
                     padding: const EdgeInsets.all(20),
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: theme.colorScheme.surface,
                       borderRadius: BorderRadius.circular(24),
                     ),
                     child: Column(
                       children: [
-                        const Text(
-                          'Rewards Earned',
-                          style: TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(height: 16),
                         ...widget.rewards.map((reward) => _RewardItem(
                               reward: reward,
                             )),
@@ -204,13 +210,12 @@ class _LevelUpRewardScreenState extends State<LevelUpRewardScreen>
                     margin: const EdgeInsets.symmetric(horizontal: 24),
                     padding: const EdgeInsets.all(20),
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: theme.colorScheme.surface,
                       borderRadius: BorderRadius.circular(24),
                     ),
-                    child: const Text(
+                    child: Text(
                       'Keep building your streak for rewards!',
-                      style: TextStyle(
-                        fontSize: 16,
+                      style: theme.textTheme.bodyLarge?.copyWith(
                         fontWeight: FontWeight.w600,
                       ),
                       textAlign: TextAlign.center,
@@ -260,6 +265,8 @@ class _RewardItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
@@ -297,17 +304,15 @@ class _RewardItem extends StatelessWidget {
               children: [
                 Text(
                   reward.title,
-                  style: const TextStyle(
-                    fontSize: 16,
+                  style: theme.textTheme.titleMedium?.copyWith(
                     fontWeight: FontWeight.bold,
                   ),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   reward.description,
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: Colors.black.withOpacity(0.6),
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: theme.colorScheme.onSurface.withOpacity(0.7),
                   ),
                 ),
               ],

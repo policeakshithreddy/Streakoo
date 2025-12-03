@@ -120,6 +120,71 @@ class AIHealthCoachService {
     }
   }
 
+  /// Chat with AI coach - conversational interface with context
+  Future<String> chatWithCoach({
+    required String userMessage,
+    required dynamic challenge,
+    required Map<String, dynamic> recentMetrics,
+    required List<dynamic> habits,
+  }) async {
+    // Build context-aware system prompt
+    final challengeInfo = challenge != null
+        ? 'Active challenge: ${challenge.title}'
+        : 'No active challenge';
+
+    final stepsInfo = recentMetrics['steps'] != null
+        ? '${recentMetrics['steps']} steps today'
+        : 'No step data';
+
+    final sleepInfo = recentMetrics['sleep'] != null
+        ? '${(recentMetrics['sleep'] as double).toStringAsFixed(1)} hours sleep'
+        : 'No sleep data';
+
+    final habitCount = habits.length;
+    final completedHabits = habits.where((h) => h.completedToday).length;
+
+    const systemPrompt = '''
+You are a supportive, knowledgeable health coach having a conversation with a user.
+
+You have access to their real data:
+- Challenge: [CHALLENGE_INFO]
+- Recent activity: [STEPS_INFO], [SLEEP_INFO]
+- Habits: [HABIT_COUNT] total, [COMPLETED_HABITS] completed today
+
+Guidelines:
+1. Be conversational, empathetic, and encouraging
+2. Reference their actual data when relevant
+3. Give specific, actionable advice (2-3 sentences max)
+4. If asked about medical issues, recommend consulting a doctor
+5. Focus on sustainable, realistic changes
+6. Celebrate their progress when appropriate
+
+Keep responses under 100 words.
+''';
+
+    final contextualizedPrompt = systemPrompt
+        .replaceAll('[CHALLENGE_INFO]', challengeInfo)
+        .replaceAll('[STEPS_INFO]', stepsInfo)
+        .replaceAll('[SLEEP_INFO]', sleepInfo)
+        .replaceAll('[HABIT_COUNT]', habitCount.toString())
+        .replaceAll('[COMPLETED_HABITS]', completedHabits.toString());
+
+    try {
+      final response = await _aiService.generateResponse(
+        systemPrompt: contextualizedPrompt,
+        userPrompt: userMessage,
+        temperature: 0.8, // More conversational
+        maxTokens: 200,
+      );
+
+      return response?.trim() ??
+          'I\'m here to help! Can you rephrase your question?';
+    } catch (e) {
+      print('Error in chat: $e');
+      return 'Sorry, I couldn\'t process that right now. Please try again!';
+    }
+  }
+
   Future<String> generateWeeklyHealthSummary({
     required List<int> steps,
     required List<double> sleep,

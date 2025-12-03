@@ -11,7 +11,7 @@ This project is submitted for the Google Agents Intensive Capstone Project.
 ## ✨ Features
 
 *   **Gamification**: Earn XP, level up, and unlock avatars by completing habits.
-*   **AI Coach**: Personalized health and habit advice powered by **Google Gemini**.
+*   **AI Coach**: Personalized health and habit advice powered by **Groq (Llama models)**.
 *   **Real-Time Sync**: "Every single bit" of data is instantly synced to the cloud using **Supabase**.
 *   **Health Integration**: Connects with Google Fit / Health Connect for automatic habit tracking (steps, sleep, etc.).
 *   **Smart Reminders**: Local notifications to keep you on track.
@@ -21,7 +21,7 @@ This project is submitted for the Google Agents Intensive Capstone Project.
 
 *   **Frontend**: Flutter (Dart)
 *   **Backend**: Supabase (PostgreSQL, Auth, Realtime)
-*   **AI**: Google Gemini API (via `google_generative_ai` package)
+*   **AI**: Groq API with Llama models
 *   **State Management**: Provider
 
 ## 🚀 Getting Started
@@ -33,7 +33,8 @@ Follow these instructions to set up the project locally.
 *   Flutter SDK (Latest Stable)
 *   Dart SDK
 *   A Supabase Account (Free Tier is fine)
-*   A Google Cloud Project with Gemini API enabled (AI Studio)
+*   A Groq API Key (Free from [Groq Cloud](https://console.groq.com))
+*   Google OAuth Client IDs for authentication
 
 ### 1. Clone the Repository
 
@@ -110,16 +111,27 @@ create policy "Users can update their own level" on public.user_levels for updat
 
 ### 3. Environment Configuration
 
-Create a `.env` file in the root directory (or update `lib/services/supabase_service.dart` / `lib/config.dart` if hardcoded) with your keys:
+**IMPORTANT**: This project uses environment variables for security. Follow these steps:
 
-```dart
-// In lib/main.dart or a config file
-const supabaseUrl = 'YOUR_SUPABASE_URL';
-const supabaseAnonKey = 'YOUR_SUPABASE_ANON_KEY';
-const geminiApiKey = 'YOUR_GEMINI_API_KEY';
-```
+1. Copy the example environment file:
+   ```bash
+   cp lib/config/env.example.dart lib/config/env.dart
+   ```
 
-*(Note: Ensure you don't commit your actual keys if using a public repo. For this submission, keys might be required in a private note or configured by the judges).*
+2. Edit `lib/config/env.dart` and replace the placeholder values:
+   ```dart
+   class Env {
+     static const String supabaseUrl = 'YOUR_SUPABASE_URL';
+     static const String supabaseAnonKey = 'YOUR_SUPABASE_ANON_KEY';
+     static const String googleWebClientId = 'YOUR_GOOGLE_WEB_CLIENT_ID';
+     static const String googleIosClientId = 'YOUR_GOOGLE_IOS_CLIENT_ID';
+     static const String groqApiKey = 'YOUR_GROQ_API_KEY';
+   }
+   ```
+
+3. Get your Groq API key from [Groq Cloud Console](https://console.groq.com/keys)
+
+**Note**: `lib/config/env.dart` is gitignored and will never be committed to version control.
 
 ### 4. Run the App
 

@@ -24,7 +24,7 @@ dependencies:
   http: ^1.2.2
   uuid: ^4.4.0
   # 🎉 Premium features
-  confetti: ^0.7.0
+  confetti: ^0.8.0
   fl_chart: ^0.69.0
   vibration: ^2.0.0
   intl: ^0.19.0
@@ -34,6 +34,7 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^4.0.0
+  flutter_launcher_icons: ^0.14.4
 
 flutter:
   uses-material-design: true
@@ -42,3 +43,11 @@ flutter:
     - assets/images/
     - assets/icons/
     - assets/lottie/
+
+# App Launcher Icon Configuration
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/images/logo.png"
+  adaptive_icon_background: "#FFFFFF"
+  adaptive_icon_foreground: "assets/images/logo.png"

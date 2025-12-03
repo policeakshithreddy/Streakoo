@@ -41,11 +41,10 @@ class CelebrationConfig {
     return CelebrationConfig(
       trigger: CelebrationTrigger.allHabitsCompleted,
       showConfetti: true,
-      showFireworks: true,
+      showFireworks: false, // Only confetti, no fireworks
       enableHaptics: true,
-      showBanner: true,
-      bannerMessage: '🏆 Daily Goal Achieved!\nYou completed all habits today!',
-      duration: const Duration(seconds: 4),
+      showBanner: false, // Only visual celebration, no text
+      duration: const Duration(seconds: 3),
     );
   }
 
@@ -55,8 +54,7 @@ class CelebrationConfig {
       showConfetti: true,
       showFireworks: false,
       enableHaptics: true,
-      showBanner: true,
-      bannerMessage: '🎉 Achievement Unlocked!\n$achievementName',
+      showBanner: false, // Only visual celebration, no text
       duration: const Duration(milliseconds: 2500),
     );
   }
@@ -65,10 +63,9 @@ class CelebrationConfig {
     return CelebrationConfig(
       trigger: CelebrationTrigger.levelUp,
       showConfetti: true,
-      showFireworks: true,
+      showFireworks: false, // Only confetti, no fireworks
       enableHaptics: true,
-      showBanner: true,
-      bannerMessage: '⭐ Level Up!\nYou are now Level $newLevel: $title',
+      showBanner: false, // Only visual celebration, no text
       duration: const Duration(seconds: 3),
     );
   }
@@ -77,10 +74,9 @@ class CelebrationConfig {
     return CelebrationConfig(
       trigger: CelebrationTrigger.streakMilestone,
       showConfetti: true,
-      showFireworks: true,
+      showFireworks: false, // Only confetti, no fireworks
       enableHaptics: true,
-      showBanner: true,
-      bannerMessage: '🔥 Streak Milestone!\n$days days strong!',
+      showBanner: false, // Only visual celebration, no text
       duration: const Duration(milliseconds: 2500),
     );
   }

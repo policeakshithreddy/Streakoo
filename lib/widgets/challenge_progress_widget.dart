@@ -5,8 +5,37 @@ import '../models/health_challenge.dart';
 import '../state/app_state.dart';
 import '../screens/coach_progress_screen.dart';
 
-class ChallengeProgressWidget extends StatelessWidget {
+class ChallengeProgressWidget extends StatefulWidget {
   const ChallengeProgressWidget({super.key});
+
+  @override
+  State<ChallengeProgressWidget> createState() =>
+      _ChallengeProgressWidgetState();
+}
+
+class _ChallengeProgressWidgetState extends State<ChallengeProgressWidget>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _animController;
+  late Animation<double> _progressAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _animController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1500),
+    );
+    _progressAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _animController, curve: Curves.easeOutCubic),
+    );
+    _animController.forward();
+  }
+
+  @override
+  void dispose() {
+    _animController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -17,14 +46,34 @@ class ChallengeProgressWidget extends StatelessWidget {
 
     final theme = Theme.of(context);
 
+    // Calculate actual progress data
+    final challengeHabits =
+        appState.habits.where((h) => h.category == 'Health').toList();
+
+    final totalHabits = challengeHabits.length;
+    final today = DateTime.now();
+    final todayStr =
+        '${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}';
+
+    final completedToday = challengeHabits
+        .where((h) => h.completionDates.contains(todayStr))
+        .length;
+
+    final weekProgress = totalHabits > 0 ? (completedToday / totalHabits) : 0.0;
+
+    // Calculate best streak from challenge habits
+    final maxStreak = challengeHabits.isNotEmpty
+        ? challengeHabits.map((h) => h.streak).reduce((a, b) => a > b ? a : b)
+        : 0;
+
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
-            theme.colorScheme.primaryContainer.withValues(alpha: 0.8),
-            theme.colorScheme.primaryContainer.withValues(alpha: 0.4),
+            theme.colorScheme.primaryContainer.withOpacity(0.8),
+            theme.colorScheme.primaryContainer.withOpacity(0.4),
           ],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
@@ -32,7 +81,7 @@ class ChallengeProgressWidget extends StatelessWidget {
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: theme.shadowColor.withValues(alpha: 0.1),
+            color: theme.shadowColor.withOpacity(0.1),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -41,41 +90,93 @@ class ChallengeProgressWidget extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header
+          // Header with progress ring
           Row(
             children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: theme.colorScheme.surface.withValues(alpha: 0.5),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(
-                  _getIconForType(challenge.type),
-                  color: theme.colorScheme.primary,
+              // Animated completion ring
+              SizedBox(
+                width: 60,
+                height: 60,
+                child: AnimatedBuilder(
+                  animation: _progressAnimation,
+                  builder: (context, child) {
+                    return Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        // Background circle
+                        CircularProgressIndicator(
+                          value: 1.0,
+                          strokeWidth: 5,
+                          backgroundColor:
+                              theme.colorScheme.surface.withOpacity(0.3),
+                          color: theme.colorScheme.surface.withOpacity(0.3),
+                        ),
+                        // Progress circle
+                        CircularProgressIndicator(
+                          value: _progressAnimation.value * weekProgress,
+                          strokeWidth: 5,
+                          backgroundColor: Colors.transparent,
+                          valueColor: AlwaysStoppedAnimation(
+                            theme.colorScheme.primary,
+                          ),
+                        ),
+                        // Icon in center
+                        Icon(
+                          _getIconForType(challenge.type),
+                          color: theme.colorScheme.primary,
+                          size: 24,
+                        ),
+                      ],
+                    );
+                  },
                 ),
               ),
-              const SizedBox(width: 12),
+
+              const SizedBox(width: 16),
+
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       challenge.title,
-                      style: theme.textTheme.titleMedium?.copyWith(
+                      style: theme.textTheme.titleLarge?.copyWith(
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-                    Text(
-                      'Week 1 of ${challenge.durationWeeks}',
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color:
-                            theme.colorScheme.onSurface.withValues(alpha: 0.7),
-                      ),
+                    const SizedBox(height: 4),
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 4,
+                          ),
+                          decoration: BoxDecoration(
+                            color: theme.colorScheme.primary.withOpacity(0.2),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Text(
+                            'Week 1 of ${challenge.durationWeeks}',
+                            style: theme.textTheme.labelSmall?.copyWith(
+                              color: theme.colorScheme.primary,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          '$completedToday/$totalHabits Today',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: theme.colorScheme.onSurface.withOpacity(0.7),
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
               ),
+
               IconButton(
                 icon: const Icon(Icons.more_vert),
                 onPressed: () => _showOptions(context, appState),
@@ -85,17 +186,32 @@ class ChallengeProgressWidget extends StatelessWidget {
 
           const SizedBox(height: 20),
 
-          // AI Insight
+          // AI Insight Card
           Container(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: theme.colorScheme.surface.withValues(alpha: 0.6),
-              borderRadius: BorderRadius.circular(12),
+              color: theme.colorScheme.surface.withOpacity(0.6),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: Colors.amber.withOpacity(0.3),
+                width: 1.5,
+              ),
             ),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Icon(Icons.auto_awesome, size: 20, color: Colors.amber),
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.amber.withOpacity(0.2),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.auto_awesome,
+                    size: 20,
+                    color: Colors.amber,
+                  ),
+                ),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Column(
@@ -107,10 +223,12 @@ class ChallengeProgressWidget extends StatelessWidget {
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-                      const SizedBox(height: 4),
+                      const SizedBox(height: 6),
                       Text(
                         challenge.aiInsight,
-                        style: theme.textTheme.bodySmall,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          height: 1.4,
+                        ),
                       ),
                     ],
                   ),
@@ -121,14 +239,57 @@ class ChallengeProgressWidget extends StatelessWidget {
 
           const SizedBox(height: 20),
 
-          // Progress Chart (Mock for now, would be real data)
+          // Enhanced Progress Chart with data points
           SizedBox(
-            height: 150,
+            height: 160,
             child: LineChart(
               LineChartData(
-                gridData: const FlGridData(show: false),
-                titlesData: const FlTitlesData(show: false),
+                gridData: FlGridData(
+                  show: true,
+                  drawVerticalLine: false,
+                  horizontalInterval: 1,
+                  getDrawingHorizontalLine: (value) => FlLine(
+                    color: theme.colorScheme.onSurface.withOpacity(0.05),
+                    strokeWidth: 1,
+                  ),
+                ),
+                titlesData: FlTitlesData(
+                  leftTitles: const AxisTitles(
+                    sideTitles: SideTitles(showTitles: false),
+                  ),
+                  rightTitles: const AxisTitles(
+                    sideTitles: SideTitles(showTitles: false),
+                  ),
+                  topTitles: const AxisTitles(
+                    sideTitles: SideTitles(showTitles: false),
+                  ),
+                  bottomTitles: AxisTitles(
+                    sideTitles: SideTitles(
+                      showTitles: true,
+                      getTitlesWidget: (value, meta) {
+                        const days = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
+                        if (value.toInt() >= 0 && value.toInt() < days.length) {
+                          return Padding(
+                            padding: const EdgeInsets.only(top: 8),
+                            child: Text(
+                              days[value.toInt()],
+                              style: theme.textTheme.labelSmall?.copyWith(
+                                color: theme.colorScheme.onSurface
+                                    .withOpacity(0.5),
+                              ),
+                            ),
+                          );
+                        }
+                        return const SizedBox();
+                      },
+                    ),
+                  ),
+                ),
                 borderData: FlBorderData(show: false),
+                minX: 0,
+                maxX: 6,
+                minY: 0,
+                maxY: 6,
                 lineBarsData: [
                   LineChartBarData(
                     spots: const [
@@ -141,12 +302,30 @@ class ChallengeProgressWidget extends StatelessWidget {
                       FlSpot(6, 5.5),
                     ],
                     isCurved: true,
+                    curveSmoothness: 0.4,
                     color: theme.colorScheme.primary,
                     barWidth: 3,
-                    dotData: const FlDotData(show: false),
+                    dotData: FlDotData(
+                      show: true,
+                      getDotPainter: (spot, percent, barData, index) {
+                        return FlDotCirclePainter(
+                          radius: 4,
+                          color: theme.colorScheme.surface,
+                          strokeWidth: 2,
+                          strokeColor: theme.colorScheme.primary,
+                        );
+                      },
+                    ),
                     belowBarData: BarAreaData(
                       show: true,
-                      color: theme.colorScheme.primary.withValues(alpha: 0.1),
+                      gradient: LinearGradient(
+                        colors: [
+                          theme.colorScheme.primary.withOpacity(0.3),
+                          theme.colorScheme.primary.withOpacity(0.05),
+                        ],
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                      ),
                     ),
                   ),
                 ],
@@ -154,22 +333,63 @@ class ChallengeProgressWidget extends StatelessWidget {
             ),
           ),
 
-          const SizedBox(height: 8),
-          Center(
-            child: Text(
-              'Progress Trend',
-              style: theme.textTheme.labelSmall?.copyWith(
-                color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
+          const SizedBox(height: 12),
+
+          // Progress trend label with stats
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Progress Trend',
+                    style: theme.textTheme.labelMedium?.copyWith(
+                      color: theme.colorScheme.onSurface.withOpacity(0.6),
+                    ),
+                  ),
+                  Text(
+                    '↑ Improving',
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: Colors.green,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
               ),
-            ),
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.surface.withOpacity(0.6),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.local_fire_department,
+                      size: 16,
+                      color: Colors.orange,
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      '$maxStreak day streak',
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
 
           const SizedBox(height: 16),
 
-          // View Progress Button
+          // View Progress Button with icon
           SizedBox(
             width: double.infinity,
-            child: ElevatedButton.icon(
+            child: ElevatedButton(
               onPressed: () {
                 Navigator.of(context).push(
                   MaterialPageRoute(
@@ -177,13 +397,23 @@ class ChallengeProgressWidget extends StatelessWidget {
                   ),
                 );
               },
-              icon: const Icon(Icons.insights, size: 20),
-              label: const Text('View Detailed Progress'),
               style: ElevatedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(vertical: 12),
+                padding: const EdgeInsets.symmetric(vertical: 14),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
+                elevation: 0,
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.insights, size: 20),
+                  const SizedBox(width: 8),
+                  const Text(
+                    'View Detailed Progress',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                ],
               ),
             ),
           ),

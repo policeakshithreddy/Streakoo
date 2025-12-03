@@ -10,7 +10,9 @@ import '../models/weekly_report.dart';
 import '../services/supabase_service.dart';
 import '../services/health_service.dart';
 import '../models/health_challenge.dart';
+import '../models/milestone.dart';
 import '../services/local_notification_service.dart';
+import '../services/milestone_detector.dart';
 
 class AppState extends ChangeNotifier {
   AppState();
@@ -43,6 +45,11 @@ class AppState extends ChangeNotifier {
 
   // Health Challenge
   HealthChallenge? _activeHealthChallenge;
+
+  // Milestones
+  final List<Milestone> _achievedMilestones = [];
+  final List<String> _shownMilestoneIds =
+      []; // Track which milestones were already shown
 
   // ----------------- Getters -----------------
   List<Habit> get habits => List.unmodifiable(_habits);
@@ -103,6 +110,12 @@ class AppState extends ChangeNotifier {
   // Health Challenge Getter
   HealthChallenge? get activeHealthChallenge => _activeHealthChallenge;
 
+  // Milestone Getters
+  List<Milestone> get achievedMilestones =>
+      List.unmodifiable(_achievedMilestones);
+  Milestone? get latestMilestone =>
+      _achievedMilestones.isEmpty ? null : _achievedMilestones.last;
+
   // Health Challenge Setter with Cloud Sync
   Future<void> setActiveHealthChallenge(HealthChallenge? challenge) async {
     _activeHealthChallenge = challenge;
@@ -159,6 +172,8 @@ class AppState extends ChangeNotifier {
   static const _prefsKeyLastWeeklyReport = 'last_weekly_report';
   static const _prefsKeyLastBackup = 'lastBackupDate';
   static const _prefsKeyActiveChallenge = 'active_challenge_v1';
+  static const _prefsKeyAchievedMilestones = 'achieved_milestones';
+  static const _prefsKeyShownMilestones = 'shown_milestone_ids';
 
   // ----------------- Load / Save -----------------
   Future<void> loadPreferences() async {
@@ -297,6 +312,31 @@ class AppState extends ChangeNotifier {
             HealthChallenge.fromJson(jsonDecode(challengeJson));
       } catch (e) {
         print('Error loading active challenge: $e');
+      }
+    }
+
+    // Load Milestones
+    final milestonesJson = prefs.getString(_prefsKeyAchievedMilestones);
+    if (milestonesJson != null && milestonesJson.isNotEmpty) {
+      try {
+        final list = jsonDecode(milestonesJson) as List;
+        _achievedMilestones
+          ..clear()
+          ..addAll(
+              list.map((e) => Milestone.fromJson(e as Map<String, dynamic>)));
+      } catch (e) {
+        print('Error loading milestones: $e');
+      }
+    }
+
+    final shownIdsJson = prefs.getString(_prefsKeyShownMilestones);
+    if (shownIdsJson != null) {
+      try {
+        final list = jsonDecode(shownIdsJson) as List;
+        _shownMilestoneIds.clear();
+        _shownMilestoneIds.addAll(list.map((e) => e as String));
+      } catch (e) {
+        print('Error loading shown milestone IDs: $e');
       }
     }
 
@@ -472,6 +512,14 @@ class AppState extends ChangeNotifier {
     } else {
       await prefs.remove(_prefsKeyActiveChallenge);
     }
+
+    // Save Milestones
+    final milestonesEncoded =
+        jsonEncode(_achievedMilestones.map((m) => m.toJson()).toList());
+    await prefs.setString(_prefsKeyAchievedMilestones, milestonesEncoded);
+
+    await prefs.setString(
+        _prefsKeyShownMilestones, jsonEncode(_shownMilestoneIds));
   }
 
   // ... (existing methods)
@@ -542,7 +590,7 @@ class AppState extends ChangeNotifier {
   }
 
   // ----------------- Completion / streaks -----------------
-  void completeHabit(Habit habit, {bool isAiTriggered = false}) {
+  Future<void> completeHabit(Habit habit, {bool isAiTriggered = false}) async {
     final index = _habits.indexWhere((h) => h.id == habit.id);
     if (index == -1) return;
 
@@ -652,7 +700,6 @@ class AppState extends ChangeNotifier {
 
     // Replace with NEW habit instance
     _habits[index] = updated;
-
     // Debug: Verify streak updated
     print(
         '✅ Habit "${updated.name}" completed! Streak: ${updated.streak} days');
@@ -666,6 +713,75 @@ class AppState extends ChangeNotifier {
     if (_userLevel != null) {
       supabase.upsertUserLevel(_userLevel!, _totalXP);
     }
+
+    // Check for milestones if there's an active challenge
+    if (_activeHealthChallenge != null) {
+      await _checkForNewMilestones();
+    }
+  }
+
+  /// Check for new milestones based on current challenge progress
+  Future<List<Milestone>> _checkForNewMilestones() async {
+    if (_activeHealthChallenge == null) return [];
+
+    // Get challenge habits
+    final challengeHabits = _habits.where((h) {
+      // Simple check - in a real app you'd track which habits are part of the challenge
+      return h.category == 'Health' || h.category == 'Sports';
+    }).toList();
+
+    // Gather today's metrics
+    final todayMetrics = <String, dynamic>{};
+    try {
+      final healthService = HealthService.instance;
+      todayMetrics['steps'] = await healthService.getStepCount(DateTime.now());
+      todayMetrics['sleep'] = await healthService.getSleepHours(DateTime.now());
+    } catch (e) {
+      // Health data might not be available
+    }
+
+    // Get historical data for personal bests
+    final prefs = await SharedPreferences.getInstance();
+    final historicalData = <String, dynamic>{
+      'allTimeMaxSteps': prefs.getInt('allTimeMaxSteps') ?? 0,
+    };
+
+    // Update personal best if needed
+    final todaySteps = todayMetrics['steps'] as int? ?? 0;
+    if (todaySteps > historicalData['allTimeMaxSteps']!) {
+      await prefs.setInt('allTimeMaxSteps', todaySteps);
+    }
+
+    // Detect new milestones
+    final newMilestones = MilestoneDetector.checkForMilestones(
+      challenge: _activeHealthChallenge!,
+      todayMetrics: todayMetrics,
+      historicalData: historicalData,
+      challengeHabits: challengeHabits,
+    );
+
+    // Filter out already shown milestones
+    final unseenMilestones = newMilestones.where((m) {
+      return !_shownMilestoneIds.contains(m.id);
+    }).toList();
+
+    // Add to achieved milestones and mark as shown
+    for (final milestone in unseenMilestones) {
+      _achievedMilestones.add(milestone);
+      _shownMilestoneIds.add(milestone.id);
+    }
+
+    if (unseenMilestones.isNotEmpty) {
+      await _savePreferences();
+      notifyListeners();
+    }
+
+    return unseenMilestones;
+  }
+
+  /// Public method to manually check for milestones (can be called from UI)
+  Future<List<Milestone>> checkForNewMilestones() async {
+    return await _checkForNewMilestones();
   }
 
   // Helper to calculate streak from dates
