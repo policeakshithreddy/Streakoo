@@ -9,6 +9,7 @@ import 'screens/welcome_screen.dart';
 import 'services/health_checker_service.dart';
 import 'services/local_notification_service.dart';
 import 'config/env.dart';
+import 'utils/animation_config.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -25,6 +26,9 @@ Future<void> main() async {
   final appState = AppState();
   await appState.loadPreferences();
   await LocalNotificationService.init();
+
+  // Initialize animation config (detects device capability)
+  await AnimationConfig.instance.init();
 
   // Start periodic health data checking (every 15 minutes)
   HealthCheckerService.instance.startPeriodicCheck(appState);

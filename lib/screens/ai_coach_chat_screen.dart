@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:provider/provider.dart';
 import '../models/chat_message.dart';
 import '../services/ai_health_coach_service.dart';
@@ -264,7 +265,8 @@ class _AICoachChatScreenState extends State<AICoachChatScreen> {
                 color: theme.colorScheme.primary,
                 size: 20,
               ),
-            ),
+            ).animate().scale(
+                delay: 100.ms, duration: 300.ms, curve: Curves.elasticOut),
             const SizedBox(width: 8),
           ],
           Flexible(
@@ -284,7 +286,12 @@ class _AICoachChatScreenState extends State<AICoachChatScreen> {
                       : theme.colorScheme.onSurface,
                 ),
               ),
-            ),
+            ).animate().fadeIn(duration: 300.ms).slideX(
+                  begin: isUser ? 0.3 : -0.3,
+                  end: 0,
+                  duration: 300.ms,
+                  curve: Curves.easeOutCubic,
+                ),
           ),
           if (isUser) ...[
             const SizedBox(width: 8),
@@ -295,7 +302,8 @@ class _AICoachChatScreenState extends State<AICoachChatScreen> {
                 color: theme.colorScheme.onPrimary,
                 size: 20,
               ),
-            ),
+            ).animate().scale(
+                delay: 100.ms, duration: 300.ms, curve: Curves.elasticOut),
           ],
         ],
       ),

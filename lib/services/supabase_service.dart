@@ -1,5 +1,9 @@
+import 'dart:async';
+import 'dart:io' show Platform;
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:url_launcher/url_launcher.dart' show LaunchMode;
 import '../models/habit.dart';
 import '../models/user_level.dart';
 import '../config/env.dart';
@@ -14,6 +18,12 @@ class SupabaseService {
   // Get current user
   User? get currentUser => _client.auth.currentUser;
   bool get isAuthenticated => currentUser != null;
+
+  // Check if running on desktop (macOS, Windows, Linux)
+  bool get isDesktop {
+    if (kIsWeb) return false;
+    return Platform.isMacOS || Platform.isWindows || Platform.isLinux;
+  }
 
   // ============ AUTHENTICATION ============
 
@@ -42,7 +52,54 @@ class SupabaseService {
   }
 
   Future<AuthResponse> signInWithGoogleNative() async {
-    // Native Google Sign In
+    // For desktop (macOS/Windows/Linux), use Supabase OAuth browser flow
+    if (isDesktop) {
+      return await _signInWithGoogleDesktop();
+    }
+
+    // For mobile (iOS/Android), use native Google Sign-In
+    return await _signInWithGoogleMobile();
+  }
+
+  /// Desktop Google Sign-In using Supabase OAuth (opens browser)
+  Future<AuthResponse> _signInWithGoogleDesktop() async {
+    // For desktop, we'll open the browser and listen for auth state change
+    // Supabase will redirect to the project's configured site URL
+    final response = await _client.auth.signInWithOAuth(
+      OAuthProvider.google,
+      authScreenLaunchMode: LaunchMode.externalApplication,
+    );
+
+    if (!response) {
+      throw 'Failed to initiate Google Sign-In';
+    }
+
+    // Wait for the auth state to change (user completes sign-in in browser)
+    final completer = Completer<AuthResponse>();
+    bool completed = false;
+
+    late final StreamSubscription<AuthState> subscription;
+    subscription = _client.auth.onAuthStateChange.listen((data) {
+      if (data.session != null && !completed) {
+        completed = true;
+        subscription.cancel();
+        completer.complete(
+            AuthResponse(session: data.session, user: data.session?.user));
+      }
+    });
+
+    // Timeout after 3 minutes
+    return completer.future.timeout(
+      const Duration(minutes: 3),
+      onTimeout: () {
+        subscription.cancel();
+        throw 'Sign-in timed out. Please try again.';
+      },
+    );
+  }
+
+  /// Mobile Google Sign-In using native SDK
+  Future<AuthResponse> _signInWithGoogleMobile() async {
     const webClientId = Env.googleWebClientId;
     const iosClientId = Env.googleIosClientId;
 
@@ -169,7 +226,6 @@ class SupabaseService {
 
     final userId = currentUser!.id;
 
-    // 1. Try Full Schema (Everything)
     try {
       await _client.from('habits').upsert({
         'id': habit.id,
@@ -178,53 +234,39 @@ class SupabaseService {
         'emoji': habit.emoji,
         'category': habit.category,
         'streak': habit.streak,
+        'completion_dates': habit.completionDates, // JSONB
+
+        // Focus Task
         'is_focus_task': habit.isFocusTask,
         'focus_task_priority': habit.focusTaskPriority,
-        'completion_dates': habit.completionDates,
-        'health_metric': habit.healthMetric?.name,
-        'health_goal_value': habit.healthGoalValue,
+
+        // Gamification
         'xp_value': habit.xpValue,
         'difficulty': habit.difficulty,
+
+        // Health
+        'is_health_tracked': habit.isHealthTracked,
+        'health_metric': habit.healthMetric?.index,
+        'health_goal_value': habit.healthGoalValue,
+
+        // Customization
+        'custom_color': habit.customColor,
+        'custom_icon': habit.customIcon,
         'reminder_time': habit.reminderTime,
         'reminder_enabled': habit.reminderEnabled,
-      }).timeout(const Duration(seconds: 5));
-      // print('✅ Synced habit "${habit.name}" (Full Schema)');
-      return;
-    } catch (e) {
-      // Ignore error, try next schema
-    }
+        'frequency_days': habit.frequencyDays, // JSONB
 
-    // 2. Try Extended Schema (Focus Tasks)
-    try {
-      await _client.from('habits').upsert({
-        'id': habit.id,
-        'user_id': userId,
-        'name': habit.name,
-        'emoji': habit.emoji,
-        'category': habit.category,
-        'streak': habit.streak,
-        'is_focus_task': habit.isFocusTask,
-        'focus_task_priority': habit.focusTaskPriority,
-      }).timeout(const Duration(seconds: 5));
-      // print('✅ Synced habit "${habit.name}" (Extended Schema)');
-      return;
-    } catch (e) {
-      // Ignore error, try next schema
-    }
+        // Challenge
+        'challenge_target_days': habit.challengeTargetDays,
+        'challenge_progress': habit.challengeProgress,
+        'challenge_completed': habit.challengeCompleted,
 
-    // 3. Fallback to Minimal Schema
-    try {
-      await _client.from('habits').upsert({
-        'id': habit.id,
-        'user_id': userId,
-        'name': habit.name,
-        'emoji': habit.emoji,
-        'category': habit.category,
-        'streak': habit.streak,
-      }).timeout(const Duration(seconds: 5));
-      // print('✅ Synced habit "${habit.name}" (Minimal Schema)');
+        'updated_at': DateTime.now().toIso8601String(),
+      }).timeout(const Duration(seconds: 10));
+      // print('✅ Synced habit "${habit.name}"');
     } catch (e) {
       print('❌ Failed to sync habit "${habit.name}": $e');
+      // Don't rethrow to avoid blocking UI, but log it.
     }
   }
 
@@ -288,9 +330,8 @@ class SupabaseService {
       // Continue to insert even if delete fails (best effort)
     }
 
-    // Insert new habits - try with extended schema including focus tasks
-    // If that fails, fall back to minimal schema
-    final extendedData = habits.map((h) {
+    // Prepare full data payload
+    final fullData = habits.map((h) {
       return {
         'id': h.id,
         'user_id': userId,
@@ -298,46 +339,44 @@ class SupabaseService {
         'emoji': h.emoji,
         'category': h.category,
         'streak': h.streak,
+        'completion_dates': h.completionDates, // JSONB
+
+        // Focus Task
         'is_focus_task': h.isFocusTask,
         'focus_task_priority': h.focusTaskPriority,
+
+        // Gamification
+        'xp_value': h.xpValue,
+        'difficulty': h.difficulty,
+
+        // Health
+        'is_health_tracked': h.isHealthTracked,
+        'health_metric': h.healthMetric?.index,
+        'health_goal_value': h.healthGoalValue,
+
+        // Customization
+        'custom_color': h.customColor,
+        'custom_icon': h.customIcon,
+        'reminder_time': h.reminderTime,
+        'reminder_enabled': h.reminderEnabled,
+        'frequency_days': h.frequencyDays, // JSONB
+
+        // Challenge
+        'challenge_target_days': h.challengeTargetDays,
+        'challenge_progress': h.challengeProgress,
+        'challenge_completed': h.challengeCompleted,
+
+        'updated_at': DateTime.now().toIso8601String(),
       };
     }).toList();
 
-    if (extendedData.isNotEmpty) {
+    if (fullData.isNotEmpty) {
       try {
-        // Try with extended schema (includes focus task fields)
         await _client
             .from('habits')
-            .insert(extendedData)
+            .insert(fullData)
             .timeout(const Duration(seconds: 30));
-        print('✅ Backed up ${extendedData.length} habits with focus task data');
-      } on PostgrestException catch (e) {
-        // If extended schema fails, try minimal schema
-        print('⚠️ Extended schema failed: ${e.message}');
-        print('🔄 Retrying with minimal schema...');
-
-        final minimalData = habits.map((h) {
-          return {
-            'id': h.id,
-            'user_id': userId,
-            'name': h.name,
-            'emoji': h.emoji,
-            'category': h.category,
-            'streak': h.streak,
-          };
-        }).toList();
-
-        try {
-          await _client
-              .from('habits')
-              .insert(minimalData)
-              .timeout(const Duration(seconds: 30));
-          print(
-              '✅ Backed up ${minimalData.length} habits (minimal schema - without focus tasks)');
-        } catch (retryError) {
-          print('❌ Minimal backup also failed: $retryError');
-          rethrow;
-        }
+        print('✅ Backed up ${fullData.length} habits with FULL data');
       } catch (e) {
         print('❌ Backup failed: $e');
         rethrow;

@@ -3,10 +3,12 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@drawable/widget_background"
-    android:padding="16dp">
+    android:padding="12dp"
+    android:id="@+id/widget_container">
 
+    <!-- Header: App Name + Streak -->
     <LinearLayout
-        android:id="@+id/header_container"
+        android:id="@+id/header"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
@@ -15,26 +17,43 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Streakoo"
-            android:textSize="14sp"
+            android:text="🚀 Streakoo"
+            android:textSize="16sp"
             android:textStyle="bold"
-            android:textColor="#FFFFFF" />
+            android:textColor="#FFFFFF"
+            android:shadowColor="#00000040"
+            android:shadowDx="1"
+            android:shadowDy="1"
+            android:shadowRadius="2" />
 
         <View
             android:layout_width="0dp"
             android:layout_height="0dp"
             android:layout_weight="1" />
 
-        <TextView
-            android:id="@+id/streak_text"
+        <!-- Streak Badge -->
+        <LinearLayout
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="🔥 0"
-            android:textSize="14sp"
-            android:textColor="#FF9800"
-            android:textStyle="bold" />
+            android:background="@drawable/widget_streak_badge"
+            android:paddingStart="10dp"
+            android:paddingEnd="10dp"
+            android:paddingTop="4dp"
+            android:paddingBottom="4dp"
+            android:gravity="center">
+
+            <TextView
+                android:id="@+id/streak_text"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="🔥 0"
+                android:textSize="14sp"
+                android:textColor="#FFFFFF"
+                android:textStyle="bold" />
+        </LinearLayout>
     </LinearLayout>
 
+    <!-- Center: Big Number -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -47,43 +66,52 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="0/0"
-            android:textSize="32sp"
+            android:textSize="48sp"
             android:textStyle="bold"
-            android:textColor="#FFFFFF" />
+            android:textColor="#FFFFFF"
+            android:shadowColor="#00000040"
+            android:shadowDx="2"
+            android:shadowDy="2"
+            android:shadowRadius="4" />
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Habits Done"
-            android:textSize="12sp"
-            android:textColor="#AAAAAA" />
+            android:text="Habits Complete"
+            android:textSize="14sp"
+            android:textColor="#FFFFFFCC"
+            android:textStyle="bold" />
 
+        <!-- Progress Bar -->
         <ProgressBar
             android:id="@+id/habits_progress_bar"
             style="?android:attr/progressBarStyleHorizontal"
             android:layout_width="match_parent"
-            android:layout_height="8dp"
-            android:layout_marginTop="8dp"
+            android:layout_height="12dp"
+            android:layout_marginTop="12dp"
+            android:layout_marginStart="16dp"
+            android:layout_marginEnd="16dp"
             android:progressDrawable="@drawable/widget_progress_drawable"
             android:max="100"
             android:progress="0" />
-
     </LinearLayout>
 
+    <!-- Footer: Steps -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_alignParentBottom="true"
         android:orientation="horizontal"
-        android:gravity="center_vertical">
+        android:gravity="center">
 
         <TextView
             android:id="@+id/steps_text"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="👣 0 Steps"
-            android:textSize="12sp"
-            android:textColor="#4CAF50" />
+            android:text="👟 0 steps today"
+            android:textSize="13sp"
+            android:textColor="#FFFFFFBB"
+            android:textStyle="bold" />
     </LinearLayout>
 
 </RelativeLayout>

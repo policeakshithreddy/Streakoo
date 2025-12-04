@@ -38,6 +38,14 @@
 				<string>com.googleusercontent.apps.702386062862-t991vnehk8ii8av5u0rbji0n9ihepr2u</string>
 			</array>
 		</dict>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Viewer</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>io.supabase.streakoo</string>
+			</array>
+		</dict>
 	</array>
 </dict>
 </plist>
