@@ -10,12 +10,35 @@ This project is submitted for the Google Agents Intensive Capstone Project.
 
 ## ✨ Features
 
+### Core Features
 *   **Gamification**: Earn XP, level up, and unlock avatars by completing habits.
 *   **AI Coach**: Personalized health and habit advice powered by **Groq (Llama models)**.
 *   **Real-Time Sync**: "Every single bit" of data is instantly synced to the cloud using **Supabase**.
 *   **Health Integration**: Connects with Google Fit / Health Connect for automatic habit tracking (steps, sleep, etc.).
 *   **Smart Reminders**: Local notifications to keep you on track.
 *   **Offline Support**: Works offline and syncs when back online.
+
+### Health & Wellness
+*   **Health Coach V2**: Personalized health coaching with goal setting, challenges, and progress tracking.
+*   **Activity Rings**: Apple-style activity rings showing steps, distance, calories, and active minutes.
+*   **Health Data Dashboard**: Comprehensive view of heart rate, sleep, steps, and distance metrics.
+*   **Personalized Challenges**: AI-generated health challenges based on your goals and activity level.
+
+### Engagement & Motivation
+*   **Celebration Animations**: Beautiful confetti effects for habit completions and level-ups.
+*   **Streak Flames**: Animated flame indicators showing your current streak intensity.
+*   **Daily Brief**: AI-generated daily insights and motivation based on your habits.
+*   **Weekly Reports**: Comprehensive weekly analysis of your habit patterns.
+
+### Widgets & UI
+*   **Android Home Widget**: Beautiful home screen widget with streak badges and quick access.
+*   **Focus Task Manager**: Prioritize and manage your most important daily tasks.
+*   **Smooth Animations**: Polished page transitions and micro-interactions.
+
+### Platform Support
+*   **Android**: Full support with Health Connect integration
+*   **iOS**: Full support with Apple Health integration
+*   **macOS**: Desktop support with Google Sign-In
 
 ## 🛠️ Tech Stack
 

@@ -4,7 +4,17 @@ This directory contains pre-built APK files for testing and distribution.
 
 ## Latest Release
 
-**Version 1.0.0** - `streakoo-v1.0.0.apk` (63.3MB)
+**Version 1.0.0** - `streakoo-v1.0.0.apk` (61MB)  
+**Updated**: December 4, 2025
+
+### What's New in This Build
+
+- 🎨 **Enhanced Widget UI** - Redesigned Android home screen widget with streak badges
+- 🎉 **Celebration Animations** - Confetti effects for habit completions and level-ups
+- 🏥 **Health Coach V2** - Improved health coaching with personalized challenges
+- 💫 **Smooth Animations** - New page transitions and animated widgets
+- 🍎 **macOS Support** - Google Sign-In now works on macOS
+- ☁️ **Cloud Sync Improvements** - Better real-time data synchronization
 
 ### Installation Instructions
 
@@ -16,15 +26,16 @@ This directory contains pre-built APK files for testing and distribution.
 ### Requirements
 
 - Android 5.0 (API level 21) or higher
-- Approximately 100MB of free storage space
+- Approximately 120MB of free storage space
+- Internet connection for cloud sync and AI features
 
 ### First Time Setup
 
 After installation:
 
-1. Create an account or sign in
+1. Create an account or sign in with Google
 2. Complete the onboarding process
-3. Set up your environment file with API keys (see main README.md)
+3. Connect Health Connect for automatic activity tracking (optional)
 4. Start tracking your habits!
 
 ### Note for Developers
