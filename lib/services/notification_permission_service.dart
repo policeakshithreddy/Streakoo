@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -58,7 +59,7 @@ class NotificationPermissionService {
       // Assume granted if we've requested (iOS doesn't provide easy status check)
       return NotificationPermissionStatus.granted;
     } catch (e) {
-      print('Error checking notification permission status: $e');
+      debugPrint('Error checking notification permission status: $e');
       return NotificationPermissionStatus.notDetermined;
     }
   }
@@ -95,7 +96,7 @@ class NotificationPermissionService {
 
       return false;
     } catch (e) {
-      print('Error requesting notification permissions: $e');
+      debugPrint('Error requesting notification permissions: $e');
       return false;
     }
   }

@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'dart:async';
 import '../services/health_service.dart';
 import '../state/app_state.dart';
@@ -34,7 +35,7 @@ class HealthCheckerService {
 
   /// Check all health-tracked habits and auto-complete if goal is met
   Future<void> checkAndCompleteHabits(AppState appState) async {
-    print('🏥 Checking health-tracked habits...');
+    debugPrint('🏥 Checking health-tracked habits...');
 
     for (final habit in appState.habits) {
       // Skip if not health tracked or already completed today
@@ -55,7 +56,7 @@ class HealthCheckerService {
         );
 
         if (isGoalMet) {
-          print(
+          debugPrint(
             '✅ Health goal met for "${habit.name}": ${habit.healthGoalValue} ${_getMetricUnit(habit.healthMetric!)}',
           );
 
@@ -65,7 +66,7 @@ class HealthCheckerService {
           // Note: The celebration will be triggered in completeHabit
         }
       } catch (e) {
-        print('Error checking health goal for "${habit.name}": $e');
+        debugPrint('Error checking health goal for "${habit.name}": $e');
       }
     }
   }

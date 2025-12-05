@@ -98,7 +98,7 @@ class _XpProgressBarState extends State<XpProgressBar>
                     color: Theme.of(context)
                         .colorScheme
                         .onSurface
-                        .withOpacity(0.5),
+                        .withValues(alpha: 0.5),
                   ),
                 ),
               ],
@@ -118,9 +118,9 @@ class _XpProgressBarState extends State<XpProgressBar>
                 color: Theme.of(context)
                     .colorScheme
                     .surfaceContainerHighest
-                    .withOpacity(0.3),
+                    .withValues(alpha: 0.3),
                 border: Border.all(
-                  color: const Color(0xFF58CC02).withOpacity(0.2),
+                  color: const Color(0xFF58CC02).withValues(alpha: 0.2),
                   width: 1,
                 ),
               ),
@@ -144,7 +144,8 @@ class _XpProgressBarState extends State<XpProgressBar>
                           ),
                           boxShadow: [
                             BoxShadow(
-                              color: const Color(0xFF58CC02).withOpacity(0.3),
+                              color: const Color(0xFF58CC02)
+                                  .withValues(alpha: 0.3),
                               blurRadius: 8,
                               spreadRadius: 1,
                             ),
@@ -160,9 +161,9 @@ class _XpProgressBarState extends State<XpProgressBar>
                           decoration: BoxDecoration(
                             gradient: LinearGradient(
                               colors: [
-                                Colors.white.withOpacity(0),
-                                Colors.white.withOpacity(0.2),
-                                Colors.white.withOpacity(0),
+                                Colors.white.withValues(alpha: 0),
+                                Colors.white.withValues(alpha: 0.2),
+                                Colors.white.withValues(alpha: 0),
                               ],
                               stops: const [0.0, 0.5, 1.0],
                               begin: Alignment.centerLeft,
@@ -185,7 +186,7 @@ class _XpProgressBarState extends State<XpProgressBar>
                           shadows: progress > 0.3
                               ? [
                                   Shadow(
-                                    color: Colors.black.withOpacity(0.3),
+                                    color: Colors.black.withValues(alpha: 0.3),
                                     blurRadius: 2,
                                   ),
                                 ]
@@ -209,7 +210,10 @@ class _XpProgressBarState extends State<XpProgressBar>
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 11,
-                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                color: Theme.of(context)
+                    .colorScheme
+                    .onSurface
+                    .withValues(alpha: 0.6),
               ),
             ),
           ),

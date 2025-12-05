@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'dart:convert';
 import 'groq_ai_service.dart';
 
@@ -63,7 +64,7 @@ class AIHealthCoachService {
 
       return jsonDecode(cleanText) as Map<String, dynamic>;
     } catch (e) {
-      print('Error generating health plan: $e');
+      debugPrint('Error generating health plan: $e');
       // Fallback plan if AI fails
       return {
         "habits": [
@@ -180,7 +181,7 @@ Keep responses under 100 words.
       return response?.trim() ??
           'I\'m here to help! Can you rephrase your question?';
     } catch (e) {
-      print('Error in chat: $e');
+      debugPrint('Error in chat: $e');
       return 'Sorry, I couldn\'t process that right now. Please try again!';
     }
   }
@@ -264,7 +265,7 @@ Keep responses under 100 words.
           response.trim().replaceAll('```json', '').replaceAll('```', '');
       return jsonDecode(jsonStr);
     } catch (e) {
-      print('Error generating challenge plan: $e');
+      debugPrint('Error generating challenge plan: $e');
       // Fallback plan
       return {
         "weeklyFocus": "Building Consistency",

@@ -51,6 +51,7 @@ class _CoachScreenState extends State<CoachScreen> {
     await Future.delayed(const Duration(milliseconds: 250));
 
     try {
+      if (!mounted) return;
       final appState = context.read<AppState>();
 
       // Fetch today's health metrics

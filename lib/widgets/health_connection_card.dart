@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:provider/provider.dart';
 import '../services/health_service.dart';
 import '../services/health_checker_service.dart';
@@ -13,11 +14,13 @@ class HealthConnectionCard extends StatefulWidget {
   State<HealthConnectionCard> createState() => _HealthConnectionCardState();
 }
 
-class _HealthConnectionCardState extends State<HealthConnectionCard> {
+class _HealthConnectionCardState extends State<HealthConnectionCard>
+    with WidgetsBindingObserver {
   bool _isConnected = false;
   bool _isLoading = true;
   bool _isSyncing = false;
   DateTime? _lastSyncTime;
+  bool _wasInBackground = false;
 
   // Check if using mock data
   bool get _isMockData => !Platform.isIOS && !Platform.isAndroid;
@@ -25,7 +28,52 @@ class _HealthConnectionCardState extends State<HealthConnectionCard> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _checkConnection();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // Track when going to background (e.g., opening Health Connect settings)
+    if (state == AppLifecycleState.paused) {
+      _wasInBackground = true;
+    }
+
+    // When app resumes, check if permissions were granted in settings
+    if (state == AppLifecycleState.resumed && _wasInBackground) {
+      _wasInBackground = false;
+      _checkConnectionAndSync();
+    }
+  }
+
+  /// Check connection and auto-sync if newly connected
+  Future<void> _checkConnectionAndSync() async {
+    final wasConnected = _isConnected;
+    await _checkConnection();
+
+    // If user just connected (wasn't connected before, now is), auto-sync
+    if (!wasConnected && _isConnected && mounted) {
+      final appState = context.read<AppState>();
+      HealthCheckerService.instance.startPeriodicCheck(appState);
+
+      // Show success message
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('✅ Health Connect enabled! Syncing your data...'),
+          backgroundColor: Color(0xFF58CC02),
+          duration: Duration(seconds: 2),
+        ),
+      );
+
+      // Auto-sync immediately
+      await _syncNow();
+    }
   }
 
   Future<void> _checkConnection() async {
@@ -158,11 +206,15 @@ class _HealthConnectionCardState extends State<HealthConnectionCard> {
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
-      return const Card(
+      return Card(
         child: Padding(
-          padding: EdgeInsets.all(24),
+          padding: const EdgeInsets.all(24),
           child: Center(
-            child: CircularProgressIndicator(),
+            child: const CircularProgressIndicator()
+                .animate(onPlay: (c) => c.repeat())
+                .shimmer(
+                    duration: 1200.ms,
+                    color: const Color(0xFF58CC02).withValues(alpha: 0.3)),
           ),
         ),
       );
@@ -170,6 +222,9 @@ class _HealthConnectionCardState extends State<HealthConnectionCard> {
 
     return Card(
       margin: const EdgeInsets.all(16),
+      elevation: _isConnected ? 4 : 2,
+      shadowColor:
+          _isConnected ? const Color(0xFF58CC02).withValues(alpha: 0.3) : null,
       child: Padding(
         padding: const EdgeInsets.all(20),
         child: Column(
@@ -182,8 +237,8 @@ class _HealthConnectionCardState extends State<HealthConnectionCard> {
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
                     color: _isConnected
-                        ? const Color(0xFF58CC02).withOpacity(0.1)
-                        : Colors.grey.withOpacity(0.1),
+                        ? const Color(0xFF58CC02).withValues(alpha: 0.1)
+                        : Colors.grey.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Icon(
@@ -191,7 +246,17 @@ class _HealthConnectionCardState extends State<HealthConnectionCard> {
                     color: _isConnected ? const Color(0xFF58CC02) : Colors.grey,
                     size: 28,
                   ),
-                ),
+                )
+                    .animate(target: _isConnected ? 1 : 0)
+                    .scale(
+                        begin: const Offset(1, 1),
+                        end: const Offset(1.1, 1.1),
+                        curve: Curves.easeOut)
+                    .then()
+                    .scale(
+                        begin: const Offset(1.1, 1.1),
+                        end: const Offset(1, 1),
+                        curve: Curves.easeIn),
                 const SizedBox(width: 16),
                 Expanded(
                   child: Column(
@@ -230,9 +295,9 @@ class _HealthConnectionCardState extends State<HealthConnectionCard> {
                   decoration: BoxDecoration(
                     color: _isConnected
                         ? (_isMockData
-                            ? Colors.orange.withOpacity(0.1)
-                            : const Color(0xFF58CC02).withOpacity(0.1))
-                        : Colors.grey.withOpacity(0.1),
+                            ? Colors.orange.withValues(alpha: 0.1)
+                            : const Color(0xFF58CC02).withValues(alpha: 0.1))
+                        : Colors.grey.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Row(
@@ -285,7 +350,7 @@ class _HealthConnectionCardState extends State<HealthConnectionCard> {
                     color: Theme.of(context)
                         .colorScheme
                         .onSurface
-                        .withOpacity(0.6),
+                        .withValues(alpha: 0.6),
                   ),
                   const SizedBox(width: 8),
                   Text(
@@ -297,7 +362,7 @@ class _HealthConnectionCardState extends State<HealthConnectionCard> {
                       color: Theme.of(context)
                           .colorScheme
                           .onSurface
-                          .withOpacity(0.6),
+                          .withValues(alpha: 0.6),
                     ),
                   ),
                   const Spacer(),
@@ -338,7 +403,7 @@ class _HealthConnectionCardState extends State<HealthConnectionCard> {
                           color: Theme.of(context)
                               .colorScheme
                               .onSurface
-                              .withOpacity(0.6),
+                              .withValues(alpha: 0.6),
                         ),
                         const SizedBox(width: 8),
                         Text(
@@ -359,7 +424,7 @@ class _HealthConnectionCardState extends State<HealthConnectionCard> {
                         color: Theme.of(context)
                             .colorScheme
                             .onSurface
-                            .withOpacity(0.6),
+                            .withValues(alpha: 0.6),
                       ),
                     ),
                   ],
@@ -411,12 +476,20 @@ class _HealthConnectionCardState extends State<HealthConnectionCard> {
                   'Connect Health Data',
                   style: TextStyle(fontWeight: FontWeight.bold),
                 ),
-              ),
+              )
+                  .animate()
+                  .fadeIn(duration: 400.ms, delay: 300.ms)
+                  .slideY(begin: 0.2, end: 0)
+                  .then()
+                  .shimmer(duration: 2000.ms, delay: 1000.ms),
             ],
           ],
         ),
       ),
-    );
+    )
+        .animate()
+        .fadeIn(duration: 400.ms)
+        .slideY(begin: 0.1, end: 0, curve: Curves.easeOut);
   }
 
   Widget _buildBenefit(IconData icon, String text) {
@@ -433,7 +506,7 @@ class _HealthConnectionCardState extends State<HealthConnectionCard> {
             text,
             style: TextStyle(
               fontSize: 14,
-              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.8),
+              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.8),
             ),
           ),
         ),

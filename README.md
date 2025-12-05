@@ -31,9 +31,12 @@ This project is submitted for the Google Agents Intensive Capstone Project.
 *   **Weekly Reports**: Comprehensive weekly analysis of your habit patterns.
 
 ### Widgets & UI
-*   **Android Home Widget**: Beautiful home screen widget with streak badges and quick access.
+*   **Android Home Widget**: Modern dark gradient widget with:
+    - Live habit progress & streak badges
+    - Dynamic motivational messages ("On fire! 🔥", "Almost there! 💪")
+    - Auto-updates on app launch and habit completion
 *   **Focus Task Manager**: Prioritize and manage your most important daily tasks.
-*   **Smooth Animations**: Polished page transitions and micro-interactions.
+*   **Smooth Animations**: Polished page transitions, level-up celebrations, and micro-interactions.
 
 ### Platform Support
 *   **Android**: Full support with Health Connect integration

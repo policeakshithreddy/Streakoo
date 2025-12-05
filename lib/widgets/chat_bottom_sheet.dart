@@ -146,8 +146,8 @@ class _ChatBottomSheetState extends State<ChatBottomSheet> {
             height: 4,
             decoration: BoxDecoration(
               color: isDark
-                  ? Colors.white.withOpacity(0.3)
-                  : Colors.black.withOpacity(0.2),
+                  ? Colors.white.withValues(alpha: 0.3)
+                  : Colors.black.withValues(alpha: 0.2),
               borderRadius: BorderRadius.circular(2),
             ),
           ),
@@ -189,8 +189,8 @@ class _ChatBottomSheetState extends State<ChatBottomSheet> {
                         style: TextStyle(
                           fontSize: 12,
                           color: isDark
-                              ? Colors.white.withOpacity(0.6)
-                              : Colors.black.withOpacity(0.5),
+                              ? Colors.white.withValues(alpha: 0.6)
+                              : Colors.black.withValues(alpha: 0.5),
                         ),
                       ),
                     ],
@@ -243,7 +243,7 @@ class _ChatBottomSheetState extends State<ChatBottomSheet> {
               color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
+                  color: Colors.black.withValues(alpha: 0.05),
                   blurRadius: 10,
                   offset: const Offset(0, -5),
                 ),
@@ -263,7 +263,7 @@ class _ChatBottomSheetState extends State<ChatBottomSheet> {
                         hintText: 'Ask me anything...',
                         filled: true,
                         fillColor: isDark
-                            ? Colors.white.withOpacity(0.05)
+                            ? Colors.white.withValues(alpha: 0.05)
                             : const Color(0xFFF5F5F5),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(24),
@@ -285,7 +285,7 @@ class _ChatBottomSheetState extends State<ChatBottomSheet> {
                       shape: BoxShape.circle,
                       boxShadow: [
                         BoxShadow(
-                          color: const Color(0xFF4A90E2).withOpacity(0.3),
+                          color: const Color(0xFF4A90E2).withValues(alpha: 0.3),
                           blurRadius: 8,
                           offset: const Offset(0, 2),
                         ),

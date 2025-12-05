@@ -25,17 +25,17 @@ class WeeklySummaryCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
           color: isCurrentWeek
-              ? const Color(0xFFFFA94A).withOpacity(0.4)
+              ? const Color(0xFFFFA94A).withValues(alpha: 0.4)
               : (isDark
-                  ? Colors.white.withOpacity(0.1)
-                  : Colors.black.withOpacity(0.08)),
+                  ? Colors.white.withValues(alpha: 0.1)
+                  : Colors.black.withValues(alpha: 0.08)),
           width: isCurrentWeek ? 2 : 1,
         ),
         boxShadow: [
           BoxShadow(
             color: isDark
-                ? Colors.black.withOpacity(0.3)
-                : Colors.black.withOpacity(0.04),
+                ? Colors.black.withValues(alpha: 0.3)
+                : Colors.black.withValues(alpha: 0.04),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -68,7 +68,7 @@ class WeeklySummaryCard extends StatelessWidget {
                         padding: const EdgeInsets.symmetric(
                             horizontal: 8, vertical: 3),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFFFA94A).withOpacity(0.2),
+                          color: const Color(0xFFFFA94A).withValues(alpha: 0.2),
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: const Text(
@@ -90,8 +90,8 @@ class WeeklySummaryCard extends StatelessWidget {
                       style: TextStyle(
                         fontSize: 13,
                         color: isDark
-                            ? Colors.white.withOpacity(0.5)
-                            : Colors.black.withOpacity(0.4),
+                            ? Colors.white.withValues(alpha: 0.5)
+                            : Colors.black.withValues(alpha: 0.4),
                       ),
                     ),
                   ),
@@ -104,8 +104,8 @@ class WeeklySummaryCard extends StatelessWidget {
                       height: 10,
                       decoration: BoxDecoration(
                         color: isDark
-                            ? Colors.white.withOpacity(0.1)
-                            : Colors.black.withOpacity(0.08),
+                            ? Colors.white.withValues(alpha: 0.1)
+                            : Colors.black.withValues(alpha: 0.08),
                         borderRadius: BorderRadius.circular(5),
                       ),
                     ),
@@ -188,8 +188,8 @@ class WeeklySummaryCard extends StatelessWidget {
                 padding: const EdgeInsets.symmetric(vertical: 14),
                 decoration: BoxDecoration(
                   color: isDark
-                      ? Colors.white.withOpacity(0.05)
-                      : Colors.black.withOpacity(0.03),
+                      ? Colors.white.withValues(alpha: 0.05)
+                      : Colors.black.withValues(alpha: 0.03),
                   borderRadius: const BorderRadius.only(
                     bottomLeft: Radius.circular(20),
                     bottomRight: Radius.circular(20),
@@ -246,8 +246,8 @@ class _StatRow extends StatelessWidget {
           style: TextStyle(
             fontSize: 13,
             color: isDark
-                ? Colors.white.withOpacity(0.6)
-                : Colors.black.withOpacity(0.5),
+                ? Colors.white.withValues(alpha: 0.6)
+                : Colors.black.withValues(alpha: 0.5),
           ),
         ),
         const Spacer(),
@@ -257,7 +257,7 @@ class _StatRow extends StatelessWidget {
             style: TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.w600,
-              color: isDark ? Colors.white.withOpacity(0.9) : Colors.black87,
+              color: isDark ? Colors.white.withValues(alpha: 0.9) : Colors.black87,
             ),
             textAlign: TextAlign.right,
             overflow: TextOverflow.ellipsis,

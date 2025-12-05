@@ -49,14 +49,14 @@ class DuolingoProgressWidget extends StatelessWidget {
           borderRadius: BorderRadius.circular(24),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.08),
+              color: Colors.black.withValues(alpha: 0.08),
               blurRadius: 20,
               offset: const Offset(0, 4),
             ),
           ],
           border: Border.all(
             color: completed == total && total > 0
-                ? const Color(0xFF58CC02).withOpacity(0.3)
+                ? const Color(0xFF58CC02).withValues(alpha: 0.3)
                 : Colors.transparent,
             width: 2,
           ),
@@ -112,7 +112,7 @@ class DuolingoProgressWidget extends StatelessWidget {
                       color: Theme.of(context)
                           .colorScheme
                           .onSurface
-                          .withOpacity(0.5),
+                          .withValues(alpha: 0.5),
                     ),
                   ),
                 ],
@@ -129,7 +129,7 @@ class DuolingoProgressWidget extends StatelessWidget {
               ),
               decoration: BoxDecoration(
                 color: completed == total && total > 0
-                    ? const Color(0xFF58CC02).withOpacity(0.1)
+                    ? const Color(0xFF58CC02).withValues(alpha: 0.1)
                     : Theme.of(context).colorScheme.surfaceContainerHighest,
                 borderRadius: BorderRadius.circular(16),
               ),
@@ -157,7 +157,7 @@ class DuolingoProgressWidget extends StatelessWidget {
                     color: Theme.of(context)
                         .colorScheme
                         .onSurface
-                        .withOpacity(0.4),
+                        .withValues(alpha: 0.4),
                   ),
                 ),
               ),

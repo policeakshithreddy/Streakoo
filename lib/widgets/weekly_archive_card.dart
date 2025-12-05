@@ -35,7 +35,7 @@ class _WeeklyArchiveCardState extends State<WeeklyArchiveCard> {
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -85,7 +85,8 @@ class _WeeklyArchiveCardState extends State<WeeklyArchiveCard> {
                           '${widget.reports.length} past reports',
                           style: TextStyle(
                             fontSize: 13,
-                            color: theme.colorScheme.onSurface.withOpacity(0.6),
+                            color: theme.colorScheme.onSurface
+                                .withValues(alpha: 0.6),
                           ),
                         ),
                       ],
@@ -95,7 +96,7 @@ class _WeeklyArchiveCardState extends State<WeeklyArchiveCard> {
                     _isExpanded
                         ? Icons.keyboard_arrow_up_rounded
                         : Icons.keyboard_arrow_down_rounded,
-                    color: theme.colorScheme.onSurface.withOpacity(0.4),
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
                   ),
                 ],
               ),
@@ -111,7 +112,7 @@ class _WeeklyArchiveCardState extends State<WeeklyArchiveCard> {
               itemCount: widget.reports.length,
               separatorBuilder: (context, index) => Divider(
                 height: 24,
-                color: theme.dividerColor.withOpacity(0.1),
+                color: theme.dividerColor.withValues(alpha: 0.1),
               ),
               itemBuilder: (context, index) {
                 final report = widget.reports[index];
@@ -152,7 +153,7 @@ class _WeeklyArchiveCardState extends State<WeeklyArchiveCard> {
                                         style: TextStyle(
                                           fontSize: 12,
                                           color: theme.colorScheme.onSurface
-                                              .withOpacity(0.6),
+                                              .withValues(alpha: 0.6),
                                         ),
                                         overflow: TextOverflow.ellipsis,
                                       ),
@@ -165,7 +166,8 @@ class _WeeklyArchiveCardState extends State<WeeklyArchiveCard> {
                         Icon(
                           Icons.chevron_right_rounded,
                           size: 20,
-                          color: theme.colorScheme.onSurface.withOpacity(0.3),
+                          color: theme.colorScheme.onSurface
+                              .withValues(alpha: 0.3),
                         ),
                       ],
                     ),
@@ -183,7 +185,7 @@ class _WeeklyArchiveCardState extends State<WeeklyArchiveCard> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
       decoration: BoxDecoration(
-        color: color.withOpacity(isDark ? 0.2 : 0.1),
+        color: color.withValues(alpha: isDark ? 0.2 : 0.1),
         borderRadius: BorderRadius.circular(6),
       ),
       child: Text(

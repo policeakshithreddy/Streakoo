@@ -132,7 +132,7 @@ class ProfileScreen extends StatelessWidget {
                   padding:
                       const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
                   decoration: BoxDecoration(
-                    color: theme.colorScheme.error.withOpacity(0.1),
+                    color: theme.colorScheme.error.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Row(
@@ -571,7 +571,7 @@ class _FocusTasksButton extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Colors.amber.withOpacity(0.2),
+                  color: Colors.amber.withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: const Icon(Icons.star, color: Colors.amber, size: 28),
@@ -631,7 +631,7 @@ class _HealthDataCardState extends State<_HealthDataCard> {
             color: theme.cardColor,
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
-              color: theme.dividerColor.withOpacity(0.1),
+              color: theme.dividerColor.withValues(alpha: 0.1),
             ),
           ),
           child: Stack(
@@ -660,7 +660,7 @@ class _HealthDataCardState extends State<_HealthDataCard> {
                           padding: const EdgeInsets.symmetric(
                               horizontal: 8, vertical: 4),
                           decoration: BoxDecoration(
-                            color: Colors.green.withOpacity(0.1),
+                            color: Colors.green.withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: const Row(
@@ -758,7 +758,7 @@ class _HealthDataCardState extends State<_HealthDataCard> {
                     child: BackdropFilter(
                       filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
                       child: Container(
-                        color: theme.cardColor.withOpacity(0.7),
+                        color: theme.cardColor.withValues(alpha: 0.7),
                         child: Center(
                           child: Column(
                             mainAxisSize: MainAxisSize.min,
@@ -860,7 +860,7 @@ class _HealthStat extends StatelessWidget {
           style: theme.textTheme.bodySmall?.copyWith(
             color: isBlurred
                 ? Colors.grey
-                : theme.textTheme.bodySmall?.color?.withOpacity(0.6),
+                : theme.textTheme.bodySmall?.color?.withValues(alpha: 0.6),
           ),
         ),
       ],

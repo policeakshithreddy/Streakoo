@@ -134,7 +134,7 @@ class _CircularProgressPainter extends CustomPainter {
         ..shader = LinearGradient(
           colors: [
             progressColor,
-            progressColor.withOpacity(0.8),
+            progressColor.withValues(alpha: 0.8),
           ],
         ).createShader(Rect.fromCircle(center: center, radius: radius))
         ..strokeWidth = strokeWidth

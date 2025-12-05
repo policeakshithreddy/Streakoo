@@ -60,7 +60,7 @@ class HealthConnectionDialog extends StatelessWidget {
               color: Theme.of(context)
                   .colorScheme
                   .primaryContainer
-                  .withOpacity(0.3),
+                  .withValues(alpha: 0.3),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Row(
@@ -69,7 +69,7 @@ class HealthConnectionDialog extends StatelessWidget {
                   Icons.lock,
                   size: 16,
                   color:
-                      Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                      Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
                 ),
                 const SizedBox(width: 8),
                 Expanded(
@@ -80,7 +80,7 @@ class HealthConnectionDialog extends StatelessWidget {
                       color: Theme.of(context)
                           .colorScheme
                           .onSurface
-                          .withOpacity(0.7),
+                          .withValues(alpha: 0.7),
                     ),
                   ),
                 ),
@@ -149,7 +149,7 @@ class _FeatureItem extends StatelessWidget {
               color: Theme.of(context)
                   .colorScheme
                   .primaryContainer
-                  .withOpacity(0.5),
+                  .withValues(alpha: 0.5),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Icon(icon,
@@ -174,7 +174,7 @@ class _FeatureItem extends StatelessWidget {
                     color: Theme.of(context)
                         .colorScheme
                         .onSurface
-                        .withOpacity(0.6),
+                        .withValues(alpha: 0.6),
                   ),
                 ),
               ],

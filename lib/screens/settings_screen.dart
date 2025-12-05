@@ -300,14 +300,16 @@ class SettingsScreen extends StatelessWidget {
                   ),
                 );
 
-                if (confirm == true) {
+                if (confirm == true && context.mounted) {
                   context.read<AppState>().resetAll();
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('All data cleared.'),
-                      behavior: SnackBarBehavior.floating,
-                    ),
-                  );
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('All data cleared.'),
+                        behavior: SnackBarBehavior.floating,
+                      ),
+                    );
+                  }
                 }
               },
             )

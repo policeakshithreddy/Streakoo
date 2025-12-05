@@ -61,7 +61,7 @@ class _LevelUpRewardScreenState extends State<LevelUpRewardScreen>
     final theme = Theme.of(context);
 
     return Scaffold(
-      backgroundColor: Colors.black.withOpacity(0.85),
+      backgroundColor: Colors.black.withValues(alpha: 0.85),
       body: Stack(
         children: [
           // Confetti
@@ -153,7 +153,7 @@ class _LevelUpRewardScreenState extends State<LevelUpRewardScreen>
                           ),
                           boxShadow: [
                             BoxShadow(
-                              color: const Color(0xFFFFD700).withOpacity(0.5),
+                              color: const Color(0xFFFFD700).withValues(alpha: 0.5),
                               blurRadius: 40,
                               spreadRadius: 10,
                             ),
@@ -271,10 +271,10 @@ class _RewardItem extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: reward.color.withOpacity(0.1),
+        color: reward.color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: reward.color.withOpacity(0.3),
+          color: reward.color.withValues(alpha: 0.3),
           width: 2,
         ),
       ),
@@ -312,7 +312,7 @@ class _RewardItem extends StatelessWidget {
                 Text(
                   reward.description,
                   style: theme.textTheme.bodyMedium?.copyWith(
-                    color: theme.colorScheme.onSurface.withOpacity(0.7),
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
                   ),
                 ),
               ],

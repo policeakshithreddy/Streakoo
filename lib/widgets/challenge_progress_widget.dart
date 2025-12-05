@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:provider/provider.dart';
 import '../models/health_challenge.dart';
 import '../state/app_state.dart';
@@ -72,8 +73,8 @@ class _ChallengeProgressWidgetState extends State<ChallengeProgressWidget>
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
-            theme.colorScheme.primaryContainer.withOpacity(0.8),
-            theme.colorScheme.primaryContainer.withOpacity(0.4),
+            theme.colorScheme.primaryContainer.withValues(alpha: 0.8),
+            theme.colorScheme.primaryContainer.withValues(alpha: 0.4),
           ],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
@@ -81,7 +82,7 @@ class _ChallengeProgressWidgetState extends State<ChallengeProgressWidget>
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: theme.shadowColor.withOpacity(0.1),
+            color: theme.shadowColor.withValues(alpha: 0.1),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -108,8 +109,9 @@ class _ChallengeProgressWidgetState extends State<ChallengeProgressWidget>
                           value: 1.0,
                           strokeWidth: 5,
                           backgroundColor:
-                              theme.colorScheme.surface.withOpacity(0.3),
-                          color: theme.colorScheme.surface.withOpacity(0.3),
+                              theme.colorScheme.surface.withValues(alpha: 0.3),
+                          color:
+                              theme.colorScheme.surface.withValues(alpha: 0.3),
                         ),
                         // Progress circle
                         CircularProgressIndicator(
@@ -153,7 +155,8 @@ class _ChallengeProgressWidgetState extends State<ChallengeProgressWidget>
                             vertical: 4,
                           ),
                           decoration: BoxDecoration(
-                            color: theme.colorScheme.primary.withOpacity(0.2),
+                            color: theme.colorScheme.primary
+                                .withValues(alpha: 0.2),
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: Text(
@@ -168,7 +171,8 @@ class _ChallengeProgressWidgetState extends State<ChallengeProgressWidget>
                         Text(
                           '$completedToday/$totalHabits Today',
                           style: theme.textTheme.bodySmall?.copyWith(
-                            color: theme.colorScheme.onSurface.withOpacity(0.7),
+                            color: theme.colorScheme.onSurface
+                                .withValues(alpha: 0.7),
                           ),
                         ),
                       ],
@@ -186,14 +190,14 @@ class _ChallengeProgressWidgetState extends State<ChallengeProgressWidget>
 
           const SizedBox(height: 20),
 
-          // AI Insight Card
+          // AI Insight Card with animations
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: theme.colorScheme.surface.withOpacity(0.6),
+              color: theme.colorScheme.surface.withValues(alpha: 0.6),
               borderRadius: BorderRadius.circular(16),
               border: Border.all(
-                color: Colors.amber.withOpacity(0.3),
+                color: Colors.amber.withValues(alpha: 0.3),
                 width: 1.5,
               ),
             ),
@@ -203,7 +207,7 @@ class _ChallengeProgressWidgetState extends State<ChallengeProgressWidget>
                 Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: Colors.amber.withOpacity(0.2),
+                    color: Colors.amber.withValues(alpha: 0.2),
                     shape: BoxShape.circle,
                   ),
                   child: const Icon(
@@ -211,7 +215,11 @@ class _ChallengeProgressWidgetState extends State<ChallengeProgressWidget>
                     size: 20,
                     color: Colors.amber,
                   ),
-                ),
+                ).animate(onPlay: (c) => c.repeat(reverse: true)).scale(
+                      begin: const Offset(1, 1),
+                      end: const Offset(1.1, 1.1),
+                      duration: 1500.ms,
+                    ),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Column(
@@ -235,7 +243,11 @@ class _ChallengeProgressWidgetState extends State<ChallengeProgressWidget>
                 ),
               ],
             ),
-          ),
+          )
+              .animate()
+              .fadeIn(delay: 300.ms, duration: 500.ms)
+              .slideY(begin: 0.1, end: 0)
+              .shimmer(delay: 800.ms, duration: 1500.ms),
 
           const SizedBox(height: 20),
 
@@ -249,7 +261,7 @@ class _ChallengeProgressWidgetState extends State<ChallengeProgressWidget>
                   drawVerticalLine: false,
                   horizontalInterval: 1,
                   getDrawingHorizontalLine: (value) => FlLine(
-                    color: theme.colorScheme.onSurface.withOpacity(0.05),
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.05),
                     strokeWidth: 1,
                   ),
                 ),
@@ -275,7 +287,7 @@ class _ChallengeProgressWidgetState extends State<ChallengeProgressWidget>
                               days[value.toInt()],
                               style: theme.textTheme.labelSmall?.copyWith(
                                 color: theme.colorScheme.onSurface
-                                    .withOpacity(0.5),
+                                    .withValues(alpha: 0.5),
                               ),
                             ),
                           );
@@ -320,8 +332,8 @@ class _ChallengeProgressWidgetState extends State<ChallengeProgressWidget>
                       show: true,
                       gradient: LinearGradient(
                         colors: [
-                          theme.colorScheme.primary.withOpacity(0.3),
-                          theme.colorScheme.primary.withOpacity(0.05),
+                          theme.colorScheme.primary.withValues(alpha: 0.3),
+                          theme.colorScheme.primary.withValues(alpha: 0.05),
                         ],
                         begin: Alignment.topCenter,
                         end: Alignment.bottomCenter,
@@ -345,7 +357,7 @@ class _ChallengeProgressWidgetState extends State<ChallengeProgressWidget>
                   Text(
                     'Progress Trend',
                     style: theme.textTheme.labelMedium?.copyWith(
-                      color: theme.colorScheme.onSurface.withOpacity(0.6),
+                      color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                     ),
                   ),
                   Text(
@@ -361,7 +373,7 @@ class _ChallengeProgressWidgetState extends State<ChallengeProgressWidget>
                 padding:
                     const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(
-                  color: theme.colorScheme.surface.withOpacity(0.6),
+                  color: theme.colorScheme.surface.withValues(alpha: 0.6),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Row(

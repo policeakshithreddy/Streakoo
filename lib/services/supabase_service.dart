@@ -1,9 +1,8 @@
 import 'dart:async';
 import 'dart:io' show Platform;
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/foundation.dart' show kIsWeb, debugPrint;
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:url_launcher/url_launcher.dart' show LaunchMode;
 import '../models/habit.dart';
 import '../models/user_level.dart';
 import '../config/env.dart';
@@ -103,33 +102,67 @@ class SupabaseService {
     const webClientId = Env.googleWebClientId;
     const iosClientId = Env.googleIosClientId;
 
+    debugPrint('🔐 Starting Google Sign-In...');
+    debugPrint(
+        '   iOS Client ID: ${iosClientId.isNotEmpty ? "configured" : "MISSING"}');
+    debugPrint(
+        '   Web Client ID: ${webClientId.isNotEmpty ? "configured" : "MISSING"}');
+
     final GoogleSignIn googleSignIn = GoogleSignIn(
       clientId: iosClientId,
       serverClientId: webClientId,
     );
 
-    final googleUser = await googleSignIn.signIn();
-    final googleAuth = await googleUser?.authentication;
+    try {
+      final googleUser = await googleSignIn.signIn();
 
-    if (googleAuth == null) {
-      throw 'Google Sign In failed';
+      // User cancelled the sign-in
+      if (googleUser == null) {
+        debugPrint('⚠️ Google Sign-In cancelled by user');
+        throw 'Sign-in cancelled';
+      }
+
+      debugPrint('✅ Google user obtained: ${googleUser.email}');
+
+      final googleAuth = await googleUser.authentication;
+
+      if (googleAuth.accessToken == null) {
+        debugPrint('❌ No Access Token found');
+        throw 'Google Sign-In failed: No access token received. Please check your Google Cloud Console configuration.';
+      }
+      if (googleAuth.idToken == null) {
+        debugPrint('❌ No ID Token found');
+        throw 'Google Sign-In failed: No ID token received. Please ensure serverClientId is correctly configured.';
+      }
+
+      debugPrint('✅ Tokens obtained, signing into Supabase...');
+
+      return await _client.auth.signInWithIdToken(
+        provider: OAuthProvider.google,
+        idToken: googleAuth.idToken!,
+        accessToken: googleAuth.accessToken!,
+      );
+    } on Exception catch (e) {
+      final errorStr = e.toString().toLowerCase();
+      debugPrint('❌ Google Sign-In error: $e');
+
+      if (errorStr.contains('network') || errorStr.contains('connection')) {
+        throw 'Network error. Please check your internet connection and try again.';
+      } else if (errorStr.contains('canceled') ||
+          errorStr.contains('cancelled')) {
+        throw 'Sign-in cancelled';
+      } else if (errorStr.contains('popup_closed') ||
+          errorStr.contains('popup closed')) {
+        throw 'Sign-in cancelled';
+      } else if (errorStr.contains('invalid_client') ||
+          errorStr.contains('client_id')) {
+        throw 'Google Sign-In configuration error. Please verify your OAuth client IDs.';
+      } else if (errorStr.contains('sign_in_required')) {
+        throw 'Please sign in to your Google account first.';
+      }
+
+      rethrow;
     }
-
-    final accessToken = googleAuth.accessToken;
-    final idToken = googleAuth.idToken;
-
-    if (accessToken == null) {
-      throw 'No Access Token found.';
-    }
-    if (idToken == null) {
-      throw 'No ID Token found.';
-    }
-
-    return await _client.auth.signInWithIdToken(
-      provider: OAuthProvider.google,
-      idToken: idToken,
-      accessToken: accessToken,
-    );
   }
 
   Future<AuthResponse> verifyOtp({
@@ -173,18 +206,18 @@ class SupabaseService {
         'user_id': userId,
         'username': username,
         'age': age,
-        'updated_at': DateTime.now().toIso8601String(),
       });
-      print('✅ User profile updated');
+      debugPrint('✅ User profile updated');
     } on PostgrestException catch (e) {
       if (e.code == 'PGRST204' || e.code == '404') {
-        print('⚠️ user_profiles table not found. Skipping profile update.');
+        debugPrint(
+            '⚠️ user_profiles table not found. Skipping profile update.');
         // Don't throw - just log and continue
         return;
       }
-      print('❌ Error updating user profile: ${e.message}');
+      debugPrint('❌ Error updating user profile: ${e.message}');
     } catch (e) {
-      print('❌ Error updating user profile: $e');
+      debugPrint('❌ Error updating user profile: $e');
     }
   }
 
@@ -203,7 +236,8 @@ class SupabaseService {
       return response;
     } on PostgrestException catch (e) {
       if (e.code == 'PGRST204' || e.code == '404') {
-        print('⚠️ user_profiles table not found. Creating default profile.');
+        debugPrint(
+            '⚠️ user_profiles table not found. Creating default profile.');
         // Return a default profile instead of null
         return {
           'user_id': userId,
@@ -211,10 +245,10 @@ class SupabaseService {
           'age': 18,
         };
       }
-      print('❌ Error fetching user profile: ${e.message}');
+      debugPrint('❌ Error fetching user profile: ${e.message}');
       return null;
     } catch (e) {
-      print('❌ Error fetching user profile: $e');
+      debugPrint('❌ Error fetching user profile: $e');
       return null;
     }
   }
@@ -260,12 +294,10 @@ class SupabaseService {
         'challenge_target_days': habit.challengeTargetDays,
         'challenge_progress': habit.challengeProgress,
         'challenge_completed': habit.challengeCompleted,
-
-        'updated_at': DateTime.now().toIso8601String(),
       }).timeout(const Duration(seconds: 10));
-      // print('✅ Synced habit "${habit.name}"');
+      // debugPrint('✅ Synced habit "${habit.name}"');
     } catch (e) {
-      print('❌ Failed to sync habit "${habit.name}": $e');
+      debugPrint('❌ Failed to sync habit "${habit.name}": $e');
       // Don't rethrow to avoid blocking UI, but log it.
     }
   }
@@ -279,11 +311,10 @@ class SupabaseService {
         'current_xp': level.currentXP,
         'xp_to_next_level': level.xpToNextLevel,
         'total_xp': totalXP,
-        'updated_at': DateTime.now().toIso8601String(),
       }).timeout(const Duration(seconds: 5));
     } catch (e) {
       // Silent fail (or log if needed)
-      // print('⚠️ Failed to sync user level: $e');
+      // debugPrint('⚠️ Failed to sync user level: $e');
     }
   }
 
@@ -307,7 +338,7 @@ class SupabaseService {
           .eq('id', habitId)
           .eq('user_id', currentUser!.id); // Ensure user owns the habit
     } catch (e) {
-      print('❌ Error deleting habit from cloud: $e');
+      debugPrint('❌ Error deleting habit from cloud: $e');
       rethrow;
     }
   }
@@ -324,9 +355,9 @@ class SupabaseService {
           .delete()
           .eq('user_id', userId)
           .timeout(const Duration(seconds: 30));
-      print('✅ Deleted old habits from cloud');
+      debugPrint('✅ Deleted old habits from cloud');
     } catch (e) {
-      print('⚠️ Failed to delete old habits during backup: $e');
+      debugPrint('⚠️ Failed to delete old habits during backup: $e');
       // Continue to insert even if delete fails (best effort)
     }
 
@@ -365,8 +396,6 @@ class SupabaseService {
         'challenge_target_days': h.challengeTargetDays,
         'challenge_progress': h.challengeProgress,
         'challenge_completed': h.challengeCompleted,
-
-        'updated_at': DateTime.now().toIso8601String(),
       };
     }).toList();
 
@@ -376,13 +405,13 @@ class SupabaseService {
             .from('habits')
             .insert(fullData)
             .timeout(const Duration(seconds: 30));
-        print('✅ Backed up ${fullData.length} habits with FULL data');
+        debugPrint('✅ Backed up ${fullData.length} habits with FULL data');
       } catch (e) {
-        print('❌ Backup failed: $e');
+        debugPrint('❌ Backup failed: $e');
         rethrow;
       }
     } else {
-      print('ℹ️ No habits to backup (empty list)');
+      debugPrint('ℹ️ No habits to backup (empty list)');
     }
   }
 
@@ -398,14 +427,14 @@ class SupabaseService {
       return (response as List).map((json) => Habit.fromJson(json)).toList();
     } on PostgrestException catch (e) {
       if (e.code == 'PGRST204' || e.code == '404') {
-        print(
+        debugPrint(
             '⚠️ habits table not found in database. Skipping habits restoration.');
         return [];
       }
-      print('❌ Error fetching habits: ${e.message}');
+      debugPrint('❌ Error fetching habits: ${e.message}');
       return [];
     } catch (e) {
-      print('❌ Error fetching habits: $e');
+      debugPrint('❌ Error fetching habits: $e');
       return [];
     }
   }
@@ -424,13 +453,13 @@ class SupabaseService {
       await _client.from('user_levels').upsert(data);
     } on PostgrestException catch (e) {
       if (e.code == 'PGRST205') {
-        print(
+        debugPrint(
             '⚠️ Backup warning: user_levels table missing. Skipping level backup.');
       } else {
-        print('❌ Failed to sync user level: ${e.message}');
+        debugPrint('❌ Failed to sync user level: ${e.message}');
       }
     } catch (e) {
-      print('❌ Failed to sync user level: $e');
+      debugPrint('❌ Failed to sync user level: $e');
     }
   }
 
@@ -451,14 +480,14 @@ class SupabaseService {
       return UserLevel.fromJson(response);
     } on PostgrestException catch (e) {
       if (e.code == 'PGRST204' || e.code == '404') {
-        print(
+        debugPrint(
             '⚠️ user_levels table not found in database. Skipping level restoration.');
         return null;
       }
-      print('❌ Error fetching user level: ${e.message}');
+      debugPrint('❌ Error fetching user level: ${e.message}');
       return null;
     } catch (e) {
-      print('❌ Error fetching user level: $e');
+      debugPrint('❌ Error fetching user level: $e');
       return null;
     }
   }
@@ -556,9 +585,9 @@ class SupabaseService {
       // Delete challenge progress
       await _client.from('challenge_progress').delete().eq('user_id', userId);
 
-      print('✅ User data deleted successfully');
+      debugPrint('✅ User data deleted successfully');
     } catch (e) {
-      print('⚠️ Partial data deletion error: $e');
+      debugPrint('⚠️ Partial data deletion error: $e');
     }
 
     // 3. Sign out
@@ -589,12 +618,11 @@ class SupabaseService {
         'baseline_metrics': challengeData['baselineMetrics'],
         'progress_snapshots': challengeData['progressSnapshots'],
         'survey_responses': challengeData['surveyResponses'],
-        'updated_at': DateTime.now().toIso8601String(),
       });
 
-      print('✅ Health challenge synced to cloud');
+      debugPrint('✅ Health challenge synced to cloud');
     } catch (e) {
-      print('❌ Error syncing health challenge: $e');
+      debugPrint('❌ Error syncing health challenge: $e');
       rethrow;
     }
   }
@@ -632,14 +660,14 @@ class SupabaseService {
       };
     } on PostgrestException catch (e) {
       if (e.code == 'PGRST204' || e.code == '404') {
-        print(
+        debugPrint(
             '⚠️ health_challenges table not found in database. Skipping health challenge restoration.');
         return null;
       }
-      print('❌ Error fetching health challenge: ${e.message}');
+      debugPrint('❌ Error fetching health challenge: ${e.message}');
       return null;
     } catch (e) {
-      print('❌ Error fetching health challenge: $e');
+      debugPrint('❌ Error fetching health challenge: $e');
       return null;
     }
   }
@@ -656,9 +684,9 @@ class SupabaseService {
           .eq('id', challengeId)
           .eq('user_id', userId);
 
-      print('✅ Health challenge deleted from cloud');
+      debugPrint('✅ Health challenge deleted from cloud');
     } catch (e) {
-      print('❌ Error deleting health challenge: $e');
+      debugPrint('❌ Error deleting health challenge: $e');
       rethrow;
     }
   }
@@ -667,12 +695,12 @@ class SupabaseService {
 
   Future<bool> hasExistingData() async {
     if (!isAuthenticated) {
-      print('🔍 hasExistingData: Not authenticated');
+      debugPrint('🔍 hasExistingData: Not authenticated');
       return false;
     }
 
     final userId = currentUser!.id;
-    print('🔍 Checking existing data for user: $userId');
+    debugPrint('🔍 Checking existing data for user: $userId');
 
     try {
       // 1. Check for habits
@@ -683,9 +711,9 @@ class SupabaseService {
           .count(CountOption.exact)
           .timeout(const Duration(seconds: 15));
 
-      print('🔍 Habits count: ${habitsResponse.count}');
+      debugPrint('🔍 Habits count: ${habitsResponse.count}');
       if (habitsResponse.count > 0) {
-        print('✅ Found existing habits - returning user detected');
+        debugPrint('✅ Found existing habits - returning user detected');
         return true;
       }
 
@@ -697,9 +725,9 @@ class SupabaseService {
           .count(CountOption.exact)
           .timeout(const Duration(seconds: 15));
 
-      print('🔍 User level count: ${levelResponse.count}');
+      debugPrint('🔍 User level count: ${levelResponse.count}');
       if (levelResponse.count > 0) {
-        print('✅ Found user level data - returning user detected');
+        debugPrint('✅ Found user level data - returning user detected');
         return true;
       }
 
@@ -711,16 +739,16 @@ class SupabaseService {
           .count(CountOption.exact)
           .timeout(const Duration(seconds: 15));
 
-      print('🔍 Health challenges count: ${challengeResponse.count}');
+      debugPrint('🔍 Health challenges count: ${challengeResponse.count}');
       if (challengeResponse.count > 0) {
-        print('✅ Found health challenge - returning user detected');
+        debugPrint('✅ Found health challenge - returning user detected');
         return true;
       }
 
-      print('🔍 No existing data found - treating as new user');
+      debugPrint('🔍 No existing data found - treating as new user');
       return false;
     } catch (e) {
-      print('❌ Error checking existing data: $e');
+      debugPrint('❌ Error checking existing data: $e');
       return false;
     }
   }

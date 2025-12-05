@@ -181,8 +181,8 @@ class _FocusTaskManagerScreenState extends State<FocusTaskManagerScreen> {
                   Chip(
                     label: Text('$_focusTaskCount / $maxFocusTasks'),
                     backgroundColor: _canAddMore
-                        ? theme.colorScheme.primary.withOpacity(0.2)
-                        : theme.colorScheme.error.withOpacity(0.2),
+                        ? theme.colorScheme.primary.withValues(alpha: 0.2)
+                        : theme.colorScheme.error.withValues(alpha: 0.2),
                   ),
                 ],
               ),

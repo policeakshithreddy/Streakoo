@@ -1,5 +1,7 @@
+import 'package:flutter/foundation.dart';
 import 'dart:io';
 import 'package:health/health.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 enum HealthMetricType {
   steps,
@@ -24,6 +26,32 @@ class HealthService {
   // Mock data flag - true if not on iOS/Android
   bool get _useMockData => !Platform.isIOS && !Platform.isAndroid;
 
+  // Platform checks
+  bool get isAndroid => Platform.isAndroid;
+  bool get isIOS => Platform.isIOS;
+
+  /// Open Health Connect settings on Android
+  Future<void> openHealthConnectSettings() async {
+    if (Platform.isAndroid) {
+      try {
+        // Try to open Health Connect app directly via deep link
+        final healthConnectUrl =
+            Uri.parse('android-app://com.google.android.apps.healthdata');
+        if (await canLaunchUrl(healthConnectUrl)) {
+          await launchUrl(healthConnectUrl,
+              mode: LaunchMode.externalApplication);
+        } else {
+          // Fallback: Open in Play Store to install/update Health Connect
+          await _health.installHealthConnect();
+        }
+      } catch (e) {
+        debugPrint('Error opening Health Connect settings: $e');
+        // Fallback to Play Store
+        await _health.installHealthConnect();
+      }
+    }
+  }
+
   /// Check if health data connection is available
   Future<bool> checkHealthConnection() async {
     if (_useMockData) return true;
@@ -32,7 +60,7 @@ class HealthService {
       final hasPermissions = await _health.hasPermissions(types);
       return hasPermissions ?? false;
     } catch (e) {
-      print('Error checking health connection: $e');
+      debugPrint('Error checking health connection: $e');
       return false;
     }
   }
@@ -59,7 +87,7 @@ class HealthService {
       _isAuthorized = hasPermissions ?? false;
       return _isAuthorized;
     } catch (e) {
-      print('Error checking health data access: $e');
+      debugPrint('Error checking health data access: $e');
       return false;
     }
   }
@@ -83,7 +111,7 @@ class HealthService {
       _isAuthorized = await _health.requestAuthorization(types);
       return _isAuthorized;
     } catch (e) {
-      print('Error requesting health permissions: $e');
+      debugPrint('Error requesting health permissions: $e');
       return false;
     }
   }
@@ -115,7 +143,7 @@ class HealthService {
 
       return totalSteps;
     } catch (e) {
-      print('Error fetching step count: $e');
+      debugPrint('Error fetching step count: $e');
       return 0;
     }
   }
@@ -147,7 +175,7 @@ class HealthService {
 
       return totalMinutes / 60.0; // Convert to hours
     } catch (e) {
-      print('Error fetching sleep data: $e');
+      debugPrint('Error fetching sleep data: $e');
       return 0.0;
     }
   }
@@ -179,7 +207,7 @@ class HealthService {
 
       return totalMeters / 1000.0; // Convert to kilometers
     } catch (e) {
-      print('Error fetching distance: $e');
+      debugPrint('Error fetching distance: $e');
       return 0.0;
     }
   }
@@ -211,7 +239,7 @@ class HealthService {
 
       return totalCalories;
     } catch (e) {
-      print('Error fetching calories: $e');
+      debugPrint('Error fetching calories: $e');
       return 0.0;
     }
   }
@@ -249,7 +277,7 @@ class HealthService {
       final steps = await getStepCount(DateTime.now());
       return steps > 0 ? steps : null;
     } catch (e) {
-      print('Error getting today\'s steps: $e');
+      debugPrint('Error getting today\'s steps: $e');
       return null;
     }
   }
@@ -260,7 +288,7 @@ class HealthService {
       final distance = await getDistance(DateTime.now());
       return distance > 0 ? distance : null;
     } catch (e) {
-      print('Error getting today\'s distance: $e');
+      debugPrint('Error getting today\'s distance: $e');
       return null;
     }
   }
@@ -271,7 +299,7 @@ class HealthService {
       final sleep = await getSleepHours(DateTime.now());
       return sleep > 0 ? sleep : null;
     } catch (e) {
-      print('Error getting today\'s sleep: $e');
+      debugPrint('Error getting today\'s sleep: $e');
       return null;
     }
   }
@@ -312,7 +340,7 @@ class HealthService {
 
       return count > 0 ? (totalHeartRate / count).round() : null;
     } catch (e) {
-      print('Error fetching heart rate: $e');
+      debugPrint('Error fetching heart rate: $e');
       return null;
     }
   }

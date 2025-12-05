@@ -135,7 +135,7 @@ class AppState extends ChangeNotifier {
           final supabase = SupabaseService();
           await supabase.syncHealthChallenge(challenge.toJson());
         } catch (e) {
-          print('⚠️  Cloud sync failed: $e');
+          debugPrint('⚠️  Cloud sync failed: $e');
         }
       }
     } else {
@@ -273,7 +273,7 @@ class AppState extends ChangeNotifier {
 
     // Perform daily cloud backup if needed (non-blocking)
     checkAndPerformDailyBackup().catchError((e) {
-      print('Auto-backup error: $e');
+      debugPrint('Auto-backup error: $e');
     });
 
     // Load Weekly Reports
@@ -286,7 +286,7 @@ class AppState extends ChangeNotifier {
           ..addAll(list
               .map((e) => WeeklyReport.fromJson(e as Map<String, dynamic>)));
       } catch (e) {
-        print('Error loading weekly reports: $e');
+        debugPrint('Error loading weekly reports: $e');
       }
     }
 
@@ -312,7 +312,7 @@ class AppState extends ChangeNotifier {
         _activeHealthChallenge =
             HealthChallenge.fromJson(jsonDecode(challengeJson));
       } catch (e) {
-        print('Error loading active challenge: $e');
+        debugPrint('Error loading active challenge: $e');
       }
     }
 
@@ -326,7 +326,7 @@ class AppState extends ChangeNotifier {
           ..addAll(
               list.map((e) => Milestone.fromJson(e as Map<String, dynamic>)));
       } catch (e) {
-        print('Error loading milestones: $e');
+        debugPrint('Error loading milestones: $e');
       }
     }
 
@@ -337,9 +337,23 @@ class AppState extends ChangeNotifier {
         _shownMilestoneIds.clear();
         _shownMilestoneIds.addAll(list.map((e) => e as String));
       } catch (e) {
-        print('Error loading shown milestone IDs: $e');
+        debugPrint('Error loading shown milestone IDs: $e');
       }
     }
+
+    // Initialize and update home screen widget with current data
+    await HomeWidgetService.initialize();
+    final completedToday = _habits.where((h) => h.completedToday).length;
+    final totalHabits = _habits.length;
+    final maxStreak = _habits.isEmpty
+        ? 0
+        : _habits.map((h) => h.streak).reduce((a, b) => a > b ? a : b);
+    await HomeWidgetService.updateWidgetData(
+      completedHabits: completedToday,
+      totalHabits: totalHabits,
+      currentStreak: maxStreak,
+      steps: 0, // Steps will be updated when health data syncs
+    );
 
     notifyListeners();
   }
@@ -368,7 +382,8 @@ class AppState extends ChangeNotifier {
       final h = _habits[i];
       final correctStreak = _calculateStreak(h.completionDates);
       if (h.streak != correctStreak) {
-        print('🔧 Fixing streak for ${h.name}: ${h.streak} -> $correctStreak');
+        debugPrint(
+            '🔧 Fixing streak for ${h.name}: ${h.streak} -> $correctStreak');
         _habits[i] = h.copyWith(streak: correctStreak);
       }
     }
@@ -406,7 +421,8 @@ class AppState extends ChangeNotifier {
           // Check if yesterday is already frozen or if we have freezes
           if (_frozenDates.contains(yesterdayKey)) {
             protectedByFreeze = true;
-            print('❄️ Focus task "${habit.name}" protected by existing freeze');
+            debugPrint(
+                '❄️ Focus task "${habit.name}" protected by existing freeze');
           } else if (_streakFreezes > 0) {
             // Use a freeze!
             if (!usedFreezeToday) {
@@ -414,7 +430,8 @@ class AppState extends ChangeNotifier {
               _frozenDates.add(yesterdayKey);
               usedFreezeToday = true;
               _recentlyFrozenHabitIds.add(habit.id); // Trigger animation
-              print('❄️ Used freeze to protect focus task "${habit.name}"');
+              debugPrint(
+                  '❄️ Used freeze to protect focus task "${habit.name}"');
             }
             protectedByFreeze = true;
           }
@@ -428,10 +445,10 @@ class AppState extends ChangeNotifier {
         } else {
           // Reset streak
           if (habit.isFocusTask) {
-            print(
+            debugPrint(
                 '💔 Focus task "${habit.name}" streak reset (no freezes available)');
           } else {
-            print(
+            debugPrint(
                 '📉 Regular task "${habit.name}" streak reset (not protected)');
           }
           _habits[i] = habit.copyWith(
@@ -534,7 +551,7 @@ class AppState extends ChangeNotifier {
               .reduce((curr, next) => curr > next ? curr : next);
 
       // Get steps from HealthService cache or 0
-      final steps =
+      const steps =
           0; // We'll need to fetch this properly or pass it in, for now 0 to avoid async complexity here
 
       await HomeWidgetService.updateWidgetData(
@@ -544,7 +561,7 @@ class AppState extends ChangeNotifier {
         steps: steps,
       );
     } catch (e) {
-      print('Widget update failed: $e');
+      debugPrint('Widget update failed: $e');
     }
   }
 
@@ -597,9 +614,9 @@ class AppState extends ChangeNotifier {
     if (supabase.isAuthenticated) {
       try {
         await supabase.deleteHabit(id);
-        print('✅ Habit deleted from cloud: $id');
+        debugPrint('✅ Habit deleted from cloud: $id');
       } catch (e) {
-        print('❌ Failed to delete habit from cloud: $e');
+        debugPrint('❌ Failed to delete habit from cloud: $e');
         // We don't rethrow here to keep local deletion successful
       }
     }
@@ -629,23 +646,23 @@ class AppState extends ChangeNotifier {
 
     // Prevent manual completion of sports habits
     if (!isAiTriggered && !current.canManuallyComplete) {
-      print(
+      debugPrint(
           '⚠️ Cannot manually complete sports habit "${current.name}". Use health data or AI.');
       return;
     }
 
     // Log completion source
     if (isAiTriggered) {
-      print('🤖 AI-triggered completion for "${current.name}"');
+      debugPrint('🤖 AI-triggered completion for "${current.name}"');
     } else {
-      print('👆 Manual completion for "${current.name}"');
+      debugPrint('👆 Manual completion for "${current.name}"');
     }
 
     // Already done today?
     final isAlreadyCompletedToday = current.completionDates.contains(todayKey);
 
     if (isAlreadyCompletedToday) {
-      print(
+      debugPrint(
           'ℹ️ Habit "${current.name}" already completed today. Skipping XP/progress rewards.');
       // Just update the UI state, don't award XP or progress again
       _habits[index] = current.copyWith(completedToday: true);
@@ -727,7 +744,7 @@ class AppState extends ChangeNotifier {
     // Replace with NEW habit instance
     _habits[index] = updated;
     // Debug: Verify streak updated
-    print(
+    debugPrint(
         '✅ Habit "${updated.name}" completed! Streak: ${updated.streak} days');
 
     _savePreferences();
@@ -1014,9 +1031,9 @@ class AppState extends ChangeNotifier {
 
     try {
       await backupToCloud();
-      print('✅ Daily auto-backup completed');
+      debugPrint('✅ Daily auto-backup completed');
     } catch (e) {
-      print('❌ Daily auto-backup failed: $e');
+      debugPrint('❌ Daily auto-backup failed: $e');
     }
   }
 
@@ -1067,13 +1084,13 @@ class AppState extends ChangeNotifier {
   }
 
   Future<void> syncHealthHabits() async {
-    print('🔄 Syncing health habits...');
+    debugPrint('🔄 Syncing health habits...');
     final healthService = HealthService.instance;
 
     // Check permissions first
     final hasAccess = await healthService.hasHealthDataAccess();
     if (!hasAccess) {
-      print('⚠️ No health data access. Skipping sync.');
+      debugPrint('⚠️ No health data access. Skipping sync.');
       return;
     }
 
@@ -1088,15 +1105,15 @@ class AppState extends ChangeNotifier {
             await healthService.getCurrentValue(habit.healthMetric!);
         final goal = habit.healthGoalValue ?? 0;
 
-        print(
+        debugPrint(
             '❤️ Health Check: ${habit.name} (${habit.healthMetric?.name}) - Current: $currentValue / Goal: $goal');
 
         if (currentValue >= goal) {
           completeHabit(habit, isAiTriggered: true);
-          print('✅ Auto-completed health habit: ${habit.name}');
+          debugPrint('✅ Auto-completed health habit: ${habit.name}');
         }
       } catch (e) {
-        print('❌ Error syncing habit ${habit.name}: $e');
+        debugPrint('❌ Error syncing habit ${habit.name}: $e');
       }
     }
   }
@@ -1114,22 +1131,22 @@ class AppState extends ChangeNotifier {
     final supabase = SupabaseService();
     if (!supabase.isAuthenticated) return;
 
-    print('🔄 Starting data restoration from cloud...');
+    debugPrint('🔄 Starting data restoration from cloud...');
 
     try {
       // 1. Fetch Habits
-      print('📥 Fetching habits from cloud...');
+      debugPrint('📥 Fetching habits from cloud...');
       final cloudHabits = await supabase.fetchHabitsFromCloud();
       if (cloudHabits.isNotEmpty) {
         _habits.clear();
         _habits.addAll(cloudHabits);
-        print('✅ Restored ${cloudHabits.length} habits');
+        debugPrint('✅ Restored ${cloudHabits.length} habits');
       } else {
-        print('ℹ️ No habits found in cloud');
+        debugPrint('ℹ️ No habits found in cloud');
       }
 
       // 2. Fetch User Level
-      print('📥 Fetching user level from cloud...');
+      debugPrint('📥 Fetching user level from cloud...');
       final cloudLevel = await supabase.fetchUserLevelFromCloud();
       if (cloudLevel != null) {
         _userLevel = cloudLevel;
@@ -1140,23 +1157,23 @@ class AppState extends ChangeNotifier {
           completedLevelsXP += i * 100;
         }
         _totalXP = completedLevelsXP + cloudLevel.currentXP;
-        print('✅ Restored user level: ${cloudLevel.level}');
+        debugPrint('✅ Restored user level: ${cloudLevel.level}');
       } else {
-        print('ℹ️ No user level found in cloud');
+        debugPrint('ℹ️ No user level found in cloud');
       }
 
       // 3. Fetch Health Challenge
-      print('📥 Fetching health challenge from cloud...');
+      debugPrint('📥 Fetching health challenge from cloud...');
       final cloudChallengeData = await supabase.fetchHealthChallenge();
       if (cloudChallengeData != null) {
         try {
           _activeHealthChallenge = HealthChallenge.fromJson(cloudChallengeData);
-          print('✅ Restored active health challenge');
+          debugPrint('✅ Restored active health challenge');
         } catch (e) {
-          print('⚠️ Error parsing cloud challenge: $e');
+          debugPrint('⚠️ Error parsing cloud challenge: $e');
         }
       } else {
-        print('ℹ️ No health challenge found in cloud');
+        debugPrint('ℹ️ No health challenge found in cloud');
       }
 
       // 4. Mark as not first run
@@ -1164,12 +1181,12 @@ class AppState extends ChangeNotifier {
 
       // 5. Save everything locally
       await _savePreferences();
-      print('✅ Saved restored data locally');
+      debugPrint('✅ Saved restored data locally');
 
       // Recalculate streaks to ensure they are up to date
       _checkAndResetStreaks();
       _recalculateAllStreaks();
-      print('✅ Recalculated streaks');
+      debugPrint('✅ Recalculated streaks');
 
       notifyListeners();
 
@@ -1189,12 +1206,12 @@ class AppState extends ChangeNotifier {
           }
         }
       }
-      print(
+      debugPrint(
           '✅ Rescheduled ${_habits.where((h) => h.reminderEnabled).length} notifications');
-      print('🎉 Data restoration complete!');
+      debugPrint('🎉 Data restoration complete!');
     } catch (e, stackTrace) {
-      print('❌ Error during data restoration: $e');
-      print('Stack trace: $stackTrace');
+      debugPrint('❌ Error during data restoration: $e');
+      debugPrint('Stack trace: $stackTrace');
       // Don't rethrow - allow the app to continue with whatever data was restored
       // The user can still use the app, they just might not have all their data
     }

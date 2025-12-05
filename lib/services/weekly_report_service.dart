@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:uuid/uuid.dart';
 
 import '../models/weekly_report.dart';
@@ -171,7 +172,7 @@ Write a 2-3 sentence encouraging summary. Be specific, use the data, add emojis,
 
       return summary?.trim();
     } catch (e) {
-      print('Error generating AI summary: $e');
+      debugPrint('Error generating AI summary: $e');
       return _getFallbackSummary(completionRate);
     }
   }

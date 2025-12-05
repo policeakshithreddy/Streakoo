@@ -68,7 +68,7 @@ class _HealthPickerBottomSheetState extends State<HealthPickerBottomSheet> {
                       Text(
                         widget.subtitle!,
                         style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.onSurface.withOpacity(0.6),
+                          color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                         ),
                       ),
                   ],
@@ -123,7 +123,7 @@ class _HealthPickerBottomSheetState extends State<HealthPickerBottomSheet> {
                   child: Text(
                     widget.unit,
                     style: theme.textTheme.titleLarge?.copyWith(
-                      color: theme.colorScheme.onSurface.withOpacity(0.5),
+                      color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
                     ),
                   ),
                 ),
@@ -277,7 +277,7 @@ class _HeightPickerBottomSheetState extends State<HeightPickerBottomSheet> {
           child: Text(
             'cm',
             style: theme.textTheme.titleLarge?.copyWith(
-              color: theme.colorScheme.onSurface.withOpacity(0.5),
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
             ),
           ),
         ),
@@ -316,7 +316,7 @@ class _HeightPickerBottomSheetState extends State<HeightPickerBottomSheet> {
         Text(
           'ft',
           style: theme.textTheme.titleMedium?.copyWith(
-            color: theme.colorScheme.onSurface.withOpacity(0.5),
+            color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
           ),
         ),
         const SizedBox(width: 20),
@@ -350,7 +350,7 @@ class _HeightPickerBottomSheetState extends State<HeightPickerBottomSheet> {
           child: Text(
             'in',
             style: theme.textTheme.titleMedium?.copyWith(
-              color: theme.colorScheme.onSurface.withOpacity(0.5),
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
             ),
           ),
         ),
@@ -477,7 +477,7 @@ class _WeightPickerBottomSheetState extends State<WeightPickerBottomSheet> {
                   child: Text(
                     _isMetric ? 'kg' : 'lbs',
                     style: theme.textTheme.titleLarge?.copyWith(
-                      color: theme.colorScheme.onSurface.withOpacity(0.5),
+                      color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
                     ),
                   ),
                 ),

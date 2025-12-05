@@ -112,7 +112,7 @@ class _MilestoneCelebrationOverlayState
     return FadeTransition(
       opacity: _fadeAnimation,
       child: Container(
-        color: Colors.black.withOpacity(0.85),
+        color: Colors.black.withValues(alpha: 0.85),
         child: Stack(
           alignment: Alignment.center,
           children: [
@@ -196,7 +196,7 @@ class _MilestoneCelebrationOverlayState
                         boxShadow: [
                           BoxShadow(
                             color: Color(widget.milestone.confettiColors.first)
-                                .withOpacity(0.6),
+                                .withValues(alpha: 0.6),
                             blurRadius: 50,
                             spreadRadius: 15,
                           ),
@@ -243,11 +243,11 @@ class _MilestoneCelebrationOverlayState
                     ),
                     decoration: BoxDecoration(
                       color: Color(widget.milestone.confettiColors.first)
-                          .withOpacity(0.2),
+                          .withValues(alpha: 0.2),
                       borderRadius: BorderRadius.circular(20),
                       border: Border.all(
                         color: Color(widget.milestone.confettiColors.first)
-                            .withOpacity(0.5),
+                            .withValues(alpha: 0.5),
                         width: 2,
                       ),
                     ),
@@ -276,7 +276,7 @@ class _MilestoneCelebrationOverlayState
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.w500,
-                        color: Colors.white.withOpacity(0.9),
+                        color: Colors.white.withValues(alpha: 0.9),
                         height: 1.5,
                       ),
                     ),

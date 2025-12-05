@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 
@@ -15,7 +16,7 @@ class GroqAIService {
     int? maxTokens,
   }) async {
     if (!AppConfig.isApiConfigured) {
-      print('⚠️ Groq API key not configured. Using fallback responses.');
+      debugPrint('⚠️ Groq API key not configured. Using fallback responses.');
       return null;
     }
 
@@ -41,11 +42,11 @@ class GroqAIService {
         final data = jsonDecode(response.body);
         return data['choices'][0]['message']['content'] as String;
       } else {
-        print('Groq API Error: ${response.statusCode} - ${response.body}');
+        debugPrint('Groq API Error: ${response.statusCode} - ${response.body}');
         return null;
       }
     } catch (e) {
-      print('Error calling Groq API: $e');
+      debugPrint('Error calling Groq API: $e');
       return null;
     }
   }

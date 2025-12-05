@@ -135,6 +135,8 @@ class _SuggestionScreenState extends State<SuggestionScreen> {
 
     await appState.setFirstRunComplete();
 
+    if (!mounted) return;
+
     Navigator.of(context).pushAndRemoveUntil(
       MaterialPageRoute(builder: (_) => const NavWrapper()),
       (route) => false,
@@ -244,7 +246,8 @@ class _SuggestionScreenState extends State<SuggestionScreen> {
                         style: OutlinedButton.styleFrom(
                           padding: const EdgeInsets.symmetric(vertical: 16),
                           side: BorderSide(
-                            color: theme.colorScheme.primary.withOpacity(0.5),
+                            color: theme.colorScheme.primary
+                                .withValues(alpha: 0.5),
                             style: BorderStyle.solid,
                           ),
                         ),
@@ -274,13 +277,13 @@ class _SuggestionScreenState extends State<SuggestionScreen> {
                       elevation: item.selected ? 2 : 0,
                       color: item.selected
                           ? theme.cardColor
-                          : theme.disabledColor.withOpacity(0.1),
+                          : theme.disabledColor.withValues(alpha: 0.1),
                       child: ListTile(
                         leading: Container(
                           padding: const EdgeInsets.all(8),
                           decoration: BoxDecoration(
                             color: theme.colorScheme.primaryContainer
-                                .withOpacity(0.3),
+                                .withValues(alpha: 0.3),
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: Text(

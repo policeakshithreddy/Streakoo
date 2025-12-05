@@ -782,8 +782,10 @@ class _HealthChallengeIntakeScreenState
           time: const TimeOfDay(hour: 9, minute: 0),
         );
 
+        if (!mounted) return;
         Navigator.of(context).popUntil((route) => route.isFirst);
 
+        if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('🎉 Challenge Started! Check your dashboard.'),
@@ -819,7 +821,7 @@ class _HealthChallengeIntakeScreenState
           border: Border.all(
             color: hasValue
                 ? theme.colorScheme.primary
-                : theme.colorScheme.outline.withOpacity(0.5),
+                : theme.colorScheme.outline.withValues(alpha: 0.5),
             width: hasValue ? 2 : 1,
           ),
           borderRadius: BorderRadius.circular(12),
@@ -830,7 +832,7 @@ class _HealthChallengeIntakeScreenState
               icon,
               color: hasValue
                   ? theme.colorScheme.primary
-                  : theme.colorScheme.onSurface.withOpacity(0.5),
+                  : theme.colorScheme.onSurface.withValues(alpha: 0.5),
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -840,7 +842,7 @@ class _HealthChallengeIntakeScreenState
                   Text(
                     label,
                     style: theme.textTheme.labelMedium?.copyWith(
-                      color: theme.colorScheme.onSurface.withOpacity(0.7),
+                      color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
                     ),
                   ),
                   const SizedBox(height: 4),
@@ -849,7 +851,7 @@ class _HealthChallengeIntakeScreenState
                     style: theme.textTheme.titleMedium?.copyWith(
                       color: hasValue
                           ? theme.colorScheme.onSurface
-                          : theme.colorScheme.onSurface.withOpacity(0.4),
+                          : theme.colorScheme.onSurface.withValues(alpha: 0.4),
                       fontWeight:
                           hasValue ? FontWeight.w600 : FontWeight.normal,
                     ),
@@ -860,7 +862,7 @@ class _HealthChallengeIntakeScreenState
             Icon(
               Icons.arrow_forward_ios,
               size: 16,
-              color: theme.colorScheme.onSurface.withOpacity(0.3),
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.3),
             ),
           ],
         ),

@@ -35,7 +35,7 @@ class _FreezeAnimationOverlayState extends State<FreezeAnimationOverlay> {
           child: BackdropFilter(
             filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
             child: Container(
-              color: Colors.lightBlue.withOpacity(0.3),
+              color: Colors.lightBlue.withValues(alpha: 0.3),
             ),
           )
               .animate()

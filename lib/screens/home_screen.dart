@@ -12,12 +12,13 @@ import '../widgets/habit_card.dart';
 import '../widgets/celebration_overlay.dart';
 import '../widgets/milestone_celebration_overlay.dart';
 import '../widgets/achievement_banner.dart';
-import '../screens/level_up_reward_screen.dart';
+import '../widgets/spectacular_level_up.dart';
 import '../services/notification_engine.dart';
 import '../widgets/level_badge.dart';
 import '../utils/slide_route.dart';
+import '../widgets/modern_ui.dart'
+    hide slideFromRight, slideFromBottom, fadeTransition;
 
-import '../widgets/bouncy_button.dart';
 import 'habit_detail_screen.dart';
 import 'add_habit_screen.dart';
 import 'settings_screen.dart';
@@ -58,7 +59,8 @@ class _HomeScreenState extends State<HomeScreen> {
       // Sync health habits on startup
       appState.syncHealthHabits();
 
-      print('✅ Notification Engine initialized & Focus Reminders scheduled');
+      debugPrint(
+          '✅ Notification Engine initialized & Focus Reminders scheduled');
     }
   }
 
@@ -118,27 +120,30 @@ class _HomeScreenState extends State<HomeScreen> {
       final rewards = LevelReward.getRewardsForLevel(newLevel);
       CelebrationEngine.instance.celebrateLevelUp(newLevel, title);
 
-      await Future.delayed(const Duration(milliseconds: 500));
+      // Show spectacular level-up screen immediately
+      await Future.delayed(const Duration(milliseconds: 300));
       if (mounted) {
-        setState(() {
-          _activeCelebration = CelebrationConfig.levelUp(newLevel, title);
-        });
-
-        // Show level-up reward screen after celebration
-        await Future.delayed(const Duration(seconds: 3));
-        if (mounted) {
-          setState(() => _activeCelebration = null);
-          await Navigator.of(context).push(
-            MaterialPageRoute(
-              builder: (_) => LevelUpRewardScreen(
-                newLevel: newLevel,
-                title: title,
-                userLevel: appState.userLevel,
-                rewards: rewards,
-              ),
+        await Navigator.of(context).push(
+          PageRouteBuilder(
+            opaque: false,
+            barrierColor: Colors.black87,
+            pageBuilder: (context, animation, secondaryAnimation) =>
+                SpectacularLevelUpScreen(
+              newLevel: newLevel,
+              title: title,
+              userLevel: appState.userLevel,
+              rewards: rewards,
+              onComplete: () {},
             ),
-          );
-        }
+            transitionsBuilder:
+                (context, animation, secondaryAnimation, child) {
+              return FadeTransition(
+                opacity: animation,
+                child: child,
+              );
+            },
+          ),
+        );
       }
     }
     // Priority 2: Check for streak milestones
@@ -249,165 +254,176 @@ class _HomeScreenState extends State<HomeScreen> {
                     textAlign: TextAlign.center,
                   ),
                 )
-              : ListView.builder(
-                  padding: const EdgeInsets.all(16),
-                  itemCount: habits.length,
-                  itemBuilder: (context, index) {
-                    final habit = habits[index];
+              : BrandedRefreshIndicator(
+                  onRefresh: () async {
+                    // Sync health habits on pull-to-refresh
+                    final appState = context.read<AppState>();
+                    await appState.syncHealthHabits();
+                    // Small delay for visual feedback
+                    await Future.delayed(const Duration(milliseconds: 300));
+                  },
+                  child: ListView.builder(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    padding: const EdgeInsets.all(16),
+                    itemCount: habits.length,
+                    itemBuilder: (context, index) {
+                      final habit = habits[index];
 
-                    return Padding(
-                      padding: const EdgeInsets.only(bottom: 12),
-                      child: BouncyButton(
-                        onPressed: () => _openDetails(context, habit),
-                        child: GestureDetector(
-                          key: ValueKey(habit.id),
-                          onLongPress: () {
-                            showModalBottomSheet(
-                              context: context,
-                              backgroundColor: Colors.transparent,
-                              builder: (context) => Container(
-                                decoration: BoxDecoration(
-                                  color: Theme.of(context).cardColor,
-                                  borderRadius: const BorderRadius.vertical(
-                                    top: Radius.circular(24),
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 12),
+                        child: BouncyButton(
+                          onTap: () => _openDetails(context, habit),
+                          child: GestureDetector(
+                            key: ValueKey(habit.id),
+                            onLongPress: () {
+                              showModalBottomSheet(
+                                context: context,
+                                backgroundColor: Colors.transparent,
+                                builder: (context) => Container(
+                                  decoration: BoxDecoration(
+                                    color: Theme.of(context).cardColor,
+                                    borderRadius: const BorderRadius.vertical(
+                                      top: Radius.circular(24),
+                                    ),
+                                  ),
+                                  padding: const EdgeInsets.all(24),
+                                  child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      ListTile(
+                                        leading: Icon(Icons.edit,
+                                            color: Theme.of(context)
+                                                .iconTheme
+                                                .color),
+                                        title: Text(
+                                          'Edit Habit',
+                                          style: TextStyle(
+                                              color: Theme.of(context)
+                                                  .textTheme
+                                                  .bodyLarge
+                                                  ?.color),
+                                        ),
+                                        onTap: () {
+                                          Navigator.pop(context);
+                                          Navigator.of(context).push(
+                                            slideFromRight(AddHabitScreen(
+                                                existing: habit)),
+                                          );
+                                        },
+                                      ),
+                                      ListTile(
+                                        leading: const Icon(Icons.delete,
+                                            color: Colors.red),
+                                        title: const Text(
+                                          'Delete Habit',
+                                          style: TextStyle(color: Colors.red),
+                                        ),
+                                        onTap: () {
+                                          Navigator.pop(context);
+                                          showDialog(
+                                            context: context,
+                                            builder: (context) => AlertDialog(
+                                              title:
+                                                  const Text('Delete Habit?'),
+                                              content: Text(
+                                                'Are you sure you want to delete "${habit.name}"?',
+                                              ),
+                                              actions: [
+                                                TextButton(
+                                                  onPressed: () =>
+                                                      Navigator.pop(context),
+                                                  child: const Text('Cancel'),
+                                                ),
+                                                TextButton(
+                                                  onPressed: () {
+                                                    appState
+                                                        .deleteHabit(habit.id);
+                                                    Navigator.pop(context);
+                                                  },
+                                                  child: const Text(
+                                                    'Delete',
+                                                    style: TextStyle(
+                                                        color: Colors.red),
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          );
+                                        },
+                                      ),
+                                    ],
                                   ),
                                 ),
-                                padding: const EdgeInsets.all(24),
-                                child: Column(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    ListTile(
-                                      leading: Icon(Icons.edit,
-                                          color: Theme.of(context)
-                                              .iconTheme
-                                              .color),
-                                      title: Text(
-                                        'Edit Habit',
-                                        style: TextStyle(
-                                            color: Theme.of(context)
-                                                .textTheme
-                                                .bodyLarge
-                                                ?.color),
-                                      ),
-                                      onTap: () {
-                                        Navigator.pop(context);
-                                        Navigator.of(context).push(
-                                          slideFromRight(
-                                              AddHabitScreen(existing: habit)),
-                                        );
-                                      },
-                                    ),
-                                    ListTile(
-                                      leading: const Icon(Icons.delete,
-                                          color: Colors.red),
-                                      title: const Text(
-                                        'Delete Habit',
-                                        style: TextStyle(color: Colors.red),
-                                      ),
-                                      onTap: () {
-                                        Navigator.pop(context);
-                                        showDialog(
-                                          context: context,
-                                          builder: (context) => AlertDialog(
-                                            title: const Text('Delete Habit?'),
-                                            content: Text(
-                                              'Are you sure you want to delete "${habit.name}"?',
-                                            ),
-                                            actions: [
-                                              TextButton(
-                                                onPressed: () =>
-                                                    Navigator.pop(context),
-                                                child: const Text('Cancel'),
-                                              ),
-                                              TextButton(
-                                                onPressed: () {
-                                                  appState
-                                                      .deleteHabit(habit.id);
-                                                  Navigator.pop(context);
-                                                },
-                                                child: const Text(
-                                                  'Delete',
-                                                  style: TextStyle(
-                                                      color: Colors.red),
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                        );
-                                      },
+                              );
+                            },
+                            child: Dismissible(
+                              key: ValueKey('dismissible_${habit.id}'),
+                              direction: DismissDirection.horizontal,
+                              confirmDismiss: (direction) async {
+                                final appState = context.read<AppState>();
+                                await _handleComplete(context, appState, habit);
+                                // Don't remove the tile from UI
+                                return false;
+                              },
+                              background: Container(
+                                margin: const EdgeInsets.only(bottom: 16),
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(22),
+                                  color: Theme.of(context).cardColor,
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: const Color(0xFFFFA94A)
+                                          .withValues(alpha: 0.4),
+                                      blurRadius: 20,
+                                      spreadRadius: 2,
                                     ),
                                   ],
                                 ),
+                                alignment: Alignment.centerLeft,
+                                padding:
+                                    const EdgeInsets.symmetric(horizontal: 24),
+                                child: const Icon(Icons.check_circle,
+                                    color: Color(0xFFFFA94A), size: 32),
                               ),
-                            );
-                          },
-                          child: Dismissible(
-                            key: ValueKey('dismissible_${habit.id}'),
-                            direction: DismissDirection.horizontal,
-                            confirmDismiss: (direction) async {
-                              final appState = context.read<AppState>();
-                              await _handleComplete(context, appState, habit);
-                              // Don't remove the tile from UI
-                              return false;
-                            },
-                            background: Container(
-                              margin: const EdgeInsets.only(bottom: 16),
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(22),
-                                color: Theme.of(context).cardColor,
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: const Color(0xFFFFA94A)
-                                        .withValues(alpha: 0.4),
-                                    blurRadius: 20,
-                                    spreadRadius: 2,
-                                  ),
-                                ],
+                              secondaryBackground: Container(
+                                margin: const EdgeInsets.only(bottom: 16),
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(22),
+                                  color: Theme.of(context).cardColor,
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: const Color(0xFFFFA94A)
+                                          .withValues(alpha: 0.4),
+                                      blurRadius: 20,
+                                      spreadRadius: 2,
+                                    ),
+                                  ],
+                                ),
+                                alignment: Alignment.centerRight,
+                                padding:
+                                    const EdgeInsets.symmetric(horizontal: 24),
+                                child: const Icon(Icons.check_circle,
+                                    color: Color(0xFFFFA94A), size: 32),
                               ),
-                              alignment: Alignment.centerLeft,
-                              padding:
-                                  const EdgeInsets.symmetric(horizontal: 24),
-                              child: const Icon(Icons.check_circle,
-                                  color: Color(0xFFFFA94A), size: 32),
+                              child: HabitCard(
+                                habit: habit,
+                                // Pass null or empty callback if we want BouncyButton to handle tap
+                                // But HabitCard might need it for ripple.
+                                // Let's pass the same callback just in case.
+                                onTap: () => _openDetails(context, habit),
+                              )
+                                  .animate()
+                                  .fadeIn(
+                                    duration: 350.ms,
+                                    delay: (index * 70).ms,
+                                  )
+                                  .slideY(begin: 0.08, end: 0),
                             ),
-                            secondaryBackground: Container(
-                              margin: const EdgeInsets.only(bottom: 16),
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(22),
-                                color: Theme.of(context).cardColor,
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: const Color(0xFFFFA94A)
-                                        .withValues(alpha: 0.4),
-                                    blurRadius: 20,
-                                    spreadRadius: 2,
-                                  ),
-                                ],
-                              ),
-                              alignment: Alignment.centerRight,
-                              padding:
-                                  const EdgeInsets.symmetric(horizontal: 24),
-                              child: const Icon(Icons.check_circle,
-                                  color: Color(0xFFFFA94A), size: 32),
-                            ),
-                            child: HabitCard(
-                              habit: habit,
-                              // Pass null or empty callback if we want BouncyButton to handle tap
-                              // But HabitCard might need it for ripple.
-                              // Let's pass the same callback just in case.
-                              onTap: () => _openDetails(context, habit),
-                            )
-                                .animate()
-                                .fadeIn(
-                                  duration: 350.ms,
-                                  delay: (index * 70).ms,
-                                )
-                                .slideY(begin: 0.08, end: 0),
                           ),
                         ),
-                      ),
-                    );
-                  },
+                      );
+                    },
+                  ),
                 ),
           floatingActionButton: FloatingActionButton(
             onPressed: () => _openAddHabit(context),

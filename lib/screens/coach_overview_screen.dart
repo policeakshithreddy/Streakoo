@@ -45,7 +45,7 @@ class _CoachOverviewScreenState extends State<CoachOverviewScreen> {
       await _briefService.checkAndGenerate(context).timeout(
         const Duration(seconds: 5),
         onTimeout: () {
-          print('⚠️ Brief generation timed out');
+          debugPrint('⚠️ Brief generation timed out');
           return;
         },
       );
@@ -82,7 +82,7 @@ class _CoachOverviewScreenState extends State<CoachOverviewScreen> {
         if (mounted) setState(() => _isLoading = false);
       }
     } catch (e) {
-      print('Error loading AI brief data: $e');
+      debugPrint('Error loading AI brief data: $e');
       if (mounted) {
         setState(() {
           _isLoading = false;
@@ -194,8 +194,8 @@ class _CoachOverviewScreenState extends State<CoachOverviewScreen> {
                             style: TextStyle(
                               fontSize: 16,
                               color: isDark
-                                  ? Colors.white.withOpacity(0.6)
-                                  : Colors.black.withOpacity(0.5),
+                                  ? Colors.white.withValues(alpha: 0.6)
+                                  : Colors.black.withValues(alpha: 0.5),
                             ),
                           ),
                         ],
@@ -243,8 +243,8 @@ class _CoachOverviewScreenState extends State<CoachOverviewScreen> {
               height: 4,
               decoration: BoxDecoration(
                 color: isDark
-                    ? Colors.white.withOpacity(0.3)
-                    : Colors.black.withOpacity(0.2),
+                    ? Colors.white.withValues(alpha: 0.3)
+                    : Colors.black.withValues(alpha: 0.2),
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -271,8 +271,8 @@ class _CoachOverviewScreenState extends State<CoachOverviewScreen> {
                           style: TextStyle(
                             fontSize: 14,
                             color: isDark
-                                ? Colors.white.withOpacity(0.6)
-                                : Colors.black.withOpacity(0.5),
+                                ? Colors.white.withValues(alpha: 0.6)
+                                : Colors.black.withValues(alpha: 0.5),
                           ),
                         ),
                       ],
@@ -313,8 +313,8 @@ class _CoachOverviewScreenState extends State<CoachOverviewScreen> {
                         style: TextStyle(
                           fontSize: 16,
                           color: isDark
-                              ? Colors.white.withOpacity(0.6)
-                              : Colors.black.withOpacity(0.5),
+                              ? Colors.white.withValues(alpha: 0.6)
+                              : Colors.black.withValues(alpha: 0.5),
                         ),
                       ),
                     ),
@@ -346,10 +346,11 @@ class _CoachOverviewScreenState extends State<CoachOverviewScreen> {
                       Container(
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFFFA94A).withOpacity(0.1),
+                          color: const Color(0xFFFFA94A).withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(16),
                           border: Border.all(
-                            color: const Color(0xFFFFA94A).withOpacity(0.3),
+                            color:
+                                const Color(0xFFFFA94A).withValues(alpha: 0.3),
                           ),
                         ),
                         child: Column(
@@ -381,8 +382,8 @@ class _CoachOverviewScreenState extends State<CoachOverviewScreen> {
                                 fontSize: 14,
                                 height: 1.5,
                                 color: isDark
-                                    ? Colors.white.withOpacity(0.8)
-                                    : Colors.black.withOpacity(0.75),
+                                    ? Colors.white.withValues(alpha: 0.8)
+                                    : Colors.black.withValues(alpha: 0.75),
                               ),
                             ),
                           ],
@@ -425,8 +426,8 @@ class _DetailRow extends StatelessWidget {
               style: TextStyle(
                 fontSize: 15,
                 color: isDark
-                    ? Colors.white.withOpacity(0.6)
-                    : Colors.black.withOpacity(0.5),
+                    ? Colors.white.withValues(alpha: 0.6)
+                    : Colors.black.withValues(alpha: 0.5),
               ),
             ),
           ),

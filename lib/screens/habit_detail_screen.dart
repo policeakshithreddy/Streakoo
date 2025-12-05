@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 
 import '../models/habit.dart';
 import '../state/app_state.dart';
 import '../utils/slide_route.dart';
+import '../services/health_checker_service.dart';
 import 'journal_screen.dart';
 import 'coach_screen.dart';
 
@@ -63,8 +65,21 @@ class HabitDetailScreen extends StatelessWidget {
               currentStreak: currentHabit.streak,
               bestStreak: bestStreak,
               isDark: isDark,
-            ),
+            ).animate().fadeIn(duration: 400.ms).slideY(begin: 0.2, end: 0),
             const SizedBox(height: 16),
+
+            // Health Goal Progress (for health-tracked habits like sports)
+            if (currentHabit.isHealthTracked &&
+                currentHabit.healthMetric != null &&
+                currentHabit.healthGoalValue != null)
+              _HealthGoalProgressCard(
+                habit: currentHabit,
+                isDark: isDark,
+              )
+                  .animate()
+                  .fadeIn(duration: 400.ms, delay: 100.ms)
+                  .slideY(begin: 0.2, end: 0),
+            if (currentHabit.isHealthTracked) const SizedBox(height: 16),
 
             // Total Completions Section with Calendar
             _CompletionsCard(
@@ -73,7 +88,10 @@ class HabitDetailScreen extends StatelessWidget {
               daysSinceStart: daysSinceStart,
               completionDates: currentHabit.completionDates,
               isDark: isDark,
-            ),
+            )
+                .animate()
+                .fadeIn(duration: 400.ms, delay: 200.ms)
+                .slideY(begin: 0.2, end: 0),
             const SizedBox(height: 16),
 
             // Completion Rate
@@ -574,6 +592,343 @@ class _InfoCard extends StatelessWidget {
             style: TextStyle(
               fontSize: 15,
               color: isDark ? Colors.grey[400] : Colors.grey[600],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// Health Goal Progress Card with animated progress bar
+class _HealthGoalProgressCard extends StatefulWidget {
+  final Habit habit;
+  final bool isDark;
+
+  const _HealthGoalProgressCard({
+    required this.habit,
+    required this.isDark,
+  });
+
+  @override
+  State<_HealthGoalProgressCard> createState() =>
+      _HealthGoalProgressCardState();
+}
+
+class _HealthGoalProgressCardState extends State<_HealthGoalProgressCard>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _animController;
+  late Animation<double> _progressAnimation;
+  Map<String, dynamic>? _progressData;
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _animController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1500),
+    );
+    _progressAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _animController, curve: Curves.easeOutCubic),
+    );
+    _loadProgress();
+  }
+
+  @override
+  void dispose() {
+    _animController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadProgress() async {
+    final data =
+        await HealthCheckerService.instance.getHabitProgress(widget.habit);
+    if (mounted) {
+      setState(() {
+        _progressData = data;
+        _isLoading = false;
+      });
+      _animController.forward();
+    }
+  }
+
+  String _getMetricIcon() {
+    switch (widget.habit.healthMetric?.name) {
+      case 'steps':
+        return '👟';
+      case 'distance':
+        return '🏃';
+      case 'sleep':
+        return '😴';
+      case 'calories':
+        return '🔥';
+      case 'heartRate':
+        return '❤️';
+      default:
+        return '🎯';
+    }
+  }
+
+  String _getMetricName() {
+    switch (widget.habit.healthMetric?.name) {
+      case 'steps':
+        return 'Steps';
+      case 'distance':
+        return 'Distance';
+      case 'sleep':
+        return 'Sleep';
+      case 'calories':
+        return 'Calories';
+      case 'heartRate':
+        return 'Heart Rate';
+      default:
+        return 'Progress';
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    if (_isLoading) {
+      return Container(
+        decoration: BoxDecoration(
+          color: widget.isDark ? Colors.grey[900] : Colors.grey[100],
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: widget.isDark ? Colors.grey[800]! : Colors.grey[300]!,
+            width: 1,
+          ),
+        ),
+        padding: const EdgeInsets.all(24),
+        child: const Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+    }
+
+    final current = (_progressData?['current'] as num?)?.toDouble() ?? 0.0;
+    final target = (_progressData?['target'] as num?)?.toDouble() ?? 1.0;
+    final percentage =
+        (_progressData?['percentage'] as num?)?.toDouble() ?? 0.0;
+    final unit = _progressData?['unit'] as String? ?? '';
+    final isComplete = percentage >= 100;
+
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            widget.isDark ? Colors.grey[900]! : Colors.grey[100]!,
+            widget.isDark
+                ? const Color(0xFF58CC02).withValues(alpha: 0.1)
+                : const Color(0xFF58CC02).withValues(alpha: 0.05),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: isComplete
+              ? const Color(0xFF58CC02)
+              : (widget.isDark ? Colors.grey[800]! : Colors.grey[300]!),
+          width: isComplete ? 2 : 1,
+        ),
+        boxShadow: isComplete
+            ? [
+                BoxShadow(
+                  color: const Color(0xFF58CC02).withValues(alpha: 0.3),
+                  blurRadius: 12,
+                  spreadRadius: 0,
+                ),
+              ]
+            : null,
+      ),
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header
+          Row(
+            children: [
+              Text(
+                _getMetricIcon(),
+                style: const TextStyle(fontSize: 24),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                '${_getMetricName()} Goal',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: widget.isDark ? Colors.white : Colors.black,
+                ),
+              ),
+              const Spacer(),
+              if (isComplete)
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF58CC02),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.check, color: Colors.white, size: 16),
+                      SizedBox(width: 4),
+                      Text(
+                        'Complete!',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ),
+                ).animate().scale(duration: 400.ms, curve: Curves.elasticOut),
+            ],
+          ),
+          const SizedBox(height: 20),
+
+          // Progress Section
+          Row(
+            children: [
+              // Circular Progress
+              AnimatedBuilder(
+                animation: _progressAnimation,
+                builder: (context, child) {
+                  return SizedBox(
+                    width: 100,
+                    height: 100,
+                    child: Stack(
+                      fit: StackFit.expand,
+                      children: [
+                        // Background circle
+                        CircularProgressIndicator(
+                          value: 1.0,
+                          strokeWidth: 12,
+                          backgroundColor: Colors.transparent,
+                          color: theme.colorScheme.surfaceContainerHighest,
+                        ),
+                        // Progress circle
+                        CircularProgressIndicator(
+                          value: (percentage / 100 * _progressAnimation.value)
+                              .clamp(0.0, 1.0),
+                          strokeWidth: 12,
+                          backgroundColor: Colors.transparent,
+                          color: isComplete
+                              ? const Color(0xFF58CC02)
+                              : theme.colorScheme.primary,
+                          strokeCap: StrokeCap.round,
+                        ),
+                        // Percentage text
+                        Center(
+                          child: Text(
+                            '${(percentage * _progressAnimation.value).toInt()}%',
+                            style: TextStyle(
+                              fontSize: 22,
+                              fontWeight: FontWeight.bold,
+                              color: isComplete
+                                  ? const Color(0xFF58CC02)
+                                  : (widget.isDark
+                                      ? Colors.white
+                                      : Colors.black),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              ),
+              const SizedBox(width: 24),
+
+              // Stats
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Current value
+                    Text(
+                      'Current',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color:
+                            widget.isDark ? Colors.grey[400] : Colors.grey[600],
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      '${current.toStringAsFixed(current == current.toInt() ? 0 : 1)} $unit',
+                      style: TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                        color: widget.isDark ? Colors.white : Colors.black,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+
+                    // Target value
+                    Text(
+                      'Target',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color:
+                            widget.isDark ? Colors.grey[400] : Colors.grey[600],
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      '${target.toStringAsFixed(target == target.toInt() ? 0 : 1)} $unit',
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFF58CC02),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 20),
+
+          // Linear progress bar
+          ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: AnimatedBuilder(
+              animation: _progressAnimation,
+              builder: (context, child) {
+                return LinearProgressIndicator(
+                  value: (percentage / 100 * _progressAnimation.value)
+                      .clamp(0.0, 1.0),
+                  minHeight: 8,
+                  backgroundColor: theme.colorScheme.surfaceContainerHighest,
+                  color: isComplete
+                      ? const Color(0xFF58CC02)
+                      : theme.colorScheme.primary,
+                );
+              },
+            ),
+          ),
+
+          const SizedBox(height: 8),
+
+          // Remaining text
+          Text(
+            isComplete
+                ? '🎉 Goal achieved! Great job!'
+                : '${(target - current).toStringAsFixed(current == current.toInt() ? 0 : 1)} $unit to go',
+            style: TextStyle(
+              fontSize: 13,
+              color: isComplete
+                  ? const Color(0xFF58CC02)
+                  : (widget.isDark ? Colors.grey[400] : Colors.grey[600]),
+              fontWeight: isComplete ? FontWeight.w600 : FontWeight.normal,
             ),
           ),
         ],

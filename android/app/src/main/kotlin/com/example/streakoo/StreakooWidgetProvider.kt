@@ -22,19 +22,34 @@ class StreakooWidgetProvider : HomeWidgetProvider() {
                 val completed = widgetData.getInt("completed_habits", 0)
                 val total = widgetData.getInt("total_habits", 0)
                 val streak = widgetData.getInt("current_streak", 0)
-                val steps = widgetData.getInt("steps", 0)
+                val motivation = widgetData.getString("motivation", null) ?: getDefaultMessage(completed, total, streak)
 
-                // Update UI
-                setTextViewText(R.id.habits_count_text, "$completed/$total")
-                setTextViewText(R.id.streak_text, "🔥 $streak")
-                setTextViewText(R.id.steps_text, "👟 $steps steps today")
+                // Format habit count display
+                val habitDisplay = when {
+                    total == 0 -> "✨"
+                    else -> "$completed/$total"
+                }
+
+                // Format streak display
+                val streakDisplay = when {
+                    streak >= 7 -> "🔥 $streak"
+                    streak > 0 -> "✨ $streak"
+                    else -> "🎯 0"
+                }
+
+                // Update UI elements
+                setTextViewText(R.id.habits_count_text, habitDisplay)
+                setTextViewText(R.id.streak_text, streakDisplay)
+                setTextViewText(R.id.motivation_text, motivation)
 
                 // Update Progress Bar
                 val progress = if (total > 0) (completed * 100) / total else 0
                 setProgressBar(R.id.habits_progress_bar, 100, progress, false)
 
                 // Click to open app
-                val intent = Intent(context, MainActivity::class.java)
+                val intent = Intent(context, MainActivity::class.java).apply {
+                    flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+                }
                 val pendingIntent = PendingIntent.getActivity(
                     context,
                     0,
@@ -45,6 +60,17 @@ class StreakooWidgetProvider : HomeWidgetProvider() {
             }
 
             appWidgetManager.updateAppWidget(widgetId, views)
+        }
+    }
+
+    private fun getDefaultMessage(completed: Int, total: Int, streak: Int): String {
+        return when {
+            total == 0 -> "Add your first habit! 🌟"
+            completed == total && streak >= 7 -> "On fire! $streak days! 🔥"
+            completed == total -> "All done today! ✨"
+            completed >= total / 2 -> "Almost there! 💪"
+            streak > 0 -> "$streak day streak! 🎯"
+            else -> "Let's do this! 🌟"
         }
     }
 }

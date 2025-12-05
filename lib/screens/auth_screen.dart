@@ -33,7 +33,7 @@ class _AuthScreenState extends State<AuthScreen> {
   }
 
   Future<void> _checkAndCompleteProfile() async {
-    print('🔐 _checkAndCompleteProfile: Starting profile check');
+    debugPrint('🔐 _checkAndCompleteProfile: Starting profile check');
 
     final supabase = SupabaseService();
     final user = supabase.currentUser;
@@ -42,7 +42,7 @@ class _AuthScreenState extends State<AuthScreen> {
     if (user != null &&
         user.appMetadata['provider'] == 'email' &&
         user.emailConfirmedAt == null) {
-      print('⚠️ Email not verified. Redirecting to OTP input.');
+      debugPrint('⚠️ Email not verified. Redirecting to OTP input.');
       setState(() {
         _showOtpInput = true;
         _isLoading = false;
@@ -52,12 +52,12 @@ class _AuthScreenState extends State<AuthScreen> {
 
     var profile = await supabase.getUserProfile();
 
-    print('🔐 Current user ID: ${supabase.currentUser?.id}');
-    print('🔐 Current user email: ${supabase.currentUser?.email}');
+    debugPrint('🔐 Current user ID: ${supabase.currentUser?.id}');
+    debugPrint('🔐 Current user email: ${supabase.currentUser?.email}');
 
     if (mounted && (profile == null || profile['age'] == null)) {
       // No profile or age missing, navigate to setup
-      print(
+      debugPrint(
           '⚠️ Profile missing or incomplete, navigating to ProfileSetupScreen');
       await Navigator.push(
         context,
@@ -68,25 +68,26 @@ class _AuthScreenState extends State<AuthScreen> {
 
       // Refresh profile after setup
       profile = await supabase.getUserProfile();
-      print('🔐 Profile after setup: $profile');
+      debugPrint('🔐 Profile after setup: $profile');
     }
 
     if (mounted && profile != null) {
       final name = profile['username'] ?? 'User';
       final age = profile['age'] ?? 18;
 
-      print('🔐 Profile complete: name=$name, age=$age');
-      print('🔍 Checking for existing data...');
+      debugPrint('🔐 Profile complete: name=$name, age=$age');
+      debugPrint('🔍 Checking for existing data...');
 
       // Check for existing data (habits, etc.)
       final hasData = await supabase.hasExistingData();
 
-      print('🔍 hasExistingData result: $hasData');
+      debugPrint('🔍 hasExistingData result: $hasData');
 
       if (mounted) {
         if (hasData) {
           // Restore data flow
-          print('✅ Existing data found - navigating to DataRestorationScreen');
+          debugPrint(
+              '✅ Existing data found - navigating to DataRestorationScreen');
           Navigator.of(context).pushAndRemoveUntil(
             MaterialPageRoute(
               builder: (_) => DataRestorationScreen(userName: name),
@@ -95,7 +96,7 @@ class _AuthScreenState extends State<AuthScreen> {
           );
         } else {
           // New user flow
-          print('🆕 No existing data - navigating to QuestionFlowScreen');
+          debugPrint('🆕 No existing data - navigating to QuestionFlowScreen');
           _navigateToQuestions(name, age);
         }
       }
@@ -130,7 +131,12 @@ class _AuthScreenState extends State<AuthScreen> {
       }
     } catch (e) {
       if (mounted) {
-        _showError('Google Sign-In failed: ${e.toString()}');
+        final errorMsg = e.toString();
+        // Don't show error for user cancellation
+        if (!errorMsg.toLowerCase().contains('cancelled') &&
+            !errorMsg.toLowerCase().contains('canceled')) {
+          _showError('Google Sign-In failed: $errorMsg');
+        }
       }
     } finally {
       if (mounted) {
@@ -186,7 +192,8 @@ class _AuthScreenState extends State<AuthScreen> {
           await supabaseClient.auth.signOut();
 
           if (mounted) {
-            print('🔐 Password verified. Starting Step 2: OTP Verification');
+            debugPrint(
+                '🔐 Password verified. Starting Step 2: OTP Verification');
 
             // 3. Send OTP
             await supabase.signInWithOtp(email);
@@ -196,6 +203,7 @@ class _AuthScreenState extends State<AuthScreen> {
               _isLoading = false;
             });
 
+            if (!mounted) return;
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
                 content: Text('🔐 Step 2: Code sent to email. Please verify.'),
@@ -236,19 +244,19 @@ class _AuthScreenState extends State<AuthScreen> {
             final isEmail = user?.appMetadata['provider'] == 'email';
             final isConfirmed = user?.emailConfirmedAt != null;
 
-            print('🔐 Signup Debug:');
-            print(
+            debugPrint('🔐 Signup Debug:');
+            debugPrint(
                 '   - Session: ${response.session != null ? "Active" : "Null"}');
-            print('   - Provider: ${user?.appMetadata['provider']}');
-            print('   - Email Confirmed At: ${user?.emailConfirmedAt}');
-            print('   - Is Confirmed: $isConfirmed');
+            debugPrint('   - Provider: ${user?.appMetadata['provider']}');
+            debugPrint('   - Email Confirmed At: ${user?.emailConfirmedAt}');
+            debugPrint('   - Is Confirmed: $isConfirmed');
 
             if (response.session != null && (!isEmail || isConfirmed)) {
-              print(
+              debugPrint(
                   '✅ Auto-login allowed (Email is confirmed or not email provider)');
               await _checkAndCompleteProfile();
             } else {
-              print('🛑 Verification required. Showing OTP screen.');
+              debugPrint('🛑 Verification required. Showing OTP screen.');
               setState(() {
                 _showOtpInput = true;
                 _isLoading = false;

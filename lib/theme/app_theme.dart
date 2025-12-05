@@ -36,7 +36,7 @@ class AppTheme {
     return base.copyWith(
       // iOS-style app bar (minimal, blur effect)
       appBarTheme: AppBarTheme(
-        backgroundColor: _bgLight.withOpacity(0.95),
+        backgroundColor: _bgLight.withValues(alpha: 0.95),
         elevation: 0,
         centerTitle: false, // iOS alignment
         foregroundColor: const Color(0xFF1A1A1A),
@@ -48,8 +48,8 @@ class AppTheme {
         ),
       ),
       navigationBarTheme: NavigationBarThemeData(
-        backgroundColor: _bgLight.withOpacity(0.95),
-        indicatorColor: _accentOrange.withOpacity(0.15),
+        backgroundColor: _bgLight.withValues(alpha: 0.95),
+        indicatorColor: _accentOrange.withValues(alpha: 0.15),
         labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
         height: 65,
       ),
@@ -67,7 +67,7 @@ class AppTheme {
           borderRadius: BorderRadius.circular(16), // iOS corner radius
         ),
         elevation: 0,
-        shadowColor: Colors.black.withOpacity(0.05),
+        shadowColor: Colors.black.withValues(alpha: 0.05),
       ),
       // iOS interaction feedback
       splashFactory: NoSplash.splashFactory, // Remove Material ripples
@@ -169,7 +169,7 @@ class AppTheme {
 
     return base.copyWith(
       appBarTheme: AppBarTheme(
-        backgroundColor: _bgDark.withOpacity(0.95),
+        backgroundColor: _bgDark.withValues(alpha: 0.95),
         elevation: 0,
         centerTitle: false, // iOS alignment
         foregroundColor: Colors.white,
@@ -181,8 +181,8 @@ class AppTheme {
         ),
       ),
       navigationBarTheme: NavigationBarThemeData(
-        backgroundColor: _bgDark.withOpacity(0.95),
-        indicatorColor: _accentOrange.withOpacity(0.15),
+        backgroundColor: _bgDark.withValues(alpha: 0.95),
+        indicatorColor: _accentOrange.withValues(alpha: 0.15),
         labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
         height: 65,
       ),
@@ -199,7 +199,7 @@ class AppTheme {
           borderRadius: BorderRadius.circular(16),
         ),
         elevation: 0,
-        shadowColor: Colors.black.withOpacity(0.3),
+        shadowColor: Colors.black.withValues(alpha: 0.3),
       ),
       splashFactory: NoSplash.splashFactory,
       highlightColor: Colors.transparent,

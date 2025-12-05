@@ -106,7 +106,7 @@ class _HealthIntakeScreenState extends State<HealthIntakeScreen> {
       final welcomeTip = plan['welcomeTip'] as String?;
       if (welcomeTip != null) {
         // TODO: Store this tip to show in Profile or Home
-        print('Welcome Tip: $welcomeTip');
+        debugPrint('Welcome Tip: $welcomeTip');
       }
 
       setState(() => _isGenerating = false);
@@ -120,7 +120,7 @@ class _HealthIntakeScreenState extends State<HealthIntakeScreen> {
         ),
       );
     } catch (e) {
-      print('Error generating plan: $e');
+      debugPrint('Error generating plan: $e');
       if (mounted) {
         setState(() => _isGenerating = false);
         ScaffoldMessenger.of(context).showSnackBar(
@@ -237,7 +237,7 @@ class _HealthIntakeScreenState extends State<HealthIntakeScreen> {
             'Analyzing your goals and baseline...',
             style: TextStyle(
               fontSize: 16,
-              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
             ),
           ).animate().fadeIn(delay: 500.ms),
         ],
@@ -385,7 +385,7 @@ class _HealthIntakeScreenState extends State<HealthIntakeScreen> {
                   fontSize: 18,
                   fontWeight: FontWeight.w500,
                   color:
-                      Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
+                      Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
                 ),
               ),
             ],
@@ -413,7 +413,7 @@ class _HealthIntakeScreenState extends State<HealthIntakeScreen> {
         fillColor: Theme.of(context)
             .colorScheme
             .surfaceContainerHighest
-            .withOpacity(0.5),
+            .withValues(alpha: 0.5),
       ),
     );
   }
@@ -431,7 +431,7 @@ class _HealthIntakeScreenState extends State<HealthIntakeScreen> {
         padding: EdgeInsets.all(compact ? 16 : 20),
         decoration: BoxDecoration(
           color: isSelected
-              ? const Color(0xFF58CC02).withOpacity(0.1)
+              ? const Color(0xFF58CC02).withValues(alpha: 0.1)
               : Theme.of(context).colorScheme.surfaceContainerHighest,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(

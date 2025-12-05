@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:uuid/uuid.dart';
 
 import '../models/ai_insight.dart';
@@ -228,7 +229,7 @@ class InsightAnalyzerService {
           insights.add(aiRecommendation);
         }
       } catch (e) {
-        print('Error getting AI recommendation: $e');
+        debugPrint('Error getting AI recommendation: $e');
       }
     }
 
@@ -282,7 +283,7 @@ Description: [1-2 sentences with specific actionable advice]
         }
       }
     } catch (e) {
-      print('Error in AI recommendation: $e');
+      debugPrint('Error in AI recommendation: $e');
     }
 
     return null;

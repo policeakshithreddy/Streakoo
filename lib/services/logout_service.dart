@@ -123,36 +123,36 @@ class LogoutService {
     }
 
     // 3. Perform Wipe and Logout
-    print('🔄 Starting wipe and logout...');
+    debugPrint('🔄 Starting wipe and logout...');
     try {
       // Small delay to let success message display
       await Future.delayed(const Duration(milliseconds: 500));
 
-      print('🔄 Wiping local data...');
+      debugPrint('🔄 Wiping local data...');
       // Wipe local data
       await appState.resetAll();
-      print('✅ Local data wiped');
+      debugPrint('✅ Local data wiped');
 
-      print('🔄 Signing out from Supabase...');
+      debugPrint('🔄 Signing out from Supabase...');
       // Sign out from Supabase
       if (isAuthenticated) {
         await supabase.signOut();
-        print('✅ Signed out from Supabase');
+        debugPrint('✅ Signed out from Supabase');
       }
 
       // 4. Navigate to Welcome Screen
-      print('🔄 Navigating to Welcome Screen...');
+      debugPrint('🔄 Navigating to Welcome Screen...');
       if (context.mounted) {
         // Navigate to Welcome Screen and remove all previous routes
         Navigator.of(context).pushAndRemoveUntil(
           MaterialPageRoute(builder: (_) => const WelcomeScreen()),
           (route) => false,
         );
-        print('✅ Navigation complete');
+        debugPrint('✅ Navigation complete');
       }
     } catch (e) {
       // Handle errors
-      print('❌ Error during logout:$e');
+      debugPrint('❌ Error during logout:$e');
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Error during logout: $e')),

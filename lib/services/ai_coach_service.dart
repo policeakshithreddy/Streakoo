@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 
@@ -136,7 +137,7 @@ Give them a quick, friendly response using their data. Be specific. Keep it SHOR
 
       return response ?? _getFallbackResponse(userMessage);
     } catch (e) {
-      print('Error in AiCoachService: $e');
+      debugPrint('Error in AiCoachService: $e');
       return _getFallbackResponse(userMessage);
     }
   }
@@ -235,7 +236,7 @@ If not sure or not about completing a habit, return isCompletion: false.
       );
 
       if (response.statusCode != 200) {
-        print('AI task completion parsing failed: ${response.statusCode}');
+        debugPrint('AI task completion parsing failed: ${response.statusCode}');
         return _simpleTaskCompletionDetection(userMessage, sportsHabits);
       }
 
@@ -262,12 +263,12 @@ If not sure or not about completing a habit, return isCompletion: false.
           }
         }
       } catch (e) {
-        print('Error parsing AI response JSON: $e');
+        debugPrint('Error parsing AI response JSON: $e');
       }
 
       return null;
     } catch (e) {
-      print('Error in parseTaskCompletion: $e');
+      debugPrint('Error in parseTaskCompletion: $e');
       return _simpleTaskCompletionDetection(userMessage, sportsHabits);
     }
   }

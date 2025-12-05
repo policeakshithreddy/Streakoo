@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/timezone.dart' as tz;
 import 'package:timezone/data/latest.dart' as tz;
@@ -63,7 +64,7 @@ class NotificationEngine {
   Future<void> initialize() async {
     if (_initialized) return;
 
-    print('🔔 Initializing Notification Engine...');
+    debugPrint('🔔 Initializing Notification Engine...');
 
     // Initialize timezone
     tz.initializeTimeZones();
@@ -73,7 +74,7 @@ class NotificationEngine {
     final hasPermission = await permissionService.areNotificationsEnabled();
 
     if (!hasPermission) {
-      print('⚠️ Notification permissions not granted yet');
+      debugPrint('⚠️ Notification permissions not granted yet');
       // Don't initialize fully if no permissions
       return;
     }
@@ -90,7 +91,7 @@ class NotificationEngine {
     await _notifications.initialize(settings);
     _initialized = true;
 
-    print('✅ Notification Engine Initialized');
+    debugPrint('✅ Notification Engine Initialized');
   }
 
   // Update habit pattern based on completion
@@ -129,7 +130,7 @@ class NotificationEngine {
       priority: priority,
     );
 
-    print(
+    debugPrint(
         '📊 Updated pattern for ${habit.name}: Priority $priority, Skip count: $skipCount');
   }
 
@@ -241,7 +242,7 @@ class NotificationEngine {
         matchDateTimeComponents: DateTimeComponents.dayOfWeekAndTime,
       );
 
-      print(
+      debugPrint(
           '🔔 Scheduled for "${habit.name}" on day $day at $scheduledHour:${scheduledMinute.toString().padLeft(2, '0')}');
     }
   }
@@ -268,7 +269,7 @@ Be personal, use the habit name, mention streak if relevant, be energetic but no
           return aiMessage.trim().replaceAll('"', '');
         }
       } catch (e) {
-        print('AI notification generation failed: $e');
+        debugPrint('AI notification generation failed: $e');
       }
     }
 
@@ -471,7 +472,7 @@ Be personal, use the habit name, mention streak if relevant, be energetic but no
             UILocalNotificationDateInterpretation.absoluteTime,
       );
 
-      print('🔔 Scheduled focus reminder for "${habit.name}" at 9 PM');
+      debugPrint('🔔 Scheduled focus reminder for "${habit.name}" at 9 PM');
     }
   }
 

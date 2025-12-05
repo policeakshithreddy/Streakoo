@@ -35,13 +35,13 @@ class DailyHealthSummary extends StatelessWidget {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            scoreStatus.color.withOpacity(0.1),
+            scoreStatus.color.withValues(alpha: 0.1),
             theme.colorScheme.surface,
           ],
         ),
         borderRadius: BorderRadius.circular(24),
         border: Border.all(
-          color: scoreStatus.color.withOpacity(0.3),
+          color: scoreStatus.color.withValues(alpha: 0.3),
           width: 1.5,
         ),
       ),
@@ -57,7 +57,7 @@ class DailyHealthSummary extends StatelessWidget {
                 Text(
                   _getGreeting(),
                   style: theme.textTheme.titleMedium?.copyWith(
-                    color: theme.colorScheme.onSurface.withOpacity(0.7),
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
                   ),
                 )
                     .animate()
@@ -142,10 +142,10 @@ class DailyHealthSummary extends StatelessWidget {
             margin: const EdgeInsets.all(20),
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: theme.colorScheme.primaryContainer.withOpacity(0.3),
+              color: theme.colorScheme.primaryContainer.withValues(alpha: 0.3),
               borderRadius: BorderRadius.circular(16),
               border: Border.all(
-                color: theme.colorScheme.primary.withOpacity(0.2),
+                color: theme.colorScheme.primary.withValues(alpha: 0.2),
               ),
             ),
             child: Column(
@@ -176,7 +176,7 @@ class DailyHealthSummary extends StatelessWidget {
                   padding:
                       const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                   decoration: BoxDecoration(
-                    color: theme.colorScheme.primary.withOpacity(0.1),
+                    color: theme.colorScheme.primary.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Row(
@@ -221,7 +221,7 @@ class DailyHealthSummary extends StatelessWidget {
         Container(
           padding: const EdgeInsets.all(6),
           decoration: BoxDecoration(
-            color: color.withOpacity(0.1),
+            color: color.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(8),
           ),
           child: Icon(icon, size: 18, color: color),
@@ -371,7 +371,7 @@ class RingPainter extends CustomPainter {
 
     // Background ring
     final bgPaint = Paint()
-      ..color = color.withOpacity(0.15)
+      ..color = color.withValues(alpha: 0.15)
       ..strokeWidth = 12
       ..style = PaintingStyle.stroke
       ..strokeCap = StrokeCap.round;
@@ -381,7 +381,7 @@ class RingPainter extends CustomPainter {
     // Progress ring
     final progressPaint = Paint()
       ..shader = SweepGradient(
-        colors: [color, color.withOpacity(0.6)],
+        colors: [color, color.withValues(alpha: 0.6)],
         startAngle: -math.pi / 2,
         endAngle: 2 * math.pi * progress - math.pi / 2,
       ).createShader(Rect.fromCircle(center: center, radius: radius))

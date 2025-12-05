@@ -34,7 +34,7 @@ class FreezeCounterWidget extends StatelessWidget {
           ),
           boxShadow: [
             BoxShadow(
-              color: Colors.blue.withOpacity(0.3),
+              color: Colors.blue.withValues(alpha: 0.3),
               blurRadius: 8,
               offset: const Offset(0, 2),
             ),
@@ -46,7 +46,7 @@ class FreezeCounterWidget extends StatelessWidget {
             Center(
               child: Icon(
                 Icons.ac_unit,
-                color: Colors.white.withOpacity(0.3),
+                color: Colors.white.withValues(alpha: 0.3),
                 size: 28,
               ),
             ),

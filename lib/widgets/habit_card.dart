@@ -29,7 +29,7 @@ class HabitCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(22),
           // Subtle amber border for focus tasks
           border: habit.isFocusTask
-              ? Border.all(color: Colors.amber.withOpacity(0.4), width: 2)
+              ? Border.all(color: Colors.amber.withValues(alpha: 0.4), width: 2)
               : null,
           boxShadow: [
             BoxShadow(
@@ -71,7 +71,7 @@ class HabitCard extends StatelessWidget {
                           padding: const EdgeInsets.symmetric(
                               horizontal: 6, vertical: 2),
                           decoration: BoxDecoration(
-                            color: Colors.amber.withOpacity(0.2),
+                            color: Colors.amber.withValues(alpha: 0.2),
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: const Row(

@@ -45,8 +45,8 @@ class DailyBriefCard extends StatelessWidget {
         boxShadow: [
           BoxShadow(
             color: isDark
-                ? Colors.black.withOpacity(0.3)
-                : Colors.black.withOpacity(0.06),
+                ? Colors.black.withValues(alpha: 0.3)
+                : Colors.black.withValues(alpha: 0.06),
             blurRadius: 12,
             offset: const Offset(0, 4),
           ),
@@ -80,8 +80,8 @@ class DailyBriefCard extends StatelessWidget {
                       style: TextStyle(
                         fontSize: 14,
                         color: isDark
-                            ? Colors.white.withOpacity(0.6)
-                            : Colors.black.withOpacity(0.5),
+                            ? Colors.white.withValues(alpha: 0.6)
+                            : Colors.black.withValues(alpha: 0.5),
                       ),
                     ),
                   ],
@@ -97,7 +97,7 @@ class DailyBriefCard extends StatelessWidget {
             style: TextStyle(
               fontSize: 15,
               fontWeight: FontWeight.w600,
-              color: isDark ? Colors.white.withOpacity(0.8) : Colors.black87,
+              color: isDark ? Colors.white.withValues(alpha: 0.8) : Colors.black87,
             ),
           ),
           const SizedBox(height: 12),
@@ -107,8 +107,8 @@ class DailyBriefCard extends StatelessWidget {
             height: 6,
             decoration: BoxDecoration(
               color: isDark
-                  ? Colors.white.withOpacity(0.1)
-                  : Colors.black.withOpacity(0.08),
+                  ? Colors.white.withValues(alpha: 0.1)
+                  : Colors.black.withValues(alpha: 0.08),
               borderRadius: BorderRadius.circular(3),
             ),
             child: FractionallySizedBox(
@@ -133,8 +133,8 @@ class DailyBriefCard extends StatelessWidget {
               style: TextStyle(
                 fontSize: 14,
                 color: isDark
-                    ? Colors.white.withOpacity(0.7)
-                    : Colors.black.withOpacity(0.6),
+                    ? Colors.white.withValues(alpha: 0.7)
+                    : Colors.black.withValues(alpha: 0.6),
               ),
             )
           else
@@ -150,8 +150,8 @@ class DailyBriefCard extends StatelessWidget {
                         color: habit.completedToday
                             ? const Color(0xFF27AE60)
                             : (isDark
-                                ? Colors.white.withOpacity(0.4)
-                                : Colors.black.withOpacity(0.3)),
+                                ? Colors.white.withValues(alpha: 0.4)
+                                : Colors.black.withValues(alpha: 0.3)),
                       ),
                       const SizedBox(width: 10),
                       Expanded(
@@ -160,7 +160,7 @@ class DailyBriefCard extends StatelessWidget {
                           style: TextStyle(
                             fontSize: 14,
                             color: isDark
-                                ? Colors.white.withOpacity(0.9)
+                                ? Colors.white.withValues(alpha: 0.9)
                                 : Colors.black87,
                             decoration: habit.completedToday
                                 ? TextDecoration.lineThrough
@@ -185,8 +185,8 @@ class DailyBriefCard extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 13,
                   color: isDark
-                      ? Colors.white.withOpacity(0.5)
-                      : Colors.black.withOpacity(0.4),
+                      ? Colors.white.withValues(alpha: 0.5)
+                      : Colors.black.withValues(alpha: 0.4),
                 ),
               ),
             ),
@@ -198,13 +198,13 @@ class DailyBriefCard extends StatelessWidget {
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
               color: isDark
-                  ? Colors.white.withOpacity(0.05)
-                  : const Color(0xFFFFA94A).withOpacity(0.1),
+                  ? Colors.white.withValues(alpha: 0.05)
+                  : const Color(0xFFFFA94A).withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(12),
               border: Border.all(
                 color: isDark
-                    ? Colors.white.withOpacity(0.1)
-                    : const Color(0xFFFFA94A).withOpacity(0.2),
+                    ? Colors.white.withValues(alpha: 0.1)
+                    : const Color(0xFFFFA94A).withValues(alpha: 0.2),
                 width: 1,
               ),
             ),
@@ -222,7 +222,7 @@ class DailyBriefCard extends StatelessWidget {
                       fontSize: 13,
                       fontStyle: FontStyle.italic,
                       color: isDark
-                          ? Colors.white.withOpacity(0.8)
+                          ? Colors.white.withValues(alpha: 0.8)
                           : Colors.black87,
                       height: 1.4,
                     ),

@@ -70,9 +70,9 @@ class _StressLevelSliderState extends State<StressLevelSlider> {
               child: SliderTheme(
                 data: SliderTheme.of(context).copyWith(
                   activeTrackColor: sliderColor,
-                  inactiveTrackColor: sliderColor.withOpacity(0.3),
+                  inactiveTrackColor: sliderColor.withValues(alpha: 0.3),
                   thumbColor: sliderColor,
-                  overlayColor: sliderColor.withOpacity(0.2),
+                  overlayColor: sliderColor.withValues(alpha: 0.2),
                   trackHeight: 8,
                   thumbShape: PulsingThumbShape(
                     color: sliderColor,
@@ -113,7 +113,7 @@ class _StressLevelSliderState extends State<StressLevelSlider> {
             duration: const Duration(milliseconds: 200),
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
             decoration: BoxDecoration(
-              color: sliderColor.withOpacity(0.1),
+              color: sliderColor.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(20),
               border: Border.all(color: sliderColor, width: 2),
             ),
@@ -190,7 +190,7 @@ class PulsingThumbShape extends SliderComponentShape {
       center,
       enabledThumbRadius + 4,
       Paint()
-        ..color = color.withOpacity(0.2)
+        ..color = color.withValues(alpha: 0.2)
         ..style = PaintingStyle.fill,
     );
 
@@ -208,7 +208,7 @@ class PulsingThumbShape extends SliderComponentShape {
       center,
       enabledThumbRadius / 2,
       Paint()
-        ..color = Colors.white.withOpacity(0.4)
+        ..color = Colors.white.withValues(alpha: 0.4)
         ..style = PaintingStyle.fill,
     );
   }

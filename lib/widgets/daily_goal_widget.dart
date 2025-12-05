@@ -40,7 +40,7 @@ class DailyGoalWidget extends StatelessWidget {
           borderRadius: BorderRadius.circular(20),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.05),
+              color: Colors.black.withValues(alpha: 0.05),
               blurRadius: 10,
               offset: const Offset(0, 2),
             ),
@@ -110,7 +110,7 @@ class DailyGoalWidget extends StatelessWidget {
                     color: Theme.of(context)
                         .colorScheme
                         .onSurface
-                        .withOpacity(0.5),
+                        .withValues(alpha: 0.5),
                   ),
                 ),
               ),
@@ -188,7 +188,7 @@ class _HabitCheckbox extends StatelessWidget {
         border: Border.all(
           color: habit.completedToday
               ? const Color(0xFF58CC02)
-              : Theme.of(context).colorScheme.outline.withOpacity(0.3),
+              : Theme.of(context).colorScheme.outline.withValues(alpha: 0.3),
           width: 2,
         ),
       ),

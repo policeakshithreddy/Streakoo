@@ -73,13 +73,13 @@ class _StreakFlameWidgetState extends State<StreakFlameWidget> {
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: _flameGradient.map((c) => c.withOpacity(0.15)).toList(),
+          colors: _flameGradient.map((c) => c.withValues(alpha: 0.15)).toList(),
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: _flameColor.withOpacity(0.3),
+          color: _flameColor.withValues(alpha: 0.3),
           width: 1.5,
         ),
       ),
@@ -124,7 +124,7 @@ class _StreakFlameWidgetState extends State<StreakFlameWidget> {
                   'day${widget.streakDays == 1 ? '' : 's'}',
                   style: TextStyle(
                     fontSize: widget.size * 0.25,
-                    color: _flameColor.withOpacity(0.7),
+                    color: _flameColor.withValues(alpha: 0.7),
                     fontWeight: FontWeight.w500,
                     height: 1.0,
                   ),

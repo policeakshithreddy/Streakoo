@@ -25,22 +25,22 @@ class InsightCard extends StatelessWidget {
           end: Alignment.bottomRight,
           colors: isDark
               ? [
-                  insight.gradientColors[0].withOpacity(0.15),
-                  insight.gradientColors[1].withOpacity(0.1)
+                  insight.gradientColors[0].withValues(alpha: 0.15),
+                  insight.gradientColors[1].withValues(alpha: 0.1)
                 ]
               : [
-                  insight.gradientColors[0].withOpacity(0.1),
-                  insight.gradientColors[1].withOpacity(0.05)
+                  insight.gradientColors[0].withValues(alpha: 0.1),
+                  insight.gradientColors[1].withValues(alpha: 0.05)
                 ],
         ),
         borderRadius: BorderRadius.circular(18),
         border: Border.all(
-          color: insight.gradientColors[0].withOpacity(0.3),
+          color: insight.gradientColors[0].withValues(alpha: 0.3),
           width: 1.5,
         ),
         boxShadow: [
           BoxShadow(
-            color: insight.gradientColors[0].withOpacity(0.1),
+            color: insight.gradientColors[0].withValues(alpha: 0.1),
             blurRadius: 12,
             offset: const Offset(0, 4),
           ),
@@ -68,7 +68,7 @@ class InsightCard extends StatelessWidget {
                         borderRadius: BorderRadius.circular(12),
                         boxShadow: [
                           BoxShadow(
-                            color: insight.gradientColors[0].withOpacity(0.3),
+                            color: insight.gradientColors[0].withValues(alpha: 0.3),
                             blurRadius: 8,
                             offset: const Offset(0, 2),
                           ),
@@ -102,8 +102,8 @@ class InsightCard extends StatelessWidget {
                     fontSize: 14,
                     height: 1.5,
                     color: isDark
-                        ? Colors.white.withOpacity(0.8)
-                        : Colors.black.withOpacity(0.75),
+                        ? Colors.white.withValues(alpha: 0.8)
+                        : Colors.black.withValues(alpha: 0.75),
                   ),
                 ),
 
@@ -119,10 +119,10 @@ class InsightCard extends StatelessWidget {
                         vertical: 8,
                       ),
                       decoration: BoxDecoration(
-                        color: insight.gradientColors[0].withOpacity(0.15),
+                        color: insight.gradientColors[0].withValues(alpha: 0.15),
                         borderRadius: BorderRadius.circular(8),
                         border: Border.all(
-                          color: insight.gradientColors[0].withOpacity(0.3),
+                          color: insight.gradientColors[0].withValues(alpha: 0.3),
                           width: 1,
                         ),
                       ),
@@ -158,8 +158,8 @@ class InsightCard extends StatelessWidget {
                         Icons.info_outline,
                         size: 14,
                         color: isDark
-                            ? Colors.white.withOpacity(0.4)
-                            : Colors.black.withOpacity(0.3),
+                            ? Colors.white.withValues(alpha: 0.4)
+                            : Colors.black.withValues(alpha: 0.3),
                       ),
                       const SizedBox(width: 4),
                       Text(
@@ -167,8 +167,8 @@ class InsightCard extends StatelessWidget {
                         style: TextStyle(
                           fontSize: 11,
                           color: isDark
-                              ? Colors.white.withOpacity(0.4)
-                              : Colors.black.withOpacity(0.3),
+                              ? Colors.white.withValues(alpha: 0.4)
+                              : Colors.black.withValues(alpha: 0.3),
                         ),
                       ),
                     ],

@@ -68,10 +68,10 @@ class _AnimatedValidationCardState extends State<AnimatedValidationCard>
       key: const ValueKey('analyzing'),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainerHighest.withOpacity(0.5),
+        color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: theme.colorScheme.outline.withOpacity(0.2),
+          color: theme.colorScheme.outline.withValues(alpha: 0.2),
         ),
       ),
       child: Row(
@@ -81,7 +81,7 @@ class _AnimatedValidationCardState extends State<AnimatedValidationCard>
             width: 40,
             height: 40,
             decoration: BoxDecoration(
-              color: theme.colorScheme.primary.withOpacity(0.1),
+              color: theme.colorScheme.primary.withValues(alpha: 0.1),
               shape: BoxShape.circle,
             ),
             child: Icon(
@@ -145,10 +145,10 @@ class _AnimatedValidationCardState extends State<AnimatedValidationCard>
       key: const ValueKey('result'),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: color.withOpacity(0.3),
+          color: color.withValues(alpha: 0.3),
           width: 2,
         ),
       ),
@@ -160,7 +160,7 @@ class _AnimatedValidationCardState extends State<AnimatedValidationCard>
             width: 40,
             height: 40,
             decoration: BoxDecoration(
-              color: color.withOpacity(0.2),
+              color: color.withValues(alpha: 0.2),
               shape: BoxShape.circle,
             ),
             child: Icon(
@@ -193,7 +193,8 @@ class _AnimatedValidationCardState extends State<AnimatedValidationCard>
                       Text(
                         widget.label,
                         style: theme.textTheme.labelMedium?.copyWith(
-                          color: theme.colorScheme.onSurface.withOpacity(0.6),
+                          color: theme.colorScheme.onSurface
+                              .withValues(alpha: 0.6),
                         ),
                       ),
                       const SizedBox(width: 8),
@@ -240,7 +241,7 @@ class _AnimatedValidationCardState extends State<AnimatedValidationCard>
                   Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: theme.colorScheme.surface.withOpacity(0.5),
+                      color: theme.colorScheme.surface.withValues(alpha: 0.5),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Row(
@@ -255,8 +256,8 @@ class _AnimatedValidationCardState extends State<AnimatedValidationCard>
                           child: Text(
                             widget.validation.recommendation!,
                             style: theme.textTheme.bodySmall?.copyWith(
-                              color:
-                                  theme.colorScheme.onSurface.withOpacity(0.8),
+                              color: theme.colorScheme.onSurface
+                                  .withValues(alpha: 0.8),
                             ),
                           ),
                         ),
@@ -351,7 +352,7 @@ class HealthValidationLoadingScreen extends StatelessWidget {
                   ),
                   boxShadow: [
                     BoxShadow(
-                      color: theme.colorScheme.primary.withOpacity(0.3),
+                      color: theme.colorScheme.primary.withValues(alpha: 0.3),
                       blurRadius: 30,
                       spreadRadius: 5,
                     ),
@@ -414,7 +415,7 @@ class HealthValidationLoadingScreen extends StatelessWidget {
                                   : theme.colorScheme.surfaceContainerHighest,
                               border: Border.all(
                                 color: theme.colorScheme.primary
-                                    .withOpacity(value),
+                                    .withValues(alpha: value),
                                 width: 2,
                               ),
                             ),
@@ -462,10 +463,11 @@ class HealthValidationLoadingScreen extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: theme.colorScheme.primaryContainer.withOpacity(0.3),
+                  color:
+                      theme.colorScheme.primaryContainer.withValues(alpha: 0.3),
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
-                    color: theme.colorScheme.primary.withOpacity(0.2),
+                    color: theme.colorScheme.primary.withValues(alpha: 0.2),
                   ),
                 ),
                 child: Row(
@@ -480,7 +482,8 @@ class HealthValidationLoadingScreen extends StatelessWidget {
                       child: Text(
                         'Did you know? Consistency beats intensity!',
                         style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.onSurface.withOpacity(0.8),
+                          color: theme.colorScheme.onSurface
+                              .withValues(alpha: 0.8),
                         ),
                       ),
                     ),

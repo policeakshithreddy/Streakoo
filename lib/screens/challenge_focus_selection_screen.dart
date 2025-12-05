@@ -87,8 +87,8 @@ class _ChallengeFocusSelectionScreenState
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 colors: [
-                  theme.colorScheme.primary.withOpacity(0.1),
-                  theme.colorScheme.secondary.withOpacity(0.1),
+                  theme.colorScheme.primary.withValues(alpha: 0.1),
+                  theme.colorScheme.secondary.withValues(alpha: 0.1),
                 ],
               ),
             ),
@@ -114,7 +114,7 @@ class _ChallengeFocusSelectionScreenState
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: Colors.amber.withOpacity(0.2),
+                    color: Colors.amber.withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Row(
@@ -171,7 +171,7 @@ class _ChallengeFocusSelectionScreenState
                       return Card(
                         margin: const EdgeInsets.only(bottom: 12),
                         color: isSelected
-                            ? Colors.amber.withOpacity(0.1)
+                            ? Colors.amber.withValues(alpha: 0.1)
                             : theme.cardColor,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(16),
@@ -274,7 +274,7 @@ class _ChallengeFocusSelectionScreenState
               color: theme.cardColor,
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.1),
+                  color: Colors.black.withValues(alpha: 0.1),
                   blurRadius: 10,
                   offset: const Offset(0, -2),
                 ),

@@ -36,7 +36,7 @@ class BriefGenerationService {
     // Currently Daily Brief is generated on-the-fly in CoachOverviewScreen
     // But we mark it as "checked" so we don't re-trigger animations or expensive logic
     appState.updateLastDailyBriefDate(now);
-    print('✅ Daily brief check completed for $today');
+    debugPrint('✅ Daily brief check completed for $today');
   }
 
   Future<void> _checkWeeklyReport(AppState appState) async {
@@ -70,7 +70,7 @@ class BriefGenerationService {
       // then they weren't around for the previous week.
       // We allow if they joined DURING the previous week.
       if (createdAt.isAfter(currentWeekStartDay)) {
-        print('Skipping weekly report: User joined after this week ended.');
+        debugPrint('Skipping weekly report: User joined after this week ended.');
         return;
       }
     }
@@ -91,7 +91,7 @@ class BriefGenerationService {
     // Only generate if we have habits
     if (appState.habits.isEmpty) return;
 
-    print(
+    debugPrint(
         '📊 Generating weekly report for week of ${previousWeekStart.toString().split(' ')[0]}...');
 
     try {
@@ -101,9 +101,9 @@ class BriefGenerationService {
       );
 
       appState.addWeeklyReport(report);
-      print('✅ Weekly report generated and saved!');
+      debugPrint('✅ Weekly report generated and saved!');
     } catch (e) {
-      print('❌ Failed to generate weekly report: $e');
+      debugPrint('❌ Failed to generate weekly report: $e');
     }
   }
 }

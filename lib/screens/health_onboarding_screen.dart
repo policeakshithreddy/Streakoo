@@ -4,7 +4,6 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:health/health.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../services/health_service.dart';
-import 'health_intake_screen.dart';
 
 /// Onboarding screen for connecting health data
 class HealthOnboardingScreen extends StatefulWidget {
@@ -128,21 +127,12 @@ class _HealthOnboardingScreenState extends State<HealthOnboardingScreen> {
       });
 
       if (success) {
-        // Show success page
-        await Future.delayed(const Duration(milliseconds: 500));
+        // Health connected successfully - return true to caller
+        // The intake questions (height, weight, activity level) will be collected
+        // in the "Discover Health Coaching" element in stats page
+        widget.onComplete?.call();
         if (mounted) {
-          // Navigate to Intake Screen
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(
-              builder: (_) => HealthIntakeScreen(
-                onComplete: () {
-                  widget.onComplete?.call();
-                  // Navigator.of(context).pop(true); // Already handled by pushReplacement/pop in Intake
-                },
-              ),
-            ),
-          );
+          Navigator.of(context).pop(true);
         }
       }
     } catch (e) {
@@ -196,7 +186,7 @@ class _HealthOnboardingScreenState extends State<HealthOnboardingScreen> {
                     decoration: BoxDecoration(
                       color: _currentPage == index
                           ? Theme.of(context).colorScheme.primary
-                          : Colors.grey.withOpacity(0.3),
+                          : Colors.grey.withValues(alpha: 0.3),
                       borderRadius: BorderRadius.circular(4),
                     ),
                   ).animate().scale(duration: 200.ms),
@@ -222,9 +212,9 @@ class _HealthOnboardingScreenState extends State<HealthOnboardingScreen> {
                 margin: const EdgeInsets.all(16),
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: Colors.red.withOpacity(0.1),
+                  color: Colors.red.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.red.withOpacity(0.3)),
+                  border: Border.all(color: Colors.red.withValues(alpha: 0.3)),
                 ),
                 child: Row(
                   children: [
@@ -309,8 +299,8 @@ class _HealthOnboardingScreenState extends State<HealthOnboardingScreen> {
               shape: BoxShape.circle,
               gradient: LinearGradient(
                 colors: [
-                  Theme.of(context).colorScheme.primary.withOpacity(0.2),
-                  Theme.of(context).colorScheme.primary.withOpacity(0.05),
+                  Theme.of(context).colorScheme.primary.withValues(alpha: 0.2),
+                  Theme.of(context).colorScheme.primary.withValues(alpha: 0.05),
                 ],
               ),
             ),
@@ -343,7 +333,7 @@ class _HealthOnboardingScreenState extends State<HealthOnboardingScreen> {
             textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: 16,
-              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
+              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
               height: 1.5,
             ),
           ).animate().fadeIn(delay: 400.ms).slideY(begin: 0.2, end: 0),
