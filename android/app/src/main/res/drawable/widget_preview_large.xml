@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Preview drawable for 4x2 large widget -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Background -->
+    <item>
+        <shape android:shape="rectangle">
+            <gradient
+                android:type="linear"
+                android:startColor="#1A1B2E"
+                android:centerColor="#252742"
+                android:endColor="#1F2136"
+                android:angle="135" />
+            <corners android:radius="28dp" />
+        </shape>
+    </item>
+    <!-- Accent glow -->
+    <item android:top="0dp" android:bottom="0dp">
+        <shape android:shape="rectangle">
+            <gradient
+                android:type="radial"
+                android:gradientRadius="200dp"
+                android:centerX="0.2"
+                android:centerY="0"
+                android:startColor="#4458CC02"
+                android:endColor="#00000000" />
+            <corners android:radius="28dp" />
+        </shape>
+    </item>
+    <!-- Border -->
+    <item>
+        <shape android:shape="rectangle">
+            <stroke
+                android:width="1dp"
+                android:color="#33FFFFFF" />
+            <corners android:radius="28dp" />
+        </shape>
+    </item>
+</layer-list>

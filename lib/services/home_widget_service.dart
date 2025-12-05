@@ -4,6 +4,8 @@ import 'package:home_widget/home_widget.dart';
 class HomeWidgetService {
   static const String appGroupId = 'group.com.streakoo.app';
   static const String androidWidgetName = 'StreakooWidgetProvider';
+  static const String androidWidgetSmall = 'StreakooWidgetSmall';
+  static const String androidWidgetLarge = 'StreakooWidgetLarge';
 
   /// Initialize the widget service - call this on app startup
   static Future<void> initialize() async {
@@ -68,16 +70,24 @@ class HomeWidgetService {
       await HomeWidget.saveWidgetData<int>('steps', steps);
       await HomeWidget.saveWidgetData<String>('motivation', message);
 
-      // Trigger widget update
+      // Trigger update for all 3 widget types
       await HomeWidget.updateWidget(
         name: androidWidgetName,
         iOSName: 'StreakooWidget',
       );
+      await HomeWidget.updateWidget(
+        name: androidWidgetSmall,
+        iOSName: 'StreakooWidgetSmall',
+      );
+      await HomeWidget.updateWidget(
+        name: androidWidgetLarge,
+        iOSName: 'StreakooWidgetLarge',
+      );
 
       debugPrint(
-          'Widget updated: $completedHabits/$totalHabits habits, streak: $currentStreak');
+          'All widgets updated: $completedHabits/$totalHabits habits, streak: $currentStreak');
     } catch (e) {
-      debugPrint('Error updating home widget: $e');
+      debugPrint('Error updating home widgets: $e');
     }
   }
 }

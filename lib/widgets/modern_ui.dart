@@ -211,18 +211,18 @@ class SkeletonCard extends StatelessWidget {
         color: isDark ? Colors.grey[900] : Colors.grey[100],
         borderRadius: BorderRadius.circular(16),
       ),
-      child: Row(
+      child: const Row(
         children: [
-          const SkeletonLoader(
+          SkeletonLoader(
               width: 50, height: 50, borderRadius: 25, isCircle: true),
-          const SizedBox(width: 16),
+          SizedBox(width: 16),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 SkeletonLoader(width: 150, height: 16, borderRadius: 8),
-                const SizedBox(height: 8),
+                SizedBox(height: 8),
                 SkeletonLoader(width: 100, height: 12, borderRadius: 6),
               ],
             ),

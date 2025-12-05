@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="widget_description">Track your daily habits progress</string>
+    <string name="widget_small_description">Quick streak view</string>
+    <string name="widget_large_description">Full habit stats and progress</string>
+</resources>
