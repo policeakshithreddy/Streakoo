@@ -6,6 +6,7 @@ class HomeWidgetService {
   static const String androidWidgetName = 'StreakooWidgetProvider';
   static const String androidWidgetSmall = 'StreakooWidgetSmall';
   static const String androidWidgetLarge = 'StreakooWidgetLarge';
+  static const String androidWidgetFocus = 'StreakooWidgetFocus';
 
   /// Initialize the widget service - call this on app startup
   static Future<void> initialize() async {
@@ -54,6 +55,8 @@ class HomeWidgetService {
     required int totalHabits,
     required int currentStreak,
     required int steps,
+    double sleepHours = 0.0,
+    int sleepScore = 0,
   }) async {
     try {
       // Generate motivational message
@@ -68,9 +71,11 @@ class HomeWidgetService {
       await HomeWidget.saveWidgetData<int>('total_habits', totalHabits);
       await HomeWidget.saveWidgetData<int>('current_streak', currentStreak);
       await HomeWidget.saveWidgetData<int>('steps', steps);
+      await HomeWidget.saveWidgetData<double>('sleep_hours', sleepHours);
+      await HomeWidget.saveWidgetData<int>('sleep_score', sleepScore);
       await HomeWidget.saveWidgetData<String>('motivation', message);
 
-      // Trigger update for all 3 widget types
+      // Trigger update for all widget types
       await HomeWidget.updateWidget(
         name: androidWidgetName,
         iOSName: 'StreakooWidget',
@@ -83,9 +88,13 @@ class HomeWidgetService {
         name: androidWidgetLarge,
         iOSName: 'StreakooWidgetLarge',
       );
+      await HomeWidget.updateWidget(
+        name: androidWidgetFocus,
+        iOSName: 'StreakooWidgetFocus',
+      );
 
       debugPrint(
-          'All widgets updated: $completedHabits/$totalHabits habits, streak: $currentStreak');
+          'All widgets updated: $completedHabits/$totalHabits habits, streak: $currentStreak, sleep: $sleepHours');
     } catch (e) {
       debugPrint('Error updating home widgets: $e');
     }

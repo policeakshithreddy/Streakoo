@@ -47,14 +47,14 @@ class StreakooWidgetLarge : HomeWidgetProvider() {
                 }
 
                 // Update UI elements
-                setTextViewText(R.id.habits_count_text, habitDisplay)
-                setTextViewText(R.id.streak_text, streakDisplay)
-                setTextViewText(R.id.motivation_text, motivation)
-                setTextViewText(R.id.steps_text, stepsDisplay)
+                setTextViewText(R.id.appwidget_text, habitDisplay)
+                setTextViewText(R.id.widget_streak_count, streakDisplay)
+                setTextViewText(R.id.widget_motivation, motivation)
+                setTextViewText(R.id.widget_steps_count, stepsDisplay)
 
                 // Update Progress Bar
                 val progress = if (total > 0) (completed * 100) / total else 0
-                setProgressBar(R.id.habits_progress_bar, 100, progress, false)
+                setProgressBar(R.id.widget_progress_bar, 100, progress, false)
 
                 // Click to open app
                 val intent = Intent(context, MainActivity::class.java).apply {
@@ -66,7 +66,7 @@ class StreakooWidgetLarge : HomeWidgetProvider() {
                     intent,
                     PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
                 )
-                setOnClickPendingIntent(R.id.widget_container, pendingIntent)
+                setOnClickPendingIntent(R.id.appwidget_text, pendingIntent)
             }
 
             appWidgetManager.updateAppWidget(widgetId, views)

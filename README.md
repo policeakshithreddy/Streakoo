@@ -31,10 +31,12 @@ This project is submitted for the Google Agents Intensive Capstone Project.
 *   **Weekly Reports**: Comprehensive weekly analysis of your habit patterns.
 
 ### Widgets & UI
-*   **Android Home Widget**: Modern dark gradient widget with:
-    - Live habit progress & streak badges
-    - Dynamic motivational messages ("On fire! 🔥", "Almost there! 💪")
-    - Auto-updates on app launch and habit completion
+### Widgets & UI
+*   **Android Home Widgets (Duolingo Style)**:
+    *   **1x1 Streak**: "3D" orange tile with fire emoji.
+    *   **2x2 Standard**: Blue card with vivid green progress stats.
+    *   **4x2 Dashboard**: Comprehensive split-view stats.
+    *   **3x3 Focus Widget**: Configurable widget with 3 modes (Habits, Steps, Sleep) and full-color themes.
 *   **Focus Task Manager**: Prioritize and manage your most important daily tasks.
 *   **Smooth Animations**: Polished page transitions, level-up celebrations, and micro-interactions.
 

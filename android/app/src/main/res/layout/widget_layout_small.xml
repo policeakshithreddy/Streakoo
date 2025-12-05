@@ -1,38 +1,41 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- 1x1 Compact Streak Widget -->
-<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:id="@+id/widget_container"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:padding="4dp">
+    android:background="@drawable/bg_card_3d_orange"
+    android:gravity="center"
+    android:layout_margin="8dp"
+    android:orientation="vertical"
+    android:padding="8dp">
 
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:orientation="vertical"
-        android:gravity="center"
-        android:background="@drawable/widget_background"
-        android:padding="8dp">
+    <TextView
+        android:id="@+id/appwidget_text"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="🔥"
+        android:textSize="32sp" />
 
-        <!-- Fire emoji -->
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="🔥"
-            android:textSize="24sp"
-            android:gravity="center" />
+    <TextView
+        android:id="@+id/widget_streak_count"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="0"
+        android:textColor="#FFFFFF"
+        android:textSize="28sp"
+        android:fontFamily="sans-serif-black"
+        android:textStyle="bold"
+        android:shadowColor="#33000000"
+        android:shadowDx="0"
+        android:shadowDy="2"
+        android:shadowRadius="2" />
+        
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="streak"
+        android:textColor="#CCFFFFFF"
+        android:textSize="10sp"
+        android:textAllCaps="true"
+        android:textStyle="bold" />
 
-        <!-- Streak count -->
-        <TextView
-            android:id="@+id/streak_count"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="0"
-            android:textSize="18sp"
-            android:textStyle="bold"
-            android:textColor="#FFFFFF"
-            android:gravity="center"
-            android:layout_marginTop="2dp" />
-
-    </LinearLayout>
-</FrameLayout>
+</LinearLayout>

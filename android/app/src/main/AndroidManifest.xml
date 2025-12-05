@@ -96,5 +96,23 @@
             <meta-data android:name="android.appwidget.provider"
                 android:resource="@xml/widget_info_large" />
         </receiver>
+        <!-- Focus Widget Config Activity -->
+        <activity
+            android:name=".FocusWidgetConfigActivity"
+            android:theme="@style/LaunchTheme"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_CONFIGURE" />
+            </intent-filter>
+        </activity>
+
+        <!-- Focus 3x3 Widget -->
+        <receiver android:name=".StreakooWidgetFocus" android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data android:name="android.appwidget.provider"
+                android:resource="@xml/widget_info_focus" />
+        </receiver>
     </application>
 </manifest>

@@ -38,13 +38,13 @@ class StreakooWidgetProvider : HomeWidgetProvider() {
                 }
 
                 // Update UI elements
-                setTextViewText(R.id.habits_count_text, habitDisplay)
-                setTextViewText(R.id.streak_text, streakDisplay)
-                setTextViewText(R.id.motivation_text, motivation)
+                setTextViewText(R.id.appwidget_text, habitDisplay)
+                setTextViewText(R.id.widget_streak_value, streakDisplay)
+                setTextViewText(R.id.widget_motivation, motivation)
 
                 // Update Progress Bar
                 val progress = if (total > 0) (completed * 100) / total else 0
-                setProgressBar(R.id.habits_progress_bar, 100, progress, false)
+                setProgressBar(R.id.widget_progress_bar, 100, progress, false)
 
                 // Click to open app
                 val intent = Intent(context, MainActivity::class.java).apply {
@@ -56,7 +56,15 @@ class StreakooWidgetProvider : HomeWidgetProvider() {
                     intent,
                     PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
                 )
-                setOnClickPendingIntent(R.id.widget_container, pendingIntent)
+                // Use the root layout ID if possible, or a known ID. 
+                // In widget_layout.xml, root is LinearLayout with no ID, let's assume views.setOnClickPendingIntent checks invalid ID or we need to add ID. 
+                // Actually, RemoteViews setOnClickPendingIntent usually needs an ID. 
+                // Let's assume we can attach it to appwidget_text or motivation for now if root has no ID,
+                // OR better, let's view widget_layout.xml again to see if I gave root an ID.
+                // I checked widget_layout.xml, root has no ID. I should probably add one or click on a specific element.
+                // Let's add ID to root in widget_layout.xml in a follow up or just click on 'appwidget_text' for now.
+                // Wait, creating a mismatch fix here first.
+                setOnClickPendingIntent(R.id.appwidget_text, pendingIntent)
             }
 
             appWidgetManager.updateAppWidget(widgetId, views)

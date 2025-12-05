@@ -1,124 +1,128 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- 4x2 Large Widget with Full Stats -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:id="@+id/widget_container"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:background="@drawable/bg_card_3d"
+    android:layout_margin="8dp"
     android:orientation="horizontal"
-    android:background="@drawable/widget_background"
     android:padding="16dp">
 
-    <!-- Left Section: Stats -->
+    <!-- Left: Big Stats -->
     <LinearLayout
         android:layout_width="0dp"
         android:layout_height="match_parent"
         android:layout_weight="1"
-        android:orientation="vertical"
-        android:gravity="center_vertical">
+        android:gravity="center_vertical"
+        android:orientation="vertical">
 
-        <!-- App Title -->
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="✨ Streakoo"
-            android:textSize="16sp"
+            android:text="DAILY GOALS"
+            android:textColor="#88FFFFFF"
+            android:textSize="11sp"
             android:textStyle="bold"
-            android:textColor="#FFFFFF"
-            android:shadowColor="#00000060"
-            android:shadowDx="1"
-            android:shadowDy="1"
-            android:shadowRadius="3" />
+            android:letterSpacing="0.1" />
 
-        <!-- Big habit count -->
         <TextView
-            android:id="@+id/habits_count_text"
+            android:id="@+id/appwidget_text"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="0/0"
+            android:text="3/5"
+            android:textColor="@color/duo_green"
             android:textSize="42sp"
-            android:textStyle="bold"
-            android:textColor="#FFFFFF"
-            android:shadowColor="#00000080"
-            android:shadowDx="2"
+            android:fontFamily="sans-serif-black"
+            android:textStyle="bold" 
+            android:shadowColor="#33000000"
+            android:shadowDx="0"
             android:shadowDy="2"
-            android:shadowRadius="4"
-            android:fontFamily="sans-serif-medium"
-            android:layout_marginTop="4dp" />
+            android:shadowRadius="2" />
 
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="habits completed"
-            android:textSize="12sp"
-            android:textColor="#AAAACC"
-            android:layout_marginTop="-4dp" />
-
-        <!-- Progress Bar -->
         <ProgressBar
-            android:id="@+id/habits_progress_bar"
+            android:id="@+id/widget_progress_bar"
             style="?android:attr/progressBarStyleHorizontal"
             android:layout_width="match_parent"
-            android:layout_height="6dp"
-            android:layout_marginTop="12dp"
-            android:layout_marginEnd="16dp"
-            android:progressDrawable="@drawable/widget_progress_drawable"
+            android:layout_height="16dp"
+            android:layout_marginTop="8dp"
             android:max="100"
-            android:progress="0" />
-
+            android:progress="60"
+            android:progressDrawable="@drawable/progress_bar_chunk" />
+            
+        <TextView
+            android:id="@+id/widget_motivation"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="You're crushing it!"
+            android:textColor="@color/duo_green"
+            android:textSize="12sp"
+            android:textStyle="bold" />
     </LinearLayout>
 
-    <!-- Right Section: Streak & Motivation -->
+    <!-- Divider -->
+    <View
+        android:layout_width="2dp"
+        android:layout_height="match_parent"
+        android:layout_marginHorizontal="16dp"
+        android:background="#20FFFFFF" />
+
+    <!-- Right: Mini Cards -->
     <LinearLayout
         android:layout_width="wrap_content"
         android:layout_height="match_parent"
-        android:orientation="vertical"
-        android:gravity="center_vertical|end"
-        android:paddingStart="8dp">
+        android:gravity="center_vertical"
+        android:orientation="vertical">
 
-        <!-- Streak Badge -->
+        <!-- Streak Card -->
         <LinearLayout
-            android:layout_width="wrap_content"
+            android:layout_width="100dp"
             android:layout_height="wrap_content"
-            android:background="@drawable/widget_streak_badge"
-            android:paddingStart="16dp"
-            android:paddingEnd="16dp"
-            android:paddingTop="10dp"
-            android:paddingBottom="10dp"
-            android:gravity="center">
+            android:background="@drawable/bg_card_3d_orange"
+            android:gravity="center"
+            android:orientation="vertical"
+            android:padding="8dp"
+            android:layout_marginBottom="12dp">
 
             <TextView
-                android:id="@+id/streak_text"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="🔥 0"
+                android:text="🔥"
+                android:textSize="18sp" />
+
+            <TextView
+                android:id="@+id/widget_streak_count"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="12"
+                android:textColor="@color/white"
                 android:textSize="18sp"
-                android:textColor="#FFFFFF"
                 android:textStyle="bold" />
         </LinearLayout>
 
-        <!-- Motivation Text -->
-        <TextView
-            android:id="@+id/motivation_text"
-            android:layout_width="wrap_content"
+        <!-- Steps Card -->
+        <LinearLayout
+            android:layout_width="100dp"
             android:layout_height="wrap_content"
-            android:text="Let's go! 🚀"
-            android:textSize="12sp"
-            android:textColor="#88E219"
-            android:textStyle="bold"
-            android:layout_marginTop="12dp"
-            android:gravity="end" />
+            android:background="@drawable/bg_card_3d"
+            android:backgroundTint="@color/duo_blue"
+            android:gravity="center"
+            android:orientation="vertical"
+            android:padding="8dp">
 
-        <!-- Steps indicator -->
-        <TextView
-            android:id="@+id/steps_text"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="👟 0 steps"
-            android:textSize="11sp"
-            android:textColor="#AAAACC"
-            android:layout_marginTop="4dp"
-            android:gravity="end" />
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="👟"
+                android:textSize="18sp" />
 
+            <TextView
+                android:id="@+id/widget_steps_count"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="5.2k"
+                android:textColor="@color/white"
+                android:textSize="16sp"
+                android:textStyle="bold" />
+        </LinearLayout>
     </LinearLayout>
-
 </LinearLayout>

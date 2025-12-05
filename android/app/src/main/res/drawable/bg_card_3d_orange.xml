@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Bottom Depth -->
+    <item android:top="4dp">
+        <shape android:shape="rectangle">
+            <solid android:color="@color/duo_orange_depth" />
+            <corners android:radius="24dp" />
+        </shape>
+    </item>
+    <!-- Main Surface -->
+    <item android:bottom="4dp">
+        <shape android:shape="rectangle">
+            <solid android:color="@color/duo_orange" />
+            <corners android:radius="24dp" />
+        </shape>
+    </item>
+</layer-list>

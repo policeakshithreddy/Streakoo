@@ -22,7 +22,7 @@ class StreakooWidgetSmall : HomeWidgetProvider() {
                 val streak = widgetData.getInt("current_streak", 0)
 
                 // Update streak count
-                setTextViewText(R.id.streak_count, streak.toString())
+                setTextViewText(R.id.widget_streak_count, streak.toString())
 
                 // Click to open app
                 val intent = Intent(context, MainActivity::class.java).apply {
@@ -34,7 +34,7 @@ class StreakooWidgetSmall : HomeWidgetProvider() {
                     intent,
                     PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
                 )
-                setOnClickPendingIntent(R.id.widget_container, pendingIntent)
+                setOnClickPendingIntent(R.id.appwidget_text, pendingIntent)
             }
 
             appWidgetManager.updateAppWidget(widgetId, views)

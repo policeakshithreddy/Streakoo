@@ -1,0 +1,178 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+     android:layout_margin="8dp">
+
+    <!-- MODE: HABITS (Orange Theme) -->
+    <RelativeLayout
+        android:id="@+id/mode_habits"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@drawable/bg_card_3d_orange"
+        android:padding="16dp"
+        android:visibility="visible">
+        
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="MASTERY"
+            android:textColor="#AAFFFFFF"
+            android:textSize="12sp"
+            android:textStyle="bold"
+            android:letterSpacing="0.1" />
+            
+        <ImageView
+             android:layout_width="24dp"
+             android:layout_height="24dp"
+             android:layout_alignParentEnd="true"
+             android:tint="@color/white"
+             android:src="@android:drawable/btn_star_big_on" />
+
+        <ProgressBar
+            android:id="@+id/habit_progress_circle"
+            style="?android:attr/progressBarStyleHorizontal"
+            android:layout_width="100dp"
+            android:layout_height="100dp"
+            android:layout_centerInParent="true"
+            android:progressDrawable="@drawable/widget_progress_drawable"
+            android:progressTint="@color/white"
+            android:progressBackgroundTint="#44FFFFFF"
+            android:rotation="-90"
+            android:progress="75"
+            android:max="100" />
+            
+        <TextView
+            android:id="@+id/habit_stats_center"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_centerInParent="true"
+            android:text="75%"
+            android:textSize="24sp"
+            android:fontFamily="sans-serif-black"
+            android:textStyle="bold"
+            android:textColor="#FFFFFF" />
+            
+        <TextView
+            android:id="@+id/habit_detail_text"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentBottom="true"
+            android:layout_centerHorizontal="true"
+            android:text="3/4 habits done"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            android:textColor="#FFFFFF" />
+    </RelativeLayout>
+
+
+    <!-- MODE: STEPS (Blue Theme) -->
+    <RelativeLayout
+        android:id="@+id/mode_steps"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@drawable/bg_card_3d"
+        android:padding="16dp"
+        android:visibility="gone">
+        
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="STEPS"
+            android:textColor="#AAFFFFFF"
+            android:textSize="12sp"
+            android:textStyle="bold"
+            android:letterSpacing="0.1" />
+
+         <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentEnd="true"
+            android:text="👟"
+            android:textSize="20sp" />
+
+        <TextView
+            android:id="@+id/step_count_big"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_centerInParent="true"
+            android:text="8,432"
+            android:textSize="48sp"
+            android:fontFamily="sans-serif-black"
+            android:textStyle="bold"
+            android:textColor="#FFFFFF" />
+            
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_below="@id/step_count_big"
+            android:layout_centerHorizontal="true"
+            android:text="steps today"
+            android:textSize="14sp"
+            android:textColor="#DDFFFFFF" />
+            
+        <ProgressBar
+            android:id="@+id/step_progress_bar"
+            style="?android:attr/progressBarStyleHorizontal"
+            android:layout_width="match_parent"
+            android:layout_height="16dp"
+            android:layout_alignParentBottom="true"
+            android:progressDrawable="@drawable/progress_bar_chunk"
+            android:progressTint="@color/duo_green"
+            android:progressBackgroundTint="#33FFFFFF"
+            android:progress="80"
+            android:max="100" />
+    </RelativeLayout>
+
+    <!-- MODE: SLEEP (Purple Theme) -->
+    <RelativeLayout
+        android:id="@+id/mode_sleep"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:backgroundTint="@color/duo_purple"
+        android:background="@drawable/bg_card_3d"
+        android:padding="16dp"
+        android:visibility="gone">
+        
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="SLEEP"
+            android:textColor="#AAFFFFFF"
+            android:textSize="12sp"
+            android:textStyle="bold"
+            android:letterSpacing="0.1" />
+            
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentEnd="true"
+            android:text="😴"
+            android:textSize="20sp" />
+
+        <TextView
+            android:id="@+id/sleep_duration"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_centerInParent="true"
+            android:text="7h 30m"
+            android:textSize="42sp"
+            android:fontFamily="sans-serif-black"
+            android:textStyle="bold"
+            android:textColor="#FFFFFF" />
+            
+        <TextView
+             android:id="@+id/sleep_score"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_below="@id/sleep_duration"
+            android:layout_centerHorizontal="true"
+            android:text="Excellent Sleep"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:textColor="#FFFFFF"
+            android:layout_marginTop="4dp" />
+            
+    </RelativeLayout>
+</FrameLayout>
