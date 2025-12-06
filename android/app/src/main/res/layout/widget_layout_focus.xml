@@ -3,7 +3,7 @@
     android:id="@+id/widget_root"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-     android:layout_margin="8dp">
+    android:layout_margin="8dp">
 
     <!-- MODE: HABITS (Orange Theme) -->
     <RelativeLayout
@@ -14,45 +14,68 @@
         android:padding="16dp"
         android:visibility="visible">
         
-        <TextView
-            android:layout_width="wrap_content"
+        <!-- Header Row -->
+        <LinearLayout
+            android:id="@+id/habit_header"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="MASTERY"
-            android:textColor="#AAFFFFFF"
-            android:textSize="12sp"
-            android:textStyle="bold"
-            android:letterSpacing="0.1" />
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
             
-        <ImageView
-             android:layout_width="24dp"
-             android:layout_height="24dp"
-             android:layout_alignParentEnd="true"
-             android:tint="@color/white"
-             android:src="@android:drawable/btn_star_big_on" />
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="MASTERY"
+                android:textColor="#CCFFFFFF"
+                android:textSize="12sp"
+                android:textStyle="bold"
+                android:letterSpacing="0.15" />
+                
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="⭐"
+                android:textSize="20sp" />
+        </LinearLayout>
 
-        <ProgressBar
-            android:id="@+id/habit_progress_circle"
-            style="?android:attr/progressBarStyleHorizontal"
-            android:layout_width="100dp"
-            android:layout_height="100dp"
-            android:layout_centerInParent="true"
-            android:progressDrawable="@drawable/widget_progress_drawable"
-            android:progressTint="@color/white"
-            android:progressBackgroundTint="#44FFFFFF"
-            android:rotation="-90"
-            android:progress="75"
-            android:max="100" />
+        <!-- Center Progress Circle -->
+        <FrameLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_below="@id/habit_header"
+            android:layout_above="@+id/habit_detail_text"
+            android:layout_marginTop="8dp"
+            android:layout_marginBottom="8dp">
             
-        <TextView
-            android:id="@+id/habit_stats_center"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_centerInParent="true"
-            android:text="75%"
-            android:textSize="24sp"
-            android:fontFamily="sans-serif-black"
-            android:textStyle="bold"
-            android:textColor="#FFFFFF" />
+            <ProgressBar
+                android:id="@+id/habit_progress_circle"
+                style="?android:attr/progressBarStyleHorizontal"
+                android:layout_width="120dp"
+                android:layout_height="120dp"
+                android:layout_gravity="center"
+                android:progressDrawable="@drawable/widget_progress_drawable"
+                android:progressTint="@color/white"
+                android:progressBackgroundTint="#44FFFFFF"
+                android:rotation="-90"
+                android:progress="75"
+                android:max="100" />
+                
+            <TextView
+                android:id="@+id/habit_stats_center"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:text="75%"
+                android:textSize="32sp"
+                android:fontFamily="sans-serif-black"
+                android:textStyle="bold"
+                android:textColor="#FFFFFF"
+                android:shadowColor="#33000000"
+                android:shadowDx="0"
+                android:shadowDy="2"
+                android:shadowRadius="3" />
+        </FrameLayout>
             
         <TextView
             android:id="@+id/habit_detail_text"
@@ -61,9 +84,13 @@
             android:layout_alignParentBottom="true"
             android:layout_centerHorizontal="true"
             android:text="3/4 habits done"
-            android:textSize="14sp"
+            android:textSize="15sp"
             android:textStyle="bold"
-            android:textColor="#FFFFFF" />
+            android:textColor="#FFFFFF"
+            android:shadowColor="#33000000"
+            android:shadowDx="0"
+            android:shadowDy="1"
+            android:shadowRadius="2" />
     </RelativeLayout>
 
 
@@ -76,47 +103,65 @@
         android:padding="16dp"
         android:visibility="gone">
         
-        <TextView
-            android:layout_width="wrap_content"
+        <!-- Header Row -->
+        <LinearLayout
+            android:id="@+id/steps_header"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="STEPS"
-            android:textColor="#AAFFFFFF"
-            android:textSize="12sp"
-            android:textStyle="bold"
-            android:letterSpacing="0.1" />
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
+        
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="STEPS"
+                android:textColor="#CCFFFFFF"
+                android:textSize="12sp"
+                android:textStyle="bold"
+                android:letterSpacing="0.15" />
 
-         <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_alignParentEnd="true"
-            android:text="👟"
-            android:textSize="20sp" />
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="👟"
+                android:textSize="20sp" />
+        </LinearLayout>
 
-        <TextView
-            android:id="@+id/step_count_big"
-            android:layout_width="wrap_content"
+        <LinearLayout
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_centerInParent="true"
-            android:text="8,432"
-            android:textSize="48sp"
-            android:fontFamily="sans-serif-black"
-            android:textStyle="bold"
-            android:textColor="#FFFFFF" />
-            
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_below="@id/step_count_big"
-            android:layout_centerHorizontal="true"
-            android:text="steps today"
-            android:textSize="14sp"
-            android:textColor="#DDFFFFFF" />
+            android:orientation="vertical"
+            android:gravity="center">
+
+            <TextView
+                android:id="@+id/step_count_big"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="8,432"
+                android:textSize="52sp"
+                android:fontFamily="sans-serif-black"
+                android:textStyle="bold"
+                android:textColor="#FFFFFF"
+                android:shadowColor="#33000000"
+                android:shadowDx="0"
+                android:shadowDy="2"
+                android:shadowRadius="3" />
+                
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="steps today"
+                android:textSize="14sp"
+                android:textColor="#DDFFFFFF" />
+        </LinearLayout>
             
         <ProgressBar
             android:id="@+id/step_progress_bar"
             style="?android:attr/progressBarStyleHorizontal"
             android:layout_width="match_parent"
-            android:layout_height="16dp"
+            android:layout_height="14dp"
             android:layout_alignParentBottom="true"
             android:progressDrawable="@drawable/progress_bar_chunk"
             android:progressTint="@color/duo_green"
@@ -130,49 +175,67 @@
         android:id="@+id/mode_sleep"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:backgroundTint="@color/duo_purple"
         android:background="@drawable/bg_card_3d"
+        android:backgroundTint="@color/duo_purple"
         android:padding="16dp"
         android:visibility="gone">
         
-        <TextView
-            android:layout_width="wrap_content"
+        <!-- Header Row -->
+        <LinearLayout
+            android:id="@+id/sleep_header"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="SLEEP"
-            android:textColor="#AAFFFFFF"
-            android:textSize="12sp"
-            android:textStyle="bold"
-            android:letterSpacing="0.1" />
-            
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_alignParentEnd="true"
-            android:text="😴"
-            android:textSize="20sp" />
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
+        
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="SLEEP"
+                android:textColor="#CCFFFFFF"
+                android:textSize="12sp"
+                android:textStyle="bold"
+                android:letterSpacing="0.15" />
+                
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="😴"
+                android:textSize="20sp" />
+        </LinearLayout>
 
-        <TextView
-            android:id="@+id/sleep_duration"
-            android:layout_width="wrap_content"
+        <LinearLayout
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_centerInParent="true"
-            android:text="7h 30m"
-            android:textSize="42sp"
-            android:fontFamily="sans-serif-black"
-            android:textStyle="bold"
-            android:textColor="#FFFFFF" />
-            
-        <TextView
-             android:id="@+id/sleep_score"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_below="@id/sleep_duration"
-            android:layout_centerHorizontal="true"
-            android:text="Excellent Sleep"
-            android:textSize="16sp"
-            android:textStyle="bold"
-            android:textColor="#FFFFFF"
-            android:layout_marginTop="4dp" />
+            android:orientation="vertical"
+            android:gravity="center">
+
+            <TextView
+                android:id="@+id/sleep_duration"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="7h 30m"
+                android:textSize="48sp"
+                android:fontFamily="sans-serif-black"
+                android:textStyle="bold"
+                android:textColor="#FFFFFF"
+                android:shadowColor="#33000000"
+                android:shadowDx="0"
+                android:shadowDy="2"
+                android:shadowRadius="3" />
+                
+            <TextView
+                android:id="@+id/sleep_score"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Excellent Sleep 🌙"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:textColor="#FFFFFF"
+                android:layout_marginTop="4dp" />
+        </LinearLayout>
             
     </RelativeLayout>
 </FrameLayout>

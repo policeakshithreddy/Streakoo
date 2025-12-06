@@ -1,38 +1,101 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Preview drawable for 4x2 large widget -->
+<!-- Preview drawable for 4x2 large widget - Two column layout -->
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
-    <!-- Background -->
-    <item>
+    <!-- 3D Depth Layer -->
+    <item android:top="4dp">
         <shape android:shape="rectangle">
-            <gradient
-                android:type="linear"
-                android:startColor="#1A1B2E"
-                android:centerColor="#252742"
-                android:endColor="#1F2136"
-                android:angle="135" />
+            <solid android:color="#118EE5" />
             <corners android:radius="28dp" />
         </shape>
     </item>
-    <!-- Accent glow -->
-    <item android:top="0dp" android:bottom="0dp">
+    <!-- Main Blue Surface -->
+    <item android:bottom="4dp">
         <shape android:shape="rectangle">
-            <gradient
-                android:type="radial"
-                android:gradientRadius="200dp"
-                android:centerX="0.2"
-                android:centerY="0"
-                android:startColor="#4458CC02"
-                android:endColor="#00000000" />
+            <solid android:color="#1CB0F6" />
             <corners android:radius="28dp" />
         </shape>
     </item>
-    <!-- Border -->
-    <item>
+    <!-- Inner highlight -->
+    <item android:bottom="4dp">
         <shape android:shape="rectangle">
-            <stroke
-                android:width="1dp"
-                android:color="#33FFFFFF" />
+            <stroke android:width="2dp" android:color="#20FFFFFF" />
             <corners android:radius="28dp" />
+        </shape>
+    </item>
+    <!-- Left side - Label placeholder -->
+    <item 
+        android:top="16dp" 
+        android:left="20dp" 
+        android:right="180dp"
+        android:bottom="110dp">
+        <shape android:shape="rectangle">
+            <solid android:color="#44FFFFFF" />
+            <corners android:radius="6dp" />
+        </shape>
+    </item>
+    <!-- Left side - Big Stats (green) -->
+    <item 
+        android:top="40dp" 
+        android:left="20dp" 
+        android:right="160dp"
+        android:bottom="55dp">
+        <shape android:shape="rectangle">
+            <solid android:color="#58CC02" />
+            <corners android:radius="14dp" />
+        </shape>
+    </item>
+    <!-- Left side - Progress bar bg -->
+    <item 
+        android:top="95dp" 
+        android:left="20dp" 
+        android:right="160dp"
+        android:bottom="28dp">
+        <shape android:shape="rectangle">
+            <solid android:color="#33FFFFFF" />
+            <corners android:radius="6dp" />
+        </shape>
+    </item>
+    <!-- Left side - Progress bar fill -->
+    <item 
+        android:top="95dp" 
+        android:left="20dp" 
+        android:right="200dp"
+        android:bottom="28dp">
+        <shape android:shape="rectangle">
+            <solid android:color="#58CC02" />
+            <corners android:radius="6dp" />
+        </shape>
+    </item>
+    <!-- Vertical divider -->
+    <item 
+        android:left="145dp"
+        android:right="145dp"
+        android:top="20dp"
+        android:bottom="20dp">
+        <shape android:shape="rectangle">
+            <solid android:color="#20FFFFFF" />
+        </shape>
+    </item>
+    <!-- Right side - Orange streak card -->
+    <item 
+        android:top="16dp" 
+        android:left="160dp" 
+        android:right="20dp"
+        android:bottom="60dp">
+        <shape android:shape="rectangle">
+            <solid android:color="#FF9600" />
+            <corners android:radius="16dp" />
+        </shape>
+    </item>
+    <!-- Right side - Blue steps card -->
+    <item 
+        android:top="74dp" 
+        android:left="160dp" 
+        android:right="20dp"
+        android:bottom="16dp">
+        <shape android:shape="rectangle">
+            <solid android:color="#1CB0F6" />
+            <corners android:radius="16dp" />
         </shape>
     </item>
 </layer-list>

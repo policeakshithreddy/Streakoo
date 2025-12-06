@@ -1,38 +1,78 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Preview for 3x3 Focus Widget (Orange Style) -->
+<!-- Preview drawable for 3x3 Focus widget - Circular progress mode -->
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
-     <!-- Orange 3D Card -->
-    <item>
+    <!-- 3D Depth Layer -->
+    <item android:top="4dp">
         <shape android:shape="rectangle">
-             <solid android:color="#CC7A00" /> <!-- Depth -->
+            <solid android:color="#CC7A00" />
             <corners android:radius="28dp" />
         </shape>
     </item>
+    <!-- Main Orange Surface -->
     <item android:bottom="4dp">
         <shape android:shape="rectangle">
-            <solid android:color="#FF9600" /> <!-- Orange Main -->
+            <solid android:color="#FF9600" />
             <corners android:radius="28dp" />
         </shape>
     </item>
-    
-    <!-- Circle Stats -->
-    <item android:width="80dp" android:height="80dp" android:gravity="center">
-        <shape android:shape="oval">
-            <stroke android:width="8dp" android:color="#44FFFFFF" />
+    <!-- Inner highlight -->
+    <item android:bottom="4dp">
+        <shape android:shape="rectangle">
+            <stroke android:width="2dp" android:color="#33FFFFFF" />
+            <corners android:radius="28dp" />
         </shape>
     </item>
-    
-    <item android:width="80dp" android:height="80dp" android:gravity="center">
-        <shape android:shape="oval">
-            <stroke android:width="8dp" android:color="#FFFFFF" />
-             <!-- Dash gap logic not easy in shape, just solid for preview -->
+    <!-- Header label placeholder -->
+    <item 
+        android:top="18dp" 
+        android:left="20dp" 
+        android:right="140dp"
+        android:bottom="152dp">
+        <shape android:shape="rectangle">
+            <solid android:color="#44FFFFFF" />
+            <corners android:radius="6dp" />
         </shape>
     </item>
-    
-    <item android:gravity="center" android:width="40dp" android:height="20dp">
-         <shape android:shape="rectangle">
+    <!-- Circle progress background -->
+    <item 
+        android:top="45dp" 
+        android:left="55dp" 
+        android:right="55dp"
+        android:bottom="45dp">
+        <shape android:shape="oval">
+            <stroke android:width="10dp" android:color="#44FFFFFF" />
+        </shape>
+    </item>
+    <!-- Circle progress fill (partial arc simulated) -->
+    <item 
+        android:top="45dp" 
+        android:left="55dp" 
+        android:right="55dp"
+        android:bottom="45dp">
+        <shape android:shape="oval">
+            <stroke android:width="10dp" android:color="#FFFFFF" />
+        </shape>
+    </item>
+    <!-- Center percentage placeholder -->
+    <item 
+        android:top="75dp" 
+        android:left="75dp" 
+        android:right="75dp"
+        android:bottom="75dp">
+        <shape android:shape="rectangle">
             <solid android:color="#FFFFFF" />
+            <corners android:radius="8dp" />
         </shape>
     </item>
-
+    <!-- Bottom text placeholder -->
+    <item 
+        android:top="155dp" 
+        android:left="50dp" 
+        android:right="50dp"
+        android:bottom="18dp">
+        <shape android:shape="rectangle">
+            <solid android:color="#66FFFFFF" />
+            <corners android:radius="6dp" />
+        </shape>
+    </item>
 </layer-list>

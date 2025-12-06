@@ -64,7 +64,7 @@ class StreakooWidgetProvider : HomeWidgetProvider() {
                 // I checked widget_layout.xml, root has no ID. I should probably add one or click on a specific element.
                 // Let's add ID to root in widget_layout.xml in a follow up or just click on 'appwidget_text' for now.
                 // Wait, creating a mismatch fix here first.
-                setOnClickPendingIntent(R.id.appwidget_text, pendingIntent)
+                setOnClickPendingIntent(R.id.widget_root, pendingIntent)
             }
 
             appWidgetManager.updateAppWidget(widgetId, views)

@@ -66,7 +66,7 @@ class StreakooWidgetLarge : HomeWidgetProvider() {
                     intent,
                     PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
                 )
-                setOnClickPendingIntent(R.id.appwidget_text, pendingIntent)
+                setOnClickPendingIntent(R.id.widget_root_large, pendingIntent)
             }
 
             appWidgetManager.updateAppWidget(widgetId, views)
