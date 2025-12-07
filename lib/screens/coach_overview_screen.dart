@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -12,6 +13,7 @@ import '../widgets/weekly_summary_card.dart';
 import '../widgets/insight_card.dart';
 import '../widgets/chat_bottom_sheet.dart';
 import '../widgets/weekly_archive_card.dart';
+import '../services/supabase_service.dart';
 
 class CoachOverviewScreen extends StatefulWidget {
   const CoachOverviewScreen({super.key});
@@ -123,100 +125,207 @@ class _CoachOverviewScreenState extends State<CoachOverviewScreen> {
           ? const Center(child: CircularProgressIndicator())
           : RefreshIndicator(
               onRefresh: _loadData,
-              child: ListView(
-                padding: const EdgeInsets.only(bottom: 80),
+              child: Stack(
                 children: [
-                  const SizedBox(height: 8),
+                  ListView(
+                    padding: const EdgeInsets.only(bottom: 80),
+                    children: [
+                      const SizedBox(height: 8),
 
-                  // Daily Brief Card
-                  const DailyBriefCard(),
+                      // Daily Brief Card
+                      const DailyBriefCard(),
 
-                  // Current Week Summary
-                  if (_currentWeekReport != null) ...[
-                    const SizedBox(height: 8),
-                    WeeklySummaryCard(
-                      report: _currentWeekReport!,
-                      onTapExpand: () {
-                        _showWeeklyReportDetails(_currentWeekReport!);
-                      },
-                    ),
-                  ],
-
-                  // Insights Section
-                  if (_insights.isNotEmpty) ...[
-                    const SizedBox(height: 20),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      child: Text(
-                        '💡 Insights & Patterns',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w600,
-                          color: isDark ? Colors.white : Colors.black87,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    ..._insights.map((insight) => InsightCard(
-                          insight: insight,
-                          onTap: () {
-                            _openChat(initialMessage: insight.description);
+                      // Current Week Summary
+                      if (_currentWeekReport != null) ...[
+                        const SizedBox(height: 8),
+                        WeeklySummaryCard(
+                          report: _currentWeekReport!,
+                          onTapExpand: () {
+                            _showWeeklyReportDetails(_currentWeekReport!);
                           },
-                        )),
-                  ],
+                        ),
+                      ],
 
-                  // Past Weeks Archive
-                  if (_pastReports.isNotEmpty) ...[
-                    const SizedBox(height: 20),
-                    WeeklyArchiveCard(
-                      reports: _pastReports,
-                      onReportTap: (report) {
-                        _showWeeklyReportDetails(report);
-                      },
-                    ),
-                  ],
-
-                  // Empty state
-                  if (_currentWeekReport == null &&
-                      _insights.isEmpty &&
-                      _pastReports.isEmpty) ...[
-                    const SizedBox(height: 60),
-                    Center(
-                      child: Column(
-                        children: [
-                          const Text(
-                            '🌱',
-                            style: TextStyle(fontSize: 64),
+                      // GUEST LOCK: Insights & Archive
+                      // If guest, we show blurred content or just a prompt
+                      if (_isGuest()) ...[
+                        const SizedBox(height: 40),
+                        _buildGuestLockOverlay(theme),
+                      ] else ...[
+                        // Insights Section
+                        if (_insights.isNotEmpty) ...[
+                          const SizedBox(height: 20),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 16),
+                            child: Text(
+                              '💡 Insights & Patterns',
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w600,
+                                color: isDark ? Colors.white : Colors.black87,
+                              ),
+                            ),
                           ),
-                          const SizedBox(height: 16),
-                          Text(
-                            'Start tracking habits to see insights!',
-                            style: TextStyle(
-                              fontSize: 16,
-                              color: isDark
-                                  ? Colors.white.withValues(alpha: 0.6)
-                                  : Colors.black.withValues(alpha: 0.5),
+                          const SizedBox(height: 8),
+                          ..._insights.map((insight) => InsightCard(
+                                insight: insight,
+                                onTap: () {
+                                  _openChat(
+                                      initialMessage: insight.description);
+                                },
+                              )),
+                        ],
+
+                        // Past Weeks Archive
+                        if (_pastReports.isNotEmpty) ...[
+                          const SizedBox(height: 20),
+                          WeeklyArchiveCard(
+                            reports: _pastReports,
+                            onReportTap: (report) {
+                              _showWeeklyReportDetails(report);
+                            },
+                          ),
+                        ],
+
+                        // Empty state for insights
+                        if (_currentWeekReport == null &&
+                            _insights.isEmpty &&
+                            _pastReports.isEmpty) ...[
+                          const SizedBox(height: 60),
+                          Center(
+                            child: Column(
+                              children: [
+                                const Text(
+                                  '🌱',
+                                  style: TextStyle(fontSize: 64),
+                                ),
+                                const SizedBox(height: 16),
+                                Text(
+                                  'Start tracking habits to see insights!',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    color: isDark
+                                        ? Colors.white.withValues(alpha: 0.6)
+                                        : Colors.black.withValues(alpha: 0.5),
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
                         ],
-                      ),
-                    ),
-                  ],
+                      ],
+                    ],
+                  ),
                 ],
               ),
             ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _openChat(),
-        backgroundColor: const Color(0xFF191919),
-        foregroundColor: Colors.white,
-        elevation: 6,
-        icon: const Icon(Icons.chat_bubble_outline),
-        label: const Text(
-          'Chat',
-          style: TextStyle(
-            fontWeight: FontWeight.w600,
+      floatingActionButton: !_isGuest()
+          ? FloatingActionButton.extended(
+              onPressed: () => _openChat(),
+              backgroundColor: const Color(0xFF191919),
+              foregroundColor: Colors.white,
+              elevation: 6,
+              icon: const Icon(Icons.chat_bubble_outline),
+              label: const Text(
+                'Chat',
+                style: TextStyle(
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            )
+          : null,
+    );
+  }
+
+  bool _isGuest() {
+    final user = SupabaseService().currentUser;
+    // Guest if no user or no email (anonymous)
+    return user == null || user.email == null || user.email!.isEmpty;
+  }
+
+  Widget _buildGuestLockOverlay(ThemeData theme) {
+    final isDark = theme.brightness == Brightness.dark;
+
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16),
+      child: Stack(
+        children: [
+          // Blurred Mock Content
+          ImageFiltered(
+            imageFilter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  height: 120,
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                      color: isDark ? Colors.white10 : Colors.black12,
+                      borderRadius: BorderRadius.circular(16)),
+                ),
+                const SizedBox(height: 16),
+                Container(
+                  height: 120,
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                      color: isDark ? Colors.white10 : Colors.black12,
+                      borderRadius: BorderRadius.circular(16)),
+                ),
+              ],
+            ),
           ),
-        ),
+
+          // Lock Overlay
+          Positioned.fill(
+            child: Container(
+              decoration: BoxDecoration(
+                color: theme.scaffoldBackgroundColor.withOpacity(0.5),
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.primaryContainer,
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(Icons.lock_outline,
+                        size: 32, color: theme.colorScheme.primary),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Unlock AI Insights',
+                    style: theme.textTheme.titleLarge
+                        ?.copyWith(fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 8),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 32),
+                    child: Text(
+                      'Sign up to get personalized daily briefs and weekly reports.',
+                      textAlign: TextAlign.center,
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: theme.textTheme.bodyMedium?.color
+                            ?.withValues(alpha: 0.7),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  FilledButton(
+                    onPressed: () {
+                      // Navigate to Auth
+                      Navigator.of(context)
+                          .pushNamedAndRemoveUntil('/auth', (route) => false);
+                    },
+                    child: const Text('Sign Up / Sign In'),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

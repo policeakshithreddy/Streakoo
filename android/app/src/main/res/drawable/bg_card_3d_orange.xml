@@ -1,17 +1,28 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- Modern Orange Accent Card Background for Widgets -->
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
-    <!-- Bottom Depth -->
-    <item android:top="4dp">
+    <!-- Bottom 3D Depth -->
+    <item android:top="3dp">
         <shape android:shape="rectangle">
-            <solid android:color="@color/duo_orange_depth" />
-            <corners android:radius="24dp" />
+            <solid android:color="#CC6B20" />
+            <corners android:radius="16dp" />
         </shape>
     </item>
-    <!-- Main Surface -->
-    <item android:bottom="4dp">
+    <!-- Main Surface - Vibrant orange gradient -->
+    <item android:bottom="3dp">
         <shape android:shape="rectangle">
-            <solid android:color="@color/duo_orange" />
-            <corners android:radius="24dp" />
+            <gradient
+                android:startColor="#FF8C42"
+                android:endColor="#FFA94A"
+                android:angle="135" />
+            <corners android:radius="16dp" />
+        </shape>
+    </item>
+    <!-- Subtle highlight -->
+    <item android:bottom="3dp">
+        <shape android:shape="rectangle">
+            <stroke android:width="1dp" android:color="#20FFFFFF" />
+            <corners android:radius="16dp" />
         </shape>
     </item>
 </layer-list>

@@ -763,6 +763,76 @@ class AppState extends ChangeNotifier {
     }
   }
 
+  /// Skip a habit for the day (user swiped left)
+  /// This marks it as "not done" but doesn't break the streak until the day ends
+  void skipHabit(Habit habit) {
+    final index = _habits.indexWhere((h) => h.id == habit.id);
+    if (index == -1) return;
+
+    final current = _habits[index];
+
+    // If already completed today, don't allow skipping
+    if (current.completedToday) {
+      debugPrint(
+          'ℹ️ Habit "${current.name}" already completed today. Cannot skip.');
+      return;
+    }
+
+    debugPrint('⏭️ Habit "${current.name}" marked as skipped for today');
+
+    // Just mark as acknowledged but not completed
+    // The streak won't break until the next day check
+    _habits[index] = current.copyWith(
+      completedToday: false,
+    );
+
+    _savePreferences();
+    notifyListeners();
+  }
+
+  /// Uncomplete a habit (toggle off) - for when user wants to undo completion
+  void uncompleteHabit(Habit habit) {
+    final index = _habits.indexWhere((h) => h.id == habit.id);
+    if (index == -1) return;
+
+    final current = _habits[index];
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final todayKey =
+        '${today.year.toString().padLeft(4, '0')}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}';
+
+    // If not completed today, nothing to undo
+    if (!current.completedToday) {
+      debugPrint(
+          'ℹ️ Habit "${current.name}" was not completed today. Nothing to undo.');
+      return;
+    }
+
+    // Remove today from completion dates
+    final newCompletionDates =
+        current.completionDates.where((d) => d != todayKey).toList();
+
+    // Recalculate streak
+    final newStreak = _calculateStreak(newCompletionDates);
+
+    // Deduct XP (but don't go below 0)
+    final xpToDeduct = current.actualXP;
+    _totalXP = (_totalXP - xpToDeduct).clamp(0, _totalXP);
+    _userLevel = UserLevel.fromTotalXP(_totalXP);
+
+    _habits[index] = current.copyWith(
+      completedToday: false,
+      completionDates: newCompletionDates,
+      streak: newStreak,
+    );
+
+    debugPrint(
+        '↩️ Habit "${current.name}" uncompleted. Streak: $newStreak, XP deducted: $xpToDeduct');
+
+    _savePreferences();
+    notifyListeners();
+  }
+
   /// Check for new milestones based on current challenge progress
   Future<List<Milestone>> _checkForNewMilestones() async {
     if (_activeHealthChallenge == null) return [];

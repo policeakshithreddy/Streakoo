@@ -38,19 +38,14 @@ class StreakooWidgetLarge : HomeWidgetProvider() {
                     else -> "🎯 0"
                 }
 
-                // Format steps display
-                val stepsDisplay = when {
-                    steps >= 10000 -> "👟 ${steps / 1000}k steps 🎉"
-                    steps >= 5000 -> "👟 $steps steps 💪"
-                    steps > 0 -> "👟 $steps steps"
-                    else -> "👟 0 steps"
-                }
+                // Format steps display (now shows habits count instead)
+                val habitsDisplay = "$total"
 
                 // Update UI elements
                 setTextViewText(R.id.appwidget_text, habitDisplay)
                 setTextViewText(R.id.widget_streak_count, streakDisplay)
                 setTextViewText(R.id.widget_motivation, motivation)
-                setTextViewText(R.id.widget_steps_count, stepsDisplay)
+                setTextViewText(R.id.widget_habits_count, habitsDisplay)
 
                 // Update Progress Bar
                 val progress = if (total > 0) (completed * 100) / total else 0

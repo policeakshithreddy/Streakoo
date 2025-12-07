@@ -57,41 +57,152 @@ class NotificationEngine {
   final FlutterLocalNotificationsPlugin _notifications =
       FlutterLocalNotificationsPlugin();
   bool _initialized = false;
+  bool _channelsCreated = false;
 
   // Track habit patterns
   final Map<String, HabitPattern> _patterns = {};
 
-  Future<void> initialize() async {
-    if (_initialized) return;
+  /// Check if notification engine is ready
+  bool get isInitialized => _initialized;
+
+  Future<void> initialize({bool force = false}) async {
+    if (_initialized && !force) return;
 
     debugPrint('🔔 Initializing Notification Engine...');
 
-    // Initialize timezone
-    tz.initializeTimeZones();
+    try {
+      // Initialize timezone
+      tz.initializeTimeZones();
 
-    // Check if permissions have been granted
-    final permissionService = NotificationPermissionService.instance;
-    final hasPermission = await permissionService.areNotificationsEnabled();
+      // Create notification channels for Android (required for Android 8+, critical for 13+)
+      if (!_channelsCreated) {
+        await _createNotificationChannels();
+        _channelsCreated = true;
+      }
 
-    if (!hasPermission) {
-      debugPrint('⚠️ Notification permissions not granted yet');
-      // Don't initialize fully if no permissions
-      return;
+      // Check if permissions have been granted
+      final permissionService = NotificationPermissionService.instance;
+      final hasPermission = await permissionService.areNotificationsEnabled();
+
+      if (!hasPermission) {
+        debugPrint('⚠️ Notification permissions not granted yet');
+        // Request permissions
+        final granted = await permissionService.requestPermissions();
+        if (!granted) {
+          debugPrint('❌ Notification permissions denied by user');
+          return;
+        }
+        debugPrint('✅ Notification permissions granted');
+      }
+
+      const androidSettings =
+          AndroidInitializationSettings('@mipmap/ic_launcher');
+      const iosSettings = DarwinInitializationSettings(
+        requestAlertPermission: true,
+        requestBadgePermission: true,
+        requestSoundPermission: true,
+      );
+
+      const settings = InitializationSettings(
+        android: androidSettings,
+        iOS: iosSettings,
+      );
+
+      await _notifications.initialize(
+        settings,
+        onDidReceiveNotificationResponse: _onNotificationTapped,
+      );
+      _initialized = true;
+
+      debugPrint('✅ Notification Engine Initialized');
+    } catch (e) {
+      debugPrint('❌ Notification Engine initialization failed: $e');
     }
+  }
 
-    const androidSettings =
-        AndroidInitializationSettings('@mipmap/ic_launcher');
-    const iosSettings = DarwinInitializationSettings();
+  /// Create notification channels for Android
+  Future<void> _createNotificationChannels() async {
+    final androidImplementation =
+        _notifications.resolvePlatformSpecificImplementation<
+            AndroidFlutterLocalNotificationsPlugin>();
 
-    const settings = InitializationSettings(
-      android: androidSettings,
-      iOS: iosSettings,
+    if (androidImplementation == null) return;
+
+    // Main habit reminders channel
+    const habitChannel = AndroidNotificationChannel(
+      'streakoo_reminders',
+      'Habit Reminders',
+      description: 'Daily reminders for your habits',
+      importance: Importance.high,
+      playSound: true,
+      enableVibration: true,
     );
 
-    await _notifications.initialize(settings);
-    _initialized = true;
+    // High priority alerts channel
+    const alertChannel = AndroidNotificationChannel(
+      'streakoo_alerts',
+      'Streak Alerts',
+      description: 'Urgent alerts when your streak is at risk',
+      importance: Importance.max,
+      playSound: true,
+      enableVibration: true,
+    );
 
-    debugPrint('✅ Notification Engine Initialized');
+    // Focus task channel
+    const focusChannel = AndroidNotificationChannel(
+      'streakoo_focus',
+      'Focus Task Reminders',
+      description: 'End of day reminders for focus tasks',
+      importance: Importance.high,
+      playSound: true,
+      enableVibration: true,
+    );
+
+    await androidImplementation.createNotificationChannel(habitChannel);
+    await androidImplementation.createNotificationChannel(alertChannel);
+    await androidImplementation.createNotificationChannel(focusChannel);
+
+    debugPrint('✅ Notification channels created');
+  }
+
+  /// Handle notification tap
+  void _onNotificationTapped(NotificationResponse response) {
+    debugPrint('📱 Notification tapped: ${response.payload}');
+    // Could navigate to specific habit here
+  }
+
+  /// Send a test notification (for debugging)
+  Future<void> sendTestNotification() async {
+    if (!_initialized) await initialize();
+
+    const androidDetails = AndroidNotificationDetails(
+      'streakoo_reminders',
+      'Habit Reminders',
+      channelDescription: 'Daily reminders for your habits',
+      importance: Importance.high,
+      priority: Priority.high,
+      icon: '@mipmap/ic_launcher',
+    );
+
+    const iosDetails = DarwinNotificationDetails(
+      presentAlert: true,
+      presentBadge: true,
+      presentSound: true,
+    );
+
+    const details = NotificationDetails(
+      android: androidDetails,
+      iOS: iosDetails,
+    );
+
+    await _notifications.show(
+      0,
+      '🔔 Test Notification',
+      'Streakoo notifications are working! 🎉',
+      details,
+    );
+
+    debugPrint('✅ Test notification sent');
   }
 
   // Update habit pattern based on completion

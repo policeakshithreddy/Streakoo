@@ -10,8 +10,8 @@
         android:id="@+id/mode_habits"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:background="@drawable/bg_card_3d_orange"
-        android:padding="16dp"
+        android:background="@drawable/bg_widget_glass"
+        android:backgroundTint="#20FFA94A"
         android:visibility="visible">
         
         <!-- Header Row -->
@@ -55,7 +55,7 @@
                 android:layout_height="120dp"
                 android:layout_gravity="center"
                 android:progressDrawable="@drawable/widget_progress_drawable"
-                android:progressTint="@color/white"
+                android:progressTint="#FFA94A"
                 android:progressBackgroundTint="#44FFFFFF"
                 android:rotation="-90"
                 android:progress="75"
@@ -67,10 +67,10 @@
                 android:layout_height="wrap_content"
                 android:layout_gravity="center"
                 android:text="75%"
-                android:textSize="32sp"
+                android:textSize="30sp"
                 android:fontFamily="sans-serif-black"
                 android:textStyle="bold"
-                android:textColor="#FFFFFF"
+                android:textColor="#FFA94A"
                 android:shadowColor="#33000000"
                 android:shadowDx="0"
                 android:shadowDy="2"
@@ -99,7 +99,7 @@
         android:id="@+id/mode_steps"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:background="@drawable/bg_card_3d"
+        android:background="@drawable/bg_widget_glass"
         android:padding="16dp"
         android:visibility="gone">
         
@@ -175,7 +175,7 @@
         android:id="@+id/mode_sleep"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:background="@drawable/bg_card_3d"
+        android:background="@drawable/bg_widget_glass"
         android:backgroundTint="@color/duo_purple"
         android:padding="16dp"
         android:visibility="gone">

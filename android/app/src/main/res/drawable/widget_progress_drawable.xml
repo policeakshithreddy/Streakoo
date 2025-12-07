@@ -1,21 +1,28 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- Circular progress drawable with Streakoo Teal Theme -->
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
     <item android:id="@android:id/background">
-        <shape>
-            <solid android:color="#33FFFFFF" />
-            <corners android:radius="4dp" />
+        <shape android:shape="ring"
+            android:innerRadiusRatio="2.5"
+            android:thicknessRatio="15"
+            android:useLevel="false">
+            <solid android:color="#30FFFFFF" />
         </shape>
     </item>
     <item android:id="@android:id/progress">
-        <clip>
-            <shape>
+        <rotate
+            android:fromDegrees="270"
+            android:toDegrees="270">
+            <shape android:shape="ring"
+                android:innerRadiusRatio="2.5"
+                android:thicknessRatio="15"
+                android:useLevel="true">
                 <gradient
-                    android:type="linear"
-                    android:startColor="#58CC02"
-                    android:endColor="#88E219"
-                    android:angle="0" />
-                <corners android:radius="4dp" />
+                    android:type="sweep"
+                    android:startColor="#1FD1A5"
+                    android:endColor="#25E8B5"
+                    android:useLevel="false" />
             </shape>
-        </clip>
+        </rotate>
     </item>
 </layer-list>

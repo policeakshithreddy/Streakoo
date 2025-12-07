@@ -1,9 +1,12 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../services/supabase_service.dart';
+import '../services/guest_service.dart';
+import '../widgets/glass_card.dart';
 import 'profile_setup_screen.dart';
 import 'question_flow_screen.dart';
-
 import 'data_restoration_screen.dart';
 
 class AuthScreen extends StatefulWidget {
@@ -155,6 +158,29 @@ class _AuthScreenState extends State<AuthScreen> {
       ),
       (route) => false,
     );
+  }
+
+  Future<void> _continueAsGuest() async {
+    setState(() => _isLoading = true);
+
+    try {
+      // Start guest session using GuestService
+      final guestService = GuestService();
+      await guestService.startGuestSession(name: 'Guest');
+
+      if (mounted) {
+        // Navigate to question flow with default guest name
+        _navigateToQuestions('Guest', 18);
+      }
+    } catch (e) {
+      if (mounted) {
+        _showError('Failed to continue as guest: ${e.toString()}');
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
   }
 
   Future<void> _submit() async {
@@ -362,32 +388,87 @@ class _AuthScreenState extends State<AuthScreen> {
     final theme = Theme.of(context);
 
     return Scaffold(
+      extendBodyBehindAppBar: true,
       appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
         title: Text(_showOtpInput
             ? 'Verify Email'
             : (_isLogin ? 'Sign In' : 'Sign Up')),
+        centerTitle: true,
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
-        child: _showOtpInput ? _buildOtpForm(theme) : _buildAuthForm(theme),
+      body: Stack(
+        children: [
+          // Background Gradient
+          Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  theme.colorScheme.primary.withValues(alpha: 0.15),
+                  theme.scaffoldBackgroundColor,
+                  theme.scaffoldBackgroundColor,
+                  theme.colorScheme.secondary.withValues(alpha: 0.15),
+                ],
+              ),
+            ),
+          ),
+
+          // Decorative background shapes
+          Positioned(
+            top: -50,
+            right: -50,
+            child: ImageFiltered(
+              imageFilter: ImageFilter.blur(sigmaX: 50, sigmaY: 50),
+              child: Container(
+                width: 200,
+                height: 200,
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.primary.withValues(alpha: 0.1),
+                  shape: BoxShape.circle,
+                ),
+              ),
+            ),
+          ),
+
+          SafeArea(
+            child: Center(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(24),
+                child: GlassCard(
+                  opacity: 0.05,
+                  child: AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 300),
+                    child: _showOtpInput
+                        ? _buildOtpForm(theme)
+                        : _buildAuthForm(theme),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
 
   Widget _buildOtpForm(ThemeData theme) {
     return Column(
+      key: const ValueKey('otp_form'),
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const SizedBox(height: 40),
         Icon(
           Icons.mark_email_read_outlined,
-          size: 80,
+          size: 60,
           color: theme.colorScheme.primary,
-        ),
+        )
+            .animate()
+            .scale(delay: 200.ms, duration: 400.ms, curve: Curves.easeOutBack),
         const SizedBox(height: 24),
         Text(
           'Check your email',
-          style: theme.textTheme.headlineMedium?.copyWith(
+          style: theme.textTheme.headlineSmall?.copyWith(
             fontWeight: FontWeight.bold,
           ),
           textAlign: TextAlign.center,
@@ -398,13 +479,15 @@ class _AuthScreenState extends State<AuthScreen> {
           style: theme.textTheme.bodyMedium,
           textAlign: TextAlign.center,
         ),
-        const SizedBox(height: 40),
+        const SizedBox(height: 32),
         TextField(
           controller: _otpController,
-          decoration: const InputDecoration(
+          decoration: InputDecoration(
             labelText: 'Verification Code',
-            prefixIcon: Icon(Icons.lock_clock_outlined),
-            border: OutlineInputBorder(),
+            prefixIcon: const Icon(Icons.lock_clock_outlined),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+            filled: true,
+            fillColor: theme.colorScheme.surface.withValues(alpha: 0.5),
           ),
           keyboardType: TextInputType.number,
           maxLength: 8,
@@ -415,12 +498,15 @@ class _AuthScreenState extends State<AuthScreen> {
           onPressed: _isLoading ? null : _verifyOtp,
           style: FilledButton.styleFrom(
             padding: const EdgeInsets.symmetric(vertical: 16),
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           ),
           child: _isLoading
               ? const SizedBox(
                   height: 20,
                   width: 20,
-                  child: CircularProgressIndicator(strokeWidth: 2),
+                  child: CircularProgressIndicator(
+                      strokeWidth: 2, color: Colors.white),
                 )
               : const Text('Verify & Continue'),
         ),
@@ -441,22 +527,22 @@ class _AuthScreenState extends State<AuthScreen> {
 
   Widget _buildAuthForm(ThemeData theme) {
     return Column(
+      key: ValueKey(_isLogin ? 'login' : 'signup'),
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const SizedBox(height: 40),
         Icon(
           Icons.cloud_outlined,
-          size: 80,
+          size: 60,
           color: theme.colorScheme.primary,
-        ),
+        ).animate().fadeIn().slideY(begin: -0.2, end: 0),
         const SizedBox(height: 24),
         Text(
           _isLogin ? 'Welcome Back!' : 'Create Account',
-          style: theme.textTheme.headlineMedium?.copyWith(
+          style: theme.textTheme.headlineSmall?.copyWith(
             fontWeight: FontWeight.bold,
           ),
           textAlign: TextAlign.center,
-        ),
+        ).animate().fadeIn(delay: 100.ms),
         const SizedBox(height: 8),
         Text(
           _isLogin
@@ -466,8 +552,8 @@ class _AuthScreenState extends State<AuthScreen> {
             color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.7),
           ),
           textAlign: TextAlign.center,
-        ),
-        const SizedBox(height: 40),
+        ).animate().fadeIn(delay: 200.ms),
+        const SizedBox(height: 32),
         OutlinedButton.icon(
           onPressed: _isGoogleLoading ? null : _signInWithGoogle,
           icon: _isGoogleLoading
@@ -484,6 +570,8 @@ class _AuthScreenState extends State<AuthScreen> {
           label: const Text('Continue with Google'),
           style: OutlinedButton.styleFrom(
             padding: const EdgeInsets.symmetric(vertical: 16),
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           ),
         ),
         const SizedBox(height: 24),
@@ -506,10 +594,12 @@ class _AuthScreenState extends State<AuthScreen> {
         const SizedBox(height: 24),
         TextField(
           controller: _emailController,
-          decoration: const InputDecoration(
+          decoration: InputDecoration(
             labelText: 'Email',
-            prefixIcon: Icon(Icons.email_outlined),
-            border: OutlineInputBorder(),
+            prefixIcon: const Icon(Icons.email_outlined),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+            filled: true,
+            fillColor: theme.colorScheme.surface.withValues(alpha: 0.5),
           ),
           keyboardType: TextInputType.emailAddress,
           autocorrect: false,
@@ -521,7 +611,9 @@ class _AuthScreenState extends State<AuthScreen> {
           decoration: InputDecoration(
             labelText: 'Password',
             prefixIcon: const Icon(Icons.lock_outlined),
-            border: const OutlineInputBorder(),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+            filled: true,
+            fillColor: theme.colorScheme.surface.withValues(alpha: 0.5),
             suffixIcon: IconButton(
               icon: Icon(
                 _obscurePassword
@@ -544,14 +636,21 @@ class _AuthScreenState extends State<AuthScreen> {
           onPressed: _isLoading ? null : _submit,
           style: FilledButton.styleFrom(
             padding: const EdgeInsets.symmetric(vertical: 16),
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            elevation: 4,
+            shadowColor: theme.colorScheme.primary.withValues(alpha: 0.4),
           ),
           child: _isLoading
               ? const SizedBox(
                   height: 20,
                   width: 20,
-                  child: CircularProgressIndicator(strokeWidth: 2),
+                  child: CircularProgressIndicator(
+                      strokeWidth: 2, color: Colors.white),
                 )
-              : Text(_isLogin ? 'Sign In' : 'Sign Up'),
+              : Text(_isLogin ? 'Sign In' : 'Sign Up',
+                  style: const TextStyle(
+                      fontSize: 16, fontWeight: FontWeight.bold)),
         ),
         const SizedBox(height: 16),
         TextButton(
@@ -562,6 +661,45 @@ class _AuthScreenState extends State<AuthScreen> {
             _isLogin
                 ? "Don't have an account? Sign Up"
                 : 'Already have an account? Sign In',
+          ),
+        ),
+        const SizedBox(height: 24),
+        Row(
+          children: [
+            const Expanded(child: Divider()),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Text(
+                'Or',
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color:
+                      theme.textTheme.bodySmall?.color?.withValues(alpha: 0.5),
+                ),
+              ),
+            ),
+            const Expanded(child: Divider()),
+          ],
+        ),
+        const SizedBox(height: 24),
+        OutlinedButton.icon(
+          onPressed: _isLoading ? null : _continueAsGuest,
+          icon: const Icon(Icons.person_outline),
+          label: const Text('Continue as Guest'),
+          style: OutlinedButton.styleFrom(
+            padding: const EdgeInsets.symmetric(vertical: 16),
+            side: BorderSide(
+              color: theme.colorScheme.outline.withValues(alpha: 0.5),
+            ),
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          'Try the app without creating an account.\nSome features will be limited.',
+          textAlign: TextAlign.center,
+          style: theme.textTheme.bodySmall?.copyWith(
+            color: theme.textTheme.bodySmall?.color?.withValues(alpha: 0.5),
           ),
         ),
       ],

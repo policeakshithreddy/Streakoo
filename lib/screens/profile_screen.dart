@@ -246,19 +246,23 @@ class _LevelCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
+    // App theme colors
+    const primaryOrange = Color(0xFFFFA94A);
+    const secondaryTeal = Color(0xFF1FD1A5);
+
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
+        gradient: const LinearGradient(
           colors: [
-            theme.colorScheme.primary,
-            theme.colorScheme.secondary,
+            primaryOrange,
+            secondaryTeal,
           ],
         ),
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: theme.colorScheme.primary.withValues(alpha: 0.3),
+            color: primaryOrange.withValues(alpha: 0.3),
             blurRadius: 20,
             offset: const Offset(0, 10),
           ),

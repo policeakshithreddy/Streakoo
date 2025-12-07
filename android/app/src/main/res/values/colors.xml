@@ -9,17 +9,24 @@
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
     
-    <!-- Widget Colors (Duolingo Style) -->
+    <!-- Streakoo App Theme Colors -->
+    <color name="streakoo_orange">#FFA94A</color>
+    <color name="streakoo_orange_dark">#E07D2A</color>
+    <color name="streakoo_orange_light">#FFB86E</color>
+    <color name="streakoo_teal">#1FD1A5</color>
+    <color name="streakoo_teal_dark">#19A882</color>
+    
+    <!-- Widget Colors (Legacy Duolingo Style) -->
     <color name="duo_blue">#1CB0F6</color>
     <color name="duo_blue_depth">#118EE5</color>
-    <color name="duo_green">#58CC02</color>
-    <color name="duo_green_depth">#46A302</color>
-    <color name="duo_orange">#FF9600</color>
-    <color name="duo_orange_depth">#CC7A00</color>
+    <color name="duo_green">#1FD1A5</color>
+    <color name="duo_green_depth">#19A882</color>
+    <color name="duo_orange">#FFA94A</color>
+    <color name="duo_orange_depth">#E07D2A</color>
     <color name="duo_purple">#CE82FF</color>
     <color name="duo_purple_depth">#A568CC</color>
     <color name="duo_card_bg">#FFFFFF</color>
-    <color name="duo_card_bg_dark">#131F24</color>
+    <color name="duo_card_bg_dark">#1A1A2E</color>
     <color name="duo_text_primary">#4B4B4B</color>
     <color name="duo_text_secondary">#777777</color>
 </resources>

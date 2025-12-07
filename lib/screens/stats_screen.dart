@@ -1,6 +1,6 @@
 import 'dart:async';
-
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:provider/provider.dart';
 
 import '../state/app_state.dart';
@@ -21,6 +21,10 @@ import 'health_coaching_intro_screen.dart';
 
 class StatsScreen extends StatefulWidget {
   const StatsScreen({super.key});
+
+  // App theme colors
+  static const primaryOrange = Color(0xFFFFA94A);
+  static const secondaryTeal = Color(0xFF1FD1A5);
 
   @override
   State<StatsScreen> createState() => _StatsScreenState();
@@ -44,12 +48,19 @@ class _StatsScreenState extends State<StatsScreen>
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Stats'),
+        centerTitle: true,
         bottom: TabBar(
           controller: _tabController,
-          isScrollable: false, // Make tabs fill width
+          isScrollable: false,
+          indicatorColor: StatsScreen.primaryOrange,
+          indicatorWeight: 3,
+          labelColor: StatsScreen.primaryOrange,
+          unselectedLabelColor: isDark ? Colors.grey[400] : Colors.grey[600],
           tabs: const [
             Tab(text: 'Overview', icon: Icon(Icons.dashboard_outlined)),
             Tab(text: 'Trends', icon: Icon(Icons.trending_up)),
@@ -119,106 +130,160 @@ class _OverviewTab extends StatelessWidget {
           const SizedBox(height: 24),
 
           // Streak Freeze Card
-          Card(
-            color: const Color(0xFFE3F2FD), // Light blue for freeze
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Row(
-                children: [
-                  const Text('❄️', style: TextStyle(fontSize: 32)),
-                  const SizedBox(width: 16),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'Streak Freezes',
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFF1565C0),
-                        ),
-                      ),
-                      Text(
-                        '${appState.streakFreezes} available',
-                        style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w600,
-                          color: Color(0xFF0D47A1),
-                        ),
-                      ),
-                    ],
+          Builder(
+            builder: (context) {
+              final isDark = Theme.of(context).brightness == Brightness.dark;
+              return Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: isDark
+                        ? [const Color(0xFF1A2A3A), const Color(0xFF0D1B2A)]
+                        : [const Color(0xFFE3F2FD), const Color(0xFFBBDEFB)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
                   ),
-                  const Spacer(),
-                  TextButton(
-                    onPressed: () {
-                      showDialog(
-                        context: context,
-                        builder: (context) => AlertDialog(
-                          title: const Row(
-                            children: [
-                              Text('❄️ How to Earn Freezes'),
-                            ],
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                    color: isDark
+                        ? Colors.blue.withValues(alpha: 0.3)
+                        : Colors.blue.withValues(alpha: 0.2),
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.blue.withValues(alpha: 0.1),
+                      blurRadius: 12,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                padding: const EdgeInsets.all(20),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 56,
+                      height: 56,
+                      decoration: BoxDecoration(
+                        color:
+                            Colors.white.withValues(alpha: isDark ? 0.1 : 0.5),
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: const Center(
+                        child: Text('❄️', style: TextStyle(fontSize: 28)),
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Streak Freezes',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                              color: isDark
+                                  ? Colors.blue[200]
+                                  : const Color(0xFF1565C0),
+                            ),
                           ),
-                          content: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text(
-                                'Earn streak freezes by completing challenges!',
-                                style: TextStyle(fontWeight: FontWeight.bold),
-                              ),
-                              const SizedBox(height: 16),
-                              _buildEarnInfo(
-                                  '🥉', '7-Day Challenge', '2 Freezes'),
-                              const SizedBox(height: 8),
-                              _buildEarnInfo(
-                                  '🥈', '15-Day Challenge', '3 Freezes'),
-                              const SizedBox(height: 8),
-                              _buildEarnInfo(
-                                  '🥇', '30-Day Challenge', '6 Freezes'),
-                              const SizedBox(height: 16),
-                              Container(
-                                padding: const EdgeInsets.all(12),
-                                decoration: BoxDecoration(
-                                  color: Colors.amber.withValues(alpha: 0.1),
-                                  borderRadius: BorderRadius.circular(8),
-                                  border: Border.all(
-                                    color: Colors.amber.withValues(alpha: 0.3),
+                          const SizedBox(height: 4),
+                          Text(
+                            '${appState.streakFreezes} available',
+                            style: TextStyle(
+                              fontSize: 22,
+                              fontWeight: FontWeight.bold,
+                              color: isDark
+                                  ? Colors.white
+                                  : const Color(0xFF0D47A1),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    TextButton(
+                      onPressed: () {
+                        showDialog(
+                          context: context,
+                          builder: (context) => AlertDialog(
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(16)),
+                            title: const Row(
+                              children: [
+                                Text('❄️ How to Earn Freezes'),
+                              ],
+                            ),
+                            content: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  'Earn streak freezes by completing challenges!',
+                                  style: TextStyle(fontWeight: FontWeight.bold),
+                                ),
+                                const SizedBox(height: 16),
+                                _buildEarnInfo(
+                                    '🥉', '7-Day Challenge', '2 Freezes'),
+                                const SizedBox(height: 8),
+                                _buildEarnInfo(
+                                    '🥈', '15-Day Challenge', '3 Freezes'),
+                                const SizedBox(height: 8),
+                                _buildEarnInfo(
+                                    '🥇', '30-Day Challenge', '6 Freezes'),
+                                const SizedBox(height: 16),
+                                Container(
+                                  padding: const EdgeInsets.all(12),
+                                  decoration: BoxDecoration(
+                                    color: StatsScreen.primaryOrange
+                                        .withValues(alpha: 0.1),
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(
+                                      color: StatsScreen.primaryOrange
+                                          .withValues(alpha: 0.3),
+                                    ),
+                                  ),
+                                  child: const Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        '⭐ Focus Tasks Only',
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          color: Color(0xFFFFA94A),
+                                        ),
+                                      ),
+                                      SizedBox(height: 4),
+                                      Text(
+                                        'Freezes only protect your Focus Tasks! Regular tasks don\'t use freezes.',
+                                        style: TextStyle(fontSize: 12),
+                                      ),
+                                    ],
                                   ),
                                 ),
-                                child: const Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      '⭐ Focus Tasks Only',
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        color: Colors.orange,
-                                      ),
-                                    ),
-                                    SizedBox(height: 4),
-                                    Text(
-                                      'Freezes only protect your Focus Tasks! Regular tasks don\'t use freezes.',
-                                      style: TextStyle(fontSize: 12),
-                                    ),
-                                  ],
+                              ],
+                            ),
+                            actions: [
+                              TextButton(
+                                onPressed: () => Navigator.pop(context),
+                                style: TextButton.styleFrom(
+                                  foregroundColor: StatsScreen.primaryOrange,
                                 ),
+                                child: const Text('Got it!'),
                               ),
                             ],
                           ),
-                          actions: [
-                            TextButton(
-                              onPressed: () => Navigator.pop(context),
-                              child: const Text('Got it!'),
-                            ),
-                          ],
-                        ),
-                      );
-                    },
-                    child: const Text('How to earn?'),
-                  ),
-                ],
-              ),
-            ),
+                        );
+                      },
+                      style: TextButton.styleFrom(
+                        foregroundColor:
+                            isDark ? Colors.blue[200] : Colors.blue[700],
+                      ),
+                      child: const Text('How to earn?'),
+                    ),
+                  ],
+                ),
+              );
+            },
           ),
 
           const SizedBox(height: 24),
@@ -361,61 +426,102 @@ class _OverviewTab extends StatelessWidget {
           const SizedBox(height: 24),
 
           // Weekly Consistency Card
-          Card(
-            elevation: 2,
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-            child: Padding(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Weekly Consistency',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.grey,
+          Builder(
+            builder: (context) {
+              final isDark = Theme.of(context).brightness == Brightness.dark;
+              final consistencyValue = _calculateWeeklyConsistency(habits);
+              return Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: isDark
+                        ? [const Color(0xFF1A1A2E), const Color(0xFF16162A)]
+                        : [Colors.white, const Color(0xFFFFFAF5)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                    color: isDark
+                        ? StatsScreen.primaryOrange.withValues(alpha: 0.2)
+                        : StatsScreen.primaryOrange.withValues(alpha: 0.15),
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: StatsScreen.primaryOrange.withValues(alpha: 0.1),
+                      blurRadius: 12,
+                      offset: const Offset(0, 4),
                     ),
-                  ),
-                  const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      Text(
-                        '${_calculateWeeklyConsistency(habits)}%',
-                        style: TextStyle(
-                          fontSize: 36,
-                          fontWeight: FontWeight.bold,
-                          color: Theme.of(context).colorScheme.onSurface,
+                  ],
+                ),
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        const Text('📊', style: TextStyle(fontSize: 20)),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Weekly Consistency',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            color: isDark ? Colors.grey[300] : Colors.grey[700],
+                          ),
                         ),
-                      ),
-                      const Spacer(),
-                      SizedBox(
-                        width: 60,
-                        height: 60,
-                        child: CircularProgressIndicator(
-                          value: _calculateWeeklyConsistency(habits) / 100,
-                          backgroundColor: Theme.of(context)
-                              .colorScheme
-                              .surfaceContainerHighest,
-                          color: Theme.of(context).colorScheme.primary,
-                          strokeWidth: 8,
-                          strokeCap: StrokeCap.round,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Based on your last 7 days of activity',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Colors.grey[600],
+                      ],
                     ),
-                  ),
-                ],
-              ),
-            ),
+                    const SizedBox(height: 16),
+                    Row(
+                      children: [
+                        Text(
+                          '$consistencyValue%',
+                          style: TextStyle(
+                            fontSize: 42,
+                            fontWeight: FontWeight.bold,
+                            color: isDark ? Colors.white : Colors.black87,
+                          ),
+                        ),
+                        const Spacer(),
+                        SizedBox(
+                          width: 70,
+                          height: 70,
+                          child: Stack(
+                            alignment: Alignment.center,
+                            children: [
+                              CircularProgressIndicator(
+                                value: consistencyValue / 100,
+                                backgroundColor: StatsScreen.primaryOrange
+                                    .withValues(alpha: 0.15),
+                                color: StatsScreen.primaryOrange,
+                                strokeWidth: 8,
+                                strokeCap: StrokeCap.round,
+                              ),
+                              Text(
+                                consistencyValue >= 80
+                                    ? '🔥'
+                                    : consistencyValue >= 50
+                                        ? '💪'
+                                        : '📈',
+                                style: const TextStyle(fontSize: 20),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      'Based on your last 7 days of activity',
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: isDark ? Colors.grey[400] : Colors.grey[600],
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            },
           ),
 
           const SizedBox(height: 24),
@@ -990,7 +1096,72 @@ class _HealthDashboardTabState extends State<_HealthDashboardTab> {
   }
 
   Widget _buildDiscoverCoachingCard(BuildContext context) {
+    return const _AdvancedHealthCoachingCard();
+  }
+}
+
+class _AdvancedHealthCoachingCard extends StatefulWidget {
+  const _AdvancedHealthCoachingCard();
+
+  @override
+  State<_AdvancedHealthCoachingCard> createState() =>
+      _AdvancedHealthCoachingCardState();
+}
+
+class _AdvancedHealthCoachingCardState
+    extends State<_AdvancedHealthCoachingCard> {
+  final PageController _pageController = PageController();
+  int _currentPage = 0;
+  Timer? _timer;
+
+  final List<Map<String, dynamic>> _slides = [
+    {
+      'title': 'Unlock AI\nHealth Coaching',
+      'desc': 'Get a personalized 4-week plan based on your health data.',
+      'icon': Icons.auto_awesome,
+    },
+    {
+      'title': 'Daily Smart\nInsights',
+      'desc': 'Receive adaptive tips to optimize your sleep and workouts.',
+      'icon': Icons.lightbulb_outline,
+    },
+    {
+      'title': 'Visualize\nYour Progress',
+      'desc': 'See your health trends with advanced interactive charts.',
+      'icon': Icons.insights,
+    },
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    _startAutoScroll();
+  }
+
+  void _startAutoScroll() {
+    _timer = Timer.periodic(const Duration(seconds: 4), (timer) {
+      if (_pageController.hasClients) {
+        int next = (_currentPage + 1) % _slides.length;
+        _pageController.animateToPage(
+          next,
+          duration: const Duration(milliseconds: 600),
+          curve: Curves.easeInOutCubic,
+        );
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    _pageController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final theme = Theme.of(context);
+
     return GestureDetector(
       onTap: () {
         Navigator.of(context).push(
@@ -1000,65 +1171,253 @@ class _HealthDashboardTabState extends State<_HealthDashboardTab> {
         );
       },
       child: Container(
-        padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
-          gradient: LinearGradient(
+          borderRadius: BorderRadius.circular(24),
+          gradient: const LinearGradient(
             colors: [
-              theme.colorScheme.primary.withValues(alpha: 0.1),
-              theme.colorScheme.primary.withValues(alpha: 0.05),
+              Color(0xFFFFA94A), // Orange
+              Color(0xFF1FD1A5), // Teal
             ],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
-          borderRadius: BorderRadius.circular(24),
-          border: Border.all(
-            color: theme.colorScheme.primary.withValues(alpha: 0.2),
-          ),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFF1FD1A5).withValues(alpha: 0.3),
+              blurRadius: 20,
+              offset: const Offset(0, 10),
+            ),
+          ],
         ),
-        child: Row(
+        child: Stack(
           children: [
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: theme.colorScheme.surface,
-                shape: BoxShape.circle,
-              ),
-              child: Icon(
-                Icons.health_and_safety,
-                color: theme.colorScheme.primary,
-                size: 32,
-              ),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Discover Health Coaching',
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'Get personalized plans for weight, heart health, and more.',
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
-                    ),
-                  ),
-                ],
+            // Decorative background patterns
+            Positioned(
+              top: -20,
+              right: -20,
+              child: Container(
+                width: 150,
+                height: 150,
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.1),
+                  shape: BoxShape.circle,
+                ),
               ),
             ),
-            Icon(
-              Icons.arrow_forward_ios,
-              size: 16,
-              color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
+            Positioned(
+              bottom: -40,
+              left: -40,
+              child: Container(
+                width: 120,
+                height: 120,
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.05),
+                  shape: BoxShape.circle,
+                ),
+              ),
+            ),
+
+            Column(
+              children: [
+                // CAROUSEL SECTION
+                SizedBox(
+                  height: 180,
+                  child: PageView.builder(
+                    controller: _pageController,
+                    onPageChanged: (index) {
+                      setState(() => _currentPage = index);
+                    },
+                    itemCount: _slides.length,
+                    itemBuilder: (context, index) {
+                      final item = _slides[index];
+                      return Padding(
+                        padding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // Animated Icon
+                            Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withValues(alpha: 0.2),
+                                shape: BoxShape.circle,
+                                border: Border.all(
+                                  color: Colors.white.withValues(alpha: 0.3),
+                                  width: 1,
+                                ),
+                              ),
+                              child: Icon(
+                                item['icon'] as IconData,
+                                color: Colors.white,
+                                size: 28,
+                              ),
+                            )
+                                .animate(
+                                    key: ValueKey('icon_$index'),
+                                    onPlay: (c) => c.repeat())
+                                .shimmer(
+                                    duration: 2000.ms,
+                                    color: Colors.white.withValues(alpha: 0.8))
+                                .animate()
+                                .scale(
+                                  begin: const Offset(0.9, 0.9),
+                                  end: const Offset(1.0, 1.0),
+                                  duration: 400.ms,
+                                  curve: Curves.easeOutBack,
+                                ),
+
+                            const SizedBox(width: 16),
+
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    item['title'] as String,
+                                    style: const TextStyle(
+                                      fontSize: 20,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.white,
+                                      height: 1.1,
+                                    ),
+                                  )
+                                      .animate(key: ValueKey('title_$index'))
+                                      .fadeIn()
+                                      .slideX(
+                                          begin: 0.2,
+                                          curve: Curves.easeOutCubic,
+                                          duration: 400.ms),
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    item['desc'] as String,
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      color:
+                                          Colors.white.withValues(alpha: 0.9),
+                                      height: 1.4,
+                                    ),
+                                  )
+                                      .animate(key: ValueKey('desc_$index'))
+                                      .fadeIn(delay: 100.ms, duration: 400.ms),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+                ),
+
+                // PAGE INDICATORS
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: List.generate(_slides.length, (index) {
+                    return AnimatedContainer(
+                      duration: const Duration(milliseconds: 300),
+                      margin: const EdgeInsets.symmetric(horizontal: 4),
+                      width: _currentPage == index ? 20 : 6,
+                      height: 6,
+                      decoration: BoxDecoration(
+                        color: _currentPage == index
+                            ? Colors.white
+                            : Colors.white.withValues(alpha: 0.4),
+                        borderRadius: BorderRadius.circular(3),
+                      ),
+                    );
+                  }),
+                ),
+
+                const SizedBox(height: 16),
+
+                // SOCIAL PROOF & CTA
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  margin:
+                      const EdgeInsets.only(left: 16, right: 16, bottom: 16),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                      color: Colors.white.withValues(alpha: 0.1),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      // Avatar Stack
+                      SizedBox(
+                        width: 60,
+                        height: 30,
+                        child: Stack(
+                          children: [
+                            for (int i = 0; i < 3; i++)
+                              Positioned(
+                                left: i * 18.0,
+                                child: Container(
+                                  width: 28,
+                                  height: 28,
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    shape: BoxShape.circle,
+                                    border: Border.all(
+                                      color: theme.colorScheme.primary,
+                                      width: 2,
+                                    ),
+                                    image: DecorationImage(
+                                      image: NetworkImage(
+                                          'https://i.pravatar.cc/100?img=${i + 10}'), // Safe placeholder
+                                      fit: BoxFit.cover,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      const Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Join our community',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 12,
+                              ),
+                            ),
+                            Text(
+                              'Start your journey',
+                              style: TextStyle(
+                                color: Colors.white70,
+                                fontSize: 10,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: const BoxDecoration(
+                          color: Colors.white,
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          Icons.arrow_forward,
+                          size: 16,
+                          color: theme.colorScheme.primary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
           ],
         ),
       ),
-    );
+    ).animate().fadeIn(duration: 600.ms).slideY(begin: 0.2, end: 0);
   }
 }
 
@@ -1741,17 +2100,40 @@ class _AchievementCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
+        gradient: unlocked
+            ? LinearGradient(
+                colors: [
+                  color.withValues(alpha: isDark ? 0.2 : 0.12),
+                  color.withValues(alpha: isDark ? 0.1 : 0.05),
+                ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              )
+            : null,
         color: unlocked
-            ? color.withValues(alpha: 0.1)
-            : Theme.of(context).cardColor,
-        borderRadius: BorderRadius.circular(16),
+            ? null
+            : (isDark ? const Color(0xFF1A1A2E) : Colors.grey[100]),
+        borderRadius: BorderRadius.circular(18),
         border: Border.all(
-          color: unlocked ? color : Colors.grey.shade300,
-          width: 2,
+          color: unlocked
+              ? color.withValues(alpha: 0.4)
+              : (isDark ? Colors.grey[700]! : Colors.grey[300]!),
+          width: unlocked ? 2 : 1,
         ),
+        boxShadow: unlocked
+            ? [
+                BoxShadow(
+                  color: color.withValues(alpha: 0.15),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                ),
+              ]
+            : null,
       ),
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -1761,13 +2143,34 @@ class _AchievementCard extends StatelessWidget {
               width: 60,
               height: 60,
               decoration: BoxDecoration(
-                color: unlocked ? color : Colors.grey.shade200,
-                shape: BoxShape.circle,
+                gradient: unlocked
+                    ? LinearGradient(
+                        colors: [color, color.withValues(alpha: 0.7)],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      )
+                    : null,
+                color: unlocked
+                    ? null
+                    : (isDark ? Colors.grey[700] : Colors.grey[300]),
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: unlocked
+                    ? [
+                        BoxShadow(
+                          color: color.withValues(alpha: 0.3),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
+                        ),
+                      ]
+                    : null,
               ),
               child: Center(
                 child: Text(
                   icon,
-                  style: const TextStyle(fontSize: 32),
+                  style: TextStyle(
+                    fontSize: 28,
+                    color: unlocked ? null : Colors.grey,
+                  ),
                 ),
               ),
             ),
@@ -1782,7 +2185,7 @@ class _AchievementCard extends StatelessWidget {
                       fontWeight: FontWeight.bold,
                       fontSize: 16,
                       color: unlocked
-                          ? Theme.of(context).colorScheme.onSurface
+                          ? (isDark ? Colors.white : Colors.black87)
                           : Colors.grey,
                     ),
                   ),
@@ -1790,12 +2193,9 @@ class _AchievementCard extends StatelessWidget {
                   Text(
                     description,
                     style: TextStyle(
-                      fontSize: 14,
+                      fontSize: 13,
                       color: unlocked
-                          ? Theme.of(context)
-                              .colorScheme
-                              .onSurface
-                              .withValues(alpha: 0.7)
+                          ? (isDark ? Colors.grey[300] : Colors.grey[600])
                           : Colors.grey,
                     ),
                   ),
@@ -1803,10 +2203,18 @@ class _AchievementCard extends StatelessWidget {
               ),
             ),
             if (!unlocked)
-              const Icon(
-                Icons.lock_outline,
-                color: Colors.grey,
-                size: 24,
+              Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: isDark ? Colors.grey[800] : Colors.grey[200],
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(
+                  Icons.lock_rounded,
+                  color: isDark ? Colors.grey[500] : Colors.grey[400],
+                  size: 20,
+                ),
               ),
           ],
         ),
@@ -1862,32 +2270,61 @@ class _StatCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      elevation: 2,
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Icon(icon, color: color, size: 32),
-            const SizedBox(height: 8),
-            Text(
-              value,
-              style: const TextStyle(
-                fontSize: 28,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 12,
-                color: Colors.grey[600],
-              ),
-            ),
-          ],
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF1A1A2E) : Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: isDark ? Colors.grey[800]! : Colors.grey[200]!,
         ),
+        boxShadow: [
+          BoxShadow(
+            color: color.withValues(alpha: 0.1),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  color.withValues(alpha: 0.15),
+                  color.withValues(alpha: 0.05),
+                ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(icon, color: color, size: 24),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 28,
+              fontWeight: FontWeight.bold,
+              color: isDark ? Colors.white : Colors.black87,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 12,
+              color: isDark ? Colors.grey[400] : Colors.grey[600],
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -1906,39 +2343,64 @@ class _AchievementTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      color: color.withValues(alpha: 0.1),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Row(
-          children: [
-            Icon(
-              Icons.emoji_events_outlined,
-              color: color,
-              size: 32,
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    description,
-                    style: Theme.of(context).textTheme.bodySmall,
-                  ),
-                ],
-              ),
-            ),
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            color.withValues(alpha: isDark ? 0.15 : 0.1),
+            color.withValues(alpha: isDark ? 0.08 : 0.05),
           ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
         ),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: color.withValues(alpha: 0.2),
+        ),
+      ),
+      padding: const EdgeInsets.all(16),
+      child: Row(
+        children: [
+          Container(
+            width: 52,
+            height: 52,
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: isDark ? 0.2 : 0.15),
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: Icon(
+              Icons.emoji_events_rounded,
+              color: color,
+              size: 28,
+            ),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                    color: isDark ? Colors.white : Colors.black87,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  description,
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: isDark ? Colors.grey[400] : Colors.grey[600],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

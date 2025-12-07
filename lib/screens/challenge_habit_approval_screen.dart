@@ -1,10 +1,13 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:uuid/uuid.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import '../models/habit.dart';
 import '../models/health_challenge.dart';
 import '../state/app_state.dart';
 import '../services/health_service.dart';
+import '../widgets/glass_card.dart';
 
 class ChallengeHabitApprovalScreen extends StatefulWidget {
   final HealthChallenge challenge;
@@ -84,64 +87,113 @@ class _ChallengeHabitApprovalScreenState
     final theme = Theme.of(context);
 
     return Scaffold(
+      extendBodyBehindAppBar: true,
       appBar: AppBar(
         title: const Text('Review Recommended Habits'),
         centerTitle: true,
+        backgroundColor: Colors.transparent,
+        elevation: 0,
       ),
-      body: _isCreating
-          ? _buildCreatingState(theme)
-          : Column(
-              children: [
-                Expanded(
-                  child: ListView(
-                    padding: const EdgeInsets.all(16),
+      body: Stack(
+        children: [
+          // Background Gradient
+          Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  theme.colorScheme.primary.withValues(alpha: 0.15),
+                  theme.scaffoldBackgroundColor,
+                  theme.scaffoldBackgroundColor,
+                  theme.colorScheme.secondary.withValues(alpha: 0.15),
+                ],
+              ),
+            ),
+          ),
+
+          SafeArea(
+            child: _isCreating
+                ? _buildCreatingState(theme)
+                : Column(
                     children: [
-                      Text(
-                        'Based on your ${widget.challenge.title} challenge, we recommend these habits:',
-                        style: theme.textTheme.titleMedium,
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        'Select the ones you want to add, or modify existing habits.',
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.onSurface
-                              .withValues(alpha: 0.7),
+                      Expanded(
+                        child: ListView(
+                          padding: const EdgeInsets.all(24),
+                          children: [
+                            Text(
+                              'Based on your ${widget.challenge.title} challenge, we recommend these habits:',
+                              style: theme.textTheme.titleMedium,
+                            ).animate().fadeIn().slideY(begin: 0.2, end: 0),
+                            const SizedBox(height: 8),
+                            Text(
+                              'Select the ones you want to add, or modify existing habits.',
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: theme.colorScheme.onSurface
+                                    .withValues(alpha: 0.7),
+                              ),
+                            ).animate().fadeIn(delay: 100.ms),
+                            const SizedBox(height: 24),
+                            ..._habits.asMap().entries.map((entry) {
+                              final index = entry.key;
+                              final item = entry.value;
+                              return _buildHabitCard(theme, item, index);
+                            }),
+                          ],
                         ),
                       ),
-                      const SizedBox(height: 24),
-                      ..._habits.asMap().entries.map((entry) {
-                        final index = entry.key;
-                        final item = entry.value;
-                        return _buildHabitCard(theme, item, index);
-                      }),
+                      _buildBottomBar(theme),
                     ],
                   ),
-                ),
-                _buildBottomBar(theme),
-              ],
-            ),
+          ),
+        ],
+      ),
     );
   }
 
   Widget _buildHabitCard(ThemeData theme, _HabitApprovalItem item, int index) {
     final isUpdate = item.action == HabitAction.update;
 
-    return Card(
-      margin: const EdgeInsets.only(bottom: 16),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: GlassCard(
+        onTap: () {
+          setState(() {
+            item.isSelected = !item.isSelected;
+          });
+        },
+        opacity: item.isSelected ? 0.1 : 0.05,
+        border: Border.all(
+          color: item.isSelected
+              ? theme.colorScheme.primary.withValues(alpha: 0.5)
+              : Colors.white.withValues(alpha: 0.1),
+        ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               children: [
-                Checkbox(
-                  value: item.isSelected,
-                  onChanged: (val) {
-                    setState(() => _habits[index].isSelected = val ?? false);
-                  },
+                Container(
+                  width: 24,
+                  height: 24,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: item.isSelected
+                        ? theme.colorScheme.primary
+                        : Colors.transparent,
+                    border: Border.all(
+                      color: item.isSelected
+                          ? theme.colorScheme.primary
+                          : theme.colorScheme.onSurface.withValues(alpha: 0.4),
+                      width: 2,
+                    ),
+                  ),
+                  child: item.isSelected
+                      ? Icon(Icons.check,
+                          size: 16, color: theme.colorScheme.onPrimary)
+                      : null,
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: 16),
                 Text(
                   item.challengeHabit.emoji,
                   style: const TextStyle(fontSize: 28),
@@ -222,18 +274,15 @@ class _ChallengeHabitApprovalScreenState
           ],
         ),
       ),
-    );
+    ).animate().fadeIn(delay: (index * 100).ms).slideX(begin: 0.2, end: 0);
   }
 
   Widget _buildBottomBar(ThemeData theme) {
     final selectedCount = _habits.where((h) => h.isSelected).length;
 
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: theme.scaffoldBackgroundColor,
-        border: Border(top: BorderSide(color: theme.dividerColor)),
-      ),
+    return GlassCard(
+      margin: const EdgeInsets.all(16),
+      // remove default padding/margin from glass if needed, but here wrapping content is fine
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -247,6 +296,8 @@ class _ChallengeHabitApprovalScreenState
               Expanded(
                 child: OutlinedButton(
                   onPressed: () => Navigator.of(context).pop(false),
+                  style:
+                      OutlinedButton.styleFrom(minimumSize: const Size(0, 50)),
                   child: const Text('Skip for Now'),
                 ),
               ),
@@ -254,6 +305,10 @@ class _ChallengeHabitApprovalScreenState
               Expanded(
                 child: FilledButton(
                   onPressed: selectedCount > 0 ? _createHabits : null,
+                  style: FilledButton.styleFrom(
+                    minimumSize: const Size(0, 50),
+                    backgroundColor: theme.colorScheme.primary,
+                  ),
                   child: const Text('Create Habits'),
                 ),
               ),
@@ -269,12 +324,33 @@ class _ChallengeHabitApprovalScreenState
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const CircularProgressIndicator(),
+          // AI Pulse Animation
+          Container(
+            width: 80,
+            height: 80,
+            decoration: BoxDecoration(
+              color: theme.colorScheme.primary.withValues(alpha: 0.1),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              Icons.check_circle_outline,
+              size: 32,
+              color: theme.colorScheme.primary,
+            ),
+          )
+              .animate(onPlay: (c) => c.repeat())
+              .scale(
+                  begin: const Offset(1, 1),
+                  end: const Offset(1.2, 1.2),
+                  duration: 1.seconds,
+                  curve: Curves.easeInOut)
+              .fadeOut(delay: 0.5.seconds, duration: 1.seconds),
+
           const SizedBox(height: 24),
           Text(
             'Creating your habits...',
             style: theme.textTheme.titleMedium,
-          ),
+          ).animate().fadeIn(),
         ],
       ),
     );
@@ -286,6 +362,9 @@ class _ChallengeHabitApprovalScreenState
     try {
       final appState = context.read<AppState>();
       final selectedHabits = _habits.where((h) => h.isSelected).toList();
+
+      // Add a small delay so user sees the animation
+      await Future.delayed(const Duration(milliseconds: 1500));
 
       for (final item in selectedHabits) {
         if (item.action == HabitAction.update && item.existingHabit != null) {

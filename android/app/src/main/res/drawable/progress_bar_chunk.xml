@@ -1,33 +1,34 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- Progress bar with Streakoo Teal Theme -->
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
     <item android:id="@android:id/background">
         <shape>
             <corners android:radius="10dp" />
-            <solid android:color="#33FFFFFF" />
+            <solid android:color="#40FFFFFF" />
         </shape>
     </item>
     <item android:id="@android:id/progress">
         <scale android:scaleWidth="100%">
             <layer-list>
-                <!-- Depth -->
+                <!-- Depth (darker teal) -->
                 <item android:top="2dp">
                     <shape>
                         <corners android:radius="10dp" />
-                        <solid android:color="#46A302" />
+                        <solid android:color="#19A882" />
                     </shape>
                 </item>
-                <!-- Top -->
+                <!-- Top (bright teal) -->
                 <item android:bottom="2dp">
                     <shape>
                         <corners android:radius="10dp" />
-                        <solid android:color="#58CC02" />
+                        <solid android:color="#1FD1A5" />
                     </shape>
                 </item>
                 <!-- Highlight -->
                 <item android:bottom="6dp" android:left="2dp" android:right="2dp" android:top="2dp">
                     <shape>
                         <corners android:radius="8dp" />
-                        <solid android:color="#33FFFFFF" />
+                        <solid android:color="#30FFFFFF" />
                     </shape>
                 </item>
             </layer-list>

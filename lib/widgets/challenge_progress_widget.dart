@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import '../models/health_challenge.dart';
 import '../state/app_state.dart';
 import '../screens/coach_progress_screen.dart';
+import '../screens/health_challenge_details_screen.dart';
 
 class ChallengeProgressWidget extends StatefulWidget {
   const ChallengeProgressWidget({super.key});
@@ -459,7 +460,13 @@ class _ChallengeProgressWidgetState extends State<ChallengeProgressWidget>
               title: const Text('View Plan Details'),
               onTap: () {
                 Navigator.pop(context);
-                // TODO: Show details
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (context) => HealthChallengeDetailsScreen(
+                      challenge: appState.activeHealthChallenge!,
+                    ),
+                  ),
+                );
               },
             ),
             ListTile(

@@ -1,9 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- Streakoo 1x1 Small Widget - Modern Dark Theme -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/widget_root_small"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@drawable/bg_card_3d_orange"
+    android:background="@drawable/bg_widget_glass"
     android:gravity="center"
     android:layout_margin="8dp"
     android:orientation="vertical"
@@ -14,28 +15,28 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="🔥"
-        android:textSize="32sp" />
+        android:textSize="28sp" />
 
     <TextView
         android:id="@+id/widget_streak_count"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="0"
-        android:textColor="#FFFFFF"
-        android:textSize="28sp"
+        android:textColor="#FFA94A"
+        android:textSize="26sp"
         android:fontFamily="sans-serif-black"
         android:textStyle="bold"
-        android:shadowColor="#33000000"
+        android:shadowColor="#201FD1A5"
         android:shadowDx="0"
         android:shadowDy="2"
-        android:shadowRadius="2" />
+        android:shadowRadius="3" />
         
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="streak"
-        android:textColor="#CCFFFFFF"
-        android:textSize="10sp"
+        android:textColor="#88FFFFFF"
+        android:textSize="9sp"
         android:textAllCaps="true"
         android:textStyle="bold" />
 
