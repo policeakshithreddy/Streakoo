@@ -4,7 +4,6 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../services/supabase_service.dart';
 import '../services/guest_service.dart';
-import '../widgets/glass_card.dart';
 import 'profile_setup_screen.dart';
 import 'question_flow_screen.dart';
 import 'data_restoration_screen.dart';
@@ -16,7 +15,7 @@ class AuthScreen extends StatefulWidget {
   State<AuthScreen> createState() => _AuthScreenState();
 }
 
-class _AuthScreenState extends State<AuthScreen> {
+class _AuthScreenState extends State<AuthScreen> with TickerProviderStateMixin {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _otpController = TextEditingController();
@@ -27,8 +26,26 @@ class _AuthScreenState extends State<AuthScreen> {
   bool _showOtpInput = false;
   bool _obscurePassword = true;
 
+  // App theme colors - matching welcome_screen.dart
+  static const _primaryOrange = Color(0xFFFFA94A);
+  static const _secondaryTeal = Color(0xFF1FD1A5);
+  static const _bgDark = Color(0xFF050816);
+  static const _bgLight = Color(0xFFFDFBF7);
+
+  late AnimationController _floatController;
+
+  @override
+  void initState() {
+    super.initState();
+    _floatController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 2500),
+    )..repeat(reverse: true);
+  }
+
   @override
   void dispose() {
+    _floatController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
     _otpController.dispose();
@@ -386,47 +403,57 @@ class _AuthScreenState extends State<AuthScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final bgColor = isDark ? _bgDark : _bgLight;
+    final textColor = isDark ? Colors.white : const Color(0xFF1A1A1A);
+    final subtitleColor = isDark ? Colors.grey[400] : Colors.grey[600];
 
     return Scaffold(
+      backgroundColor: bgColor,
       extendBodyBehindAppBar: true,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        title: Text(_showOtpInput
-            ? 'Verify Email'
-            : (_isLogin ? 'Sign In' : 'Sign Up')),
+        iconTheme: IconThemeData(color: textColor),
+        title: Text(
+          _showOtpInput ? 'Verify Email' : (_isLogin ? 'Sign In' : 'Sign Up'),
+          style: TextStyle(color: textColor, fontWeight: FontWeight.bold),
+        ),
         centerTitle: true,
       ),
       body: Stack(
         children: [
-          // Background Gradient
-          Container(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  theme.colorScheme.primary.withValues(alpha: 0.15),
-                  theme.scaffoldBackgroundColor,
-                  theme.scaffoldBackgroundColor,
-                  theme.colorScheme.secondary.withValues(alpha: 0.15),
-                ],
+          // Gradient background orbs
+          Positioned(
+            top: -100,
+            right: -80,
+            child: Container(
+              width: 250,
+              height: 250,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: RadialGradient(
+                  colors: [
+                    _primaryOrange.withValues(alpha: isDark ? 0.2 : 0.15),
+                    Colors.transparent,
+                  ],
+                ),
               ),
             ),
           ),
-
-          // Decorative background shapes
           Positioned(
-            top: -50,
-            right: -50,
-            child: ImageFiltered(
-              imageFilter: ImageFilter.blur(sigmaX: 50, sigmaY: 50),
-              child: Container(
-                width: 200,
-                height: 200,
-                decoration: BoxDecoration(
-                  color: theme.colorScheme.primary.withValues(alpha: 0.1),
-                  shape: BoxShape.circle,
+            bottom: -50,
+            left: -80,
+            child: Container(
+              width: 200,
+              height: 200,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: RadialGradient(
+                  colors: [
+                    _secondaryTeal.withValues(alpha: isDark ? 0.15 : 0.1),
+                    Colors.transparent,
+                  ],
                 ),
               ),
             ),
@@ -436,14 +463,101 @@ class _AuthScreenState extends State<AuthScreen> {
             child: Center(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.all(24),
-                child: GlassCard(
-                  opacity: 0.05,
-                  child: AnimatedSwitcher(
-                    duration: const Duration(milliseconds: 300),
-                    child: _showOtpInput
-                        ? _buildOtpForm(theme)
-                        : _buildAuthForm(theme),
-                  ),
+                child: Column(
+                  children: [
+                    // Floating animated icon
+                    AnimatedBuilder(
+                      animation: _floatController,
+                      builder: (context, child) {
+                        final floatValue = (_floatController.value - 0.5) * 10;
+                        return Transform.translate(
+                          offset: Offset(0, floatValue),
+                          child: child,
+                        );
+                      },
+                      child: Container(
+                        width: 100,
+                        height: 100,
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [
+                              isDark ? const Color(0xFF1A1A2E) : Colors.white,
+                              isDark
+                                  ? const Color(0xFF0F0F1A)
+                                  : const Color(0xFFF8F8F8),
+                            ],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                          borderRadius: BorderRadius.circular(28),
+                          border: Border.all(
+                            color: _primaryOrange.withValues(
+                                alpha: isDark ? 0.4 : 0.25),
+                            width: 2,
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: _primaryOrange.withValues(
+                                  alpha: isDark ? 0.2 : 0.15),
+                              blurRadius: 30,
+                              offset: const Offset(0, 10),
+                            ),
+                          ],
+                        ),
+                        child: Center(
+                          child: Icon(
+                            _showOtpInput
+                                ? Icons.mark_email_read_rounded
+                                : Icons.cloud_sync_rounded,
+                            size: 45,
+                            color: _primaryOrange,
+                          ),
+                        ),
+                      ).animate().fadeIn(duration: 400.ms).scale(
+                            begin: const Offset(0.85, 0.85),
+                            end: const Offset(1, 1),
+                            curve: Curves.easeOutBack,
+                            duration: 600.ms,
+                          ),
+                    ),
+
+                    const SizedBox(height: 32),
+
+                    // Glass card form
+                    Container(
+                      padding: const EdgeInsets.all(24),
+                      decoration: BoxDecoration(
+                        color: isDark
+                            ? Colors.white.withValues(alpha: 0.05)
+                            : Colors.white.withValues(alpha: 0.9),
+                        borderRadius: BorderRadius.circular(24),
+                        border: Border.all(
+                          color: isDark
+                              ? Colors.white.withValues(alpha: 0.1)
+                              : _primaryOrange.withValues(alpha: 0.15),
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black
+                                .withValues(alpha: isDark ? 0.3 : 0.08),
+                            blurRadius: 20,
+                            offset: const Offset(0, 10),
+                          ),
+                        ],
+                      ),
+                      child: AnimatedSwitcher(
+                        duration: const Duration(milliseconds: 300),
+                        child: _showOtpInput
+                            ? _buildOtpForm(
+                                theme, isDark, textColor, subtitleColor)
+                            : _buildAuthForm(
+                                theme, isDark, textColor, subtitleColor),
+                      ),
+                    )
+                        .animate()
+                        .fadeIn(delay: 150.ms, duration: 350.ms)
+                        .slideY(begin: 0.1, end: 0),
+                  ],
                 ),
               ),
             ),
@@ -453,93 +567,129 @@ class _AuthScreenState extends State<AuthScreen> {
     );
   }
 
-  Widget _buildOtpForm(ThemeData theme) {
+  Widget _buildOtpForm(
+      ThemeData theme, bool isDark, Color textColor, Color? subtitleColor) {
     return Column(
       key: const ValueKey('otp_form'),
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Icon(
-          Icons.mark_email_read_outlined,
-          size: 60,
-          color: theme.colorScheme.primary,
-        )
-            .animate()
-            .scale(delay: 200.ms, duration: 400.ms, curve: Curves.easeOutBack),
-        const SizedBox(height: 24),
         Text(
           'Check your email',
-          style: theme.textTheme.headlineSmall?.copyWith(
+          style: TextStyle(
+            fontSize: 24,
             fontWeight: FontWeight.bold,
+            color: textColor,
           ),
           textAlign: TextAlign.center,
-        ),
+        ).animate().fadeIn(delay: 100.ms),
         const SizedBox(height: 8),
         Text(
           'We sent a verification code to ${_emailController.text}',
-          style: theme.textTheme.bodyMedium,
+          style: TextStyle(
+            fontSize: 14,
+            color: subtitleColor,
+          ),
           textAlign: TextAlign.center,
-        ),
+        ).animate().fadeIn(delay: 150.ms),
         const SizedBox(height: 32),
         TextField(
           controller: _otpController,
+          style: TextStyle(color: textColor),
           decoration: InputDecoration(
             labelText: 'Verification Code',
-            prefixIcon: const Icon(Icons.lock_clock_outlined),
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+            labelStyle: TextStyle(color: subtitleColor),
+            prefixIcon: Icon(Icons.lock_clock_outlined, color: _primaryOrange),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(14),
+              borderSide:
+                  BorderSide(color: _primaryOrange.withValues(alpha: 0.3)),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(14),
+              borderSide: BorderSide(
+                color: isDark
+                    ? Colors.white.withValues(alpha: 0.2)
+                    : Colors.grey.withValues(alpha: 0.3),
+              ),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(14),
+              borderSide: const BorderSide(color: _primaryOrange, width: 2),
+            ),
             filled: true,
-            fillColor: theme.colorScheme.surface.withValues(alpha: 0.5),
+            fillColor: isDark
+                ? Colors.white.withValues(alpha: 0.05)
+                : Colors.grey.withValues(alpha: 0.08),
           ),
           keyboardType: TextInputType.number,
           maxLength: 8,
           onSubmitted: (_) => _verifyOtp(),
         ),
         const SizedBox(height: 24),
-        FilledButton(
-          onPressed: _isLoading ? null : _verifyOtp,
-          style: FilledButton.styleFrom(
+        GestureDetector(
+          onTap: _isLoading ? null : _verifyOtp,
+          child: Container(
+            width: double.infinity,
             padding: const EdgeInsets.symmetric(vertical: 16),
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [_primaryOrange, Color(0xFFFFBB6E)],
+              ),
+              borderRadius: BorderRadius.circular(14),
+              boxShadow: [
+                BoxShadow(
+                  color: _primaryOrange.withValues(alpha: 0.3),
+                  blurRadius: 16,
+                  offset: const Offset(0, 6),
+                ),
+              ],
+            ),
+            child: Center(
+              child: _isLoading
+                  ? const SizedBox(
+                      height: 20,
+                      width: 20,
+                      child: CircularProgressIndicator(
+                          strokeWidth: 2, color: Colors.white),
+                    )
+                  : const Text(
+                      'Verify & Continue',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+            ),
           ),
-          child: _isLoading
-              ? const SizedBox(
-                  height: 20,
-                  width: 20,
-                  child: CircularProgressIndicator(
-                      strokeWidth: 2, color: Colors.white),
-                )
-              : const Text('Verify & Continue'),
         ),
         const SizedBox(height: 16),
         TextButton(
           onPressed: _isLoading ? null : _resendCode,
-          child: const Text('Resend Code'),
+          child: Text('Resend Code', style: TextStyle(color: _primaryOrange)),
         ),
         TextButton(
           onPressed: () {
             setState(() => _showOtpInput = false);
           },
-          child: const Text('Back to Sign Up'),
+          child: Text('Back', style: TextStyle(color: subtitleColor)),
         ),
       ],
     );
   }
 
-  Widget _buildAuthForm(ThemeData theme) {
+  Widget _buildAuthForm(
+      ThemeData theme, bool isDark, Color textColor, Color? subtitleColor) {
     return Column(
       key: ValueKey(_isLogin ? 'login' : 'signup'),
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Icon(
-          Icons.cloud_outlined,
-          size: 60,
-          color: theme.colorScheme.primary,
-        ).animate().fadeIn().slideY(begin: -0.2, end: 0),
-        const SizedBox(height: 24),
         Text(
           _isLogin ? 'Welcome Back!' : 'Create Account',
-          style: theme.textTheme.headlineSmall?.copyWith(
+          style: TextStyle(
+            fontSize: 24,
             fontWeight: FontWeight.bold,
+            color: textColor,
           ),
           textAlign: TextAlign.center,
         ).animate().fadeIn(delay: 100.ms),
@@ -548,77 +698,153 @@ class _AuthScreenState extends State<AuthScreen> {
           _isLogin
               ? 'Sign in to backup and sync your habits'
               : 'Create an account to backup your data',
-          style: theme.textTheme.bodyMedium?.copyWith(
-            color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.7),
+          style: TextStyle(
+            fontSize: 14,
+            color: subtitleColor,
           ),
           textAlign: TextAlign.center,
-        ).animate().fadeIn(delay: 200.ms),
-        const SizedBox(height: 32),
-        OutlinedButton.icon(
-          onPressed: _isGoogleLoading ? null : _signInWithGoogle,
-          icon: _isGoogleLoading
-              ? const SizedBox(
-                  width: 20,
-                  height: 20,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                )
-              : Image.network(
-                  'https://www.google.com/favicon.ico',
-                  width: 20,
-                  height: 20,
+        ).animate().fadeIn(delay: 150.ms),
+        const SizedBox(height: 28),
+        // Google Sign-In button
+        GestureDetector(
+          onTap: _isGoogleLoading ? null : _signInWithGoogle,
+          child: Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(vertical: 14),
+            decoration: BoxDecoration(
+              color:
+                  isDark ? Colors.white.withValues(alpha: 0.08) : Colors.white,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(
+                color: isDark
+                    ? Colors.white.withValues(alpha: 0.15)
+                    : Colors.grey.withValues(alpha: 0.25),
+              ),
+              boxShadow: isDark
+                  ? null
+                  : [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.05),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                _isGoogleLoading
+                    ? SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: subtitleColor,
+                        ),
+                      )
+                    : Image.network(
+                        'https://www.google.com/favicon.ico',
+                        width: 20,
+                        height: 20,
+                      ),
+                const SizedBox(width: 12),
+                Text(
+                  'Continue with Google',
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w500,
+                    color: textColor,
+                  ),
                 ),
-          label: const Text('Continue with Google'),
-          style: OutlinedButton.styleFrom(
-            padding: const EdgeInsets.symmetric(vertical: 16),
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ],
+            ),
           ),
         ),
         const SizedBox(height: 24),
         Row(
           children: [
-            const Expanded(child: Divider()),
+            Expanded(
+                child: Divider(color: subtitleColor?.withValues(alpha: 0.3))),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Text(
-                'Or',
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color:
-                      theme.textTheme.bodySmall?.color?.withValues(alpha: 0.5),
-                ),
-              ),
+              child: Text('Or',
+                  style: TextStyle(color: subtitleColor, fontSize: 13)),
             ),
-            const Expanded(child: Divider()),
+            Expanded(
+                child: Divider(color: subtitleColor?.withValues(alpha: 0.3))),
           ],
         ),
         const SizedBox(height: 24),
+        // Email field
         TextField(
           controller: _emailController,
+          style: TextStyle(color: textColor),
           decoration: InputDecoration(
             labelText: 'Email',
-            prefixIcon: const Icon(Icons.email_outlined),
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+            labelStyle: TextStyle(color: subtitleColor),
+            prefixIcon: Icon(Icons.email_outlined, color: _primaryOrange),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(14),
+              borderSide:
+                  BorderSide(color: _primaryOrange.withValues(alpha: 0.3)),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(14),
+              borderSide: BorderSide(
+                color: isDark
+                    ? Colors.white.withValues(alpha: 0.2)
+                    : Colors.grey.withValues(alpha: 0.3),
+              ),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(14),
+              borderSide: const BorderSide(color: _primaryOrange, width: 2),
+            ),
             filled: true,
-            fillColor: theme.colorScheme.surface.withValues(alpha: 0.5),
+            fillColor: isDark
+                ? Colors.white.withValues(alpha: 0.05)
+                : Colors.grey.withValues(alpha: 0.08),
           ),
           keyboardType: TextInputType.emailAddress,
           autocorrect: false,
           textInputAction: TextInputAction.next,
         ),
         const SizedBox(height: 16),
+        // Password field
         TextField(
           controller: _passwordController,
+          style: TextStyle(color: textColor),
           decoration: InputDecoration(
             labelText: 'Password',
-            prefixIcon: const Icon(Icons.lock_outlined),
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+            labelStyle: TextStyle(color: subtitleColor),
+            prefixIcon: Icon(Icons.lock_outlined, color: _primaryOrange),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(14),
+              borderSide:
+                  BorderSide(color: _primaryOrange.withValues(alpha: 0.3)),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(14),
+              borderSide: BorderSide(
+                color: isDark
+                    ? Colors.white.withValues(alpha: 0.2)
+                    : Colors.grey.withValues(alpha: 0.3),
+              ),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(14),
+              borderSide: const BorderSide(color: _primaryOrange, width: 2),
+            ),
             filled: true,
-            fillColor: theme.colorScheme.surface.withValues(alpha: 0.5),
+            fillColor: isDark
+                ? Colors.white.withValues(alpha: 0.05)
+                : Colors.grey.withValues(alpha: 0.08),
             suffixIcon: IconButton(
               icon: Icon(
                 _obscurePassword
                     ? Icons.visibility_outlined
                     : Icons.visibility_off_outlined,
+                color: subtitleColor,
               ),
               onPressed: () {
                 setState(() {
@@ -632,25 +858,43 @@ class _AuthScreenState extends State<AuthScreen> {
           onSubmitted: (_) => _submit(),
         ),
         const SizedBox(height: 24),
-        FilledButton(
-          onPressed: _isLoading ? null : _submit,
-          style: FilledButton.styleFrom(
+        // Primary action button with gradient
+        GestureDetector(
+          onTap: _isLoading ? null : _submit,
+          child: Container(
+            width: double.infinity,
             padding: const EdgeInsets.symmetric(vertical: 16),
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            elevation: 4,
-            shadowColor: theme.colorScheme.primary.withValues(alpha: 0.4),
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [_primaryOrange, Color(0xFFFFBB6E)],
+              ),
+              borderRadius: BorderRadius.circular(14),
+              boxShadow: [
+                BoxShadow(
+                  color: _primaryOrange.withValues(alpha: 0.3),
+                  blurRadius: 16,
+                  offset: const Offset(0, 6),
+                ),
+              ],
+            ),
+            child: Center(
+              child: _isLoading
+                  ? const SizedBox(
+                      height: 20,
+                      width: 20,
+                      child: CircularProgressIndicator(
+                          strokeWidth: 2, color: Colors.white),
+                    )
+                  : Text(
+                      _isLogin ? 'Sign In' : 'Sign Up',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+            ),
           ),
-          child: _isLoading
-              ? const SizedBox(
-                  height: 20,
-                  width: 20,
-                  child: CircularProgressIndicator(
-                      strokeWidth: 2, color: Colors.white),
-                )
-              : Text(_isLogin ? 'Sign In' : 'Sign Up',
-                  style: const TextStyle(
-                      fontSize: 16, fontWeight: FontWeight.bold)),
         ),
         const SizedBox(height: 16),
         TextButton(
@@ -661,45 +905,61 @@ class _AuthScreenState extends State<AuthScreen> {
             _isLogin
                 ? "Don't have an account? Sign Up"
                 : 'Already have an account? Sign In',
+            style: TextStyle(color: _primaryOrange),
           ),
         ),
-        const SizedBox(height: 24),
+        const SizedBox(height: 20),
         Row(
           children: [
-            const Expanded(child: Divider()),
+            Expanded(
+                child: Divider(color: subtitleColor?.withValues(alpha: 0.3))),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Text(
-                'Or',
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color:
-                      theme.textTheme.bodySmall?.color?.withValues(alpha: 0.5),
-                ),
-              ),
+              child: Text('Or',
+                  style: TextStyle(color: subtitleColor, fontSize: 13)),
             ),
-            const Expanded(child: Divider()),
+            Expanded(
+                child: Divider(color: subtitleColor?.withValues(alpha: 0.3))),
           ],
         ),
-        const SizedBox(height: 24),
-        OutlinedButton.icon(
-          onPressed: _isLoading ? null : _continueAsGuest,
-          icon: const Icon(Icons.person_outline),
-          label: const Text('Continue as Guest'),
-          style: OutlinedButton.styleFrom(
-            padding: const EdgeInsets.symmetric(vertical: 16),
-            side: BorderSide(
-              color: theme.colorScheme.outline.withValues(alpha: 0.5),
+        const SizedBox(height: 20),
+        // Continue as Guest button
+        GestureDetector(
+          onTap: _isLoading ? null : _continueAsGuest,
+          child: Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(vertical: 14),
+            decoration: BoxDecoration(
+              color: Colors.transparent,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(
+                color: _secondaryTeal.withValues(alpha: 0.5),
+              ),
             ),
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.person_outline, color: _secondaryTeal, size: 20),
+                const SizedBox(width: 8),
+                Text(
+                  'Continue as Guest',
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w500,
+                    color: _secondaryTeal,
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
         const SizedBox(height: 8),
         Text(
           'Try the app without creating an account.\nSome features will be limited.',
           textAlign: TextAlign.center,
-          style: theme.textTheme.bodySmall?.copyWith(
-            color: theme.textTheme.bodySmall?.color?.withValues(alpha: 0.5),
+          style: TextStyle(
+            fontSize: 12,
+            color: subtitleColor?.withValues(alpha: 0.7),
           ),
         ),
       ],

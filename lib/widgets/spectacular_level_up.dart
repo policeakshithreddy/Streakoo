@@ -133,6 +133,9 @@ class _SpectacularLevelUpScreenState extends State<SpectacularLevelUpScreen>
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
+                    // Crown above badge
+                    if (_showBadge) _buildFloatingCrown(),
+
                     // Spectacular badge with glow
                     if (_showBadge) _buildSpectacularBadge(theme),
 
@@ -552,40 +555,91 @@ class _SpectacularLevelUpScreenState extends State<SpectacularLevelUpScreen>
   }
 
   Widget _buildContinueButton(ThemeData theme) {
-    return FilledButton(
-      onPressed: () {
+    return GestureDetector(
+      onTap: () {
         HapticFeedback.lightImpact();
         widget.onComplete?.call();
         Navigator.of(context).pop();
       },
-      style: FilledButton.styleFrom(
-        backgroundColor: const Color(0xFF58CC02),
-        foregroundColor: Colors.white,
+      child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 16),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(30),
-        ),
-        elevation: 8,
-        shadowColor: const Color(0xFF58CC02).withValues(alpha: 0.5),
-      ),
-      child: const Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            'Continue',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-            ),
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            colors: [Color(0xFFFFA94A), Color(0xFFFFBB6E)],
           ),
-          SizedBox(width: 8),
-          Icon(Icons.arrow_forward_rounded),
-        ],
+          borderRadius: BorderRadius.circular(30),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFFFFA94A).withValues(alpha: 0.5),
+              blurRadius: 20,
+              offset: const Offset(0, 8),
+            ),
+          ],
+        ),
+        child: const Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'Continue',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
+            ),
+            SizedBox(width: 8),
+            Icon(Icons.arrow_forward_rounded, color: Colors.white),
+          ],
+        ),
       ),
     )
         .animate()
         .fadeIn()
         .scale(begin: const Offset(0.8, 0.8), curve: Curves.elasticOut)
         .shimmer(duration: 2000.ms, delay: 500.ms);
+  }
+
+  /// Floating crown animation above the badge
+  Widget _buildFloatingCrown() {
+    return AnimatedBuilder(
+      animation: Listenable.merge([_pulseController, _glowController]),
+      builder: (context, child) {
+        final floatOffset = math.sin(_pulseController.value * math.pi) * 6;
+        final glowIntensity = 0.4 + (_glowController.value * 0.3);
+
+        return Transform.translate(
+          offset: Offset(0, floatOffset),
+          child: Container(
+            margin: const EdgeInsets.only(bottom: 8),
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                // Glow behind crown
+                Container(
+                  width: 80,
+                  height: 50,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.amber.withValues(alpha: glowIntensity),
+                        blurRadius: 30,
+                        spreadRadius: 5,
+                      ),
+                    ],
+                  ),
+                ),
+                // Crown emoji
+                const Text(
+                  '👑',
+                  style: TextStyle(fontSize: 50),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    ).animate().fadeIn(duration: 600.ms).slideY(
+        begin: -0.5, end: 0, curve: Curves.elasticOut, duration: 800.ms);
   }
 }

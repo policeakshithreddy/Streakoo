@@ -36,8 +36,18 @@ class SettingsScreen extends StatelessWidget {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Could not open email app: ${e.toString()}'),
-            backgroundColor: _primaryOrange,
+            content: Row(
+              children: [
+                const Icon(Icons.error_outline, color: Colors.white),
+                const SizedBox(width: 12),
+                Expanded(
+                    child: Text('Could not open email app: ${e.toString()}')),
+              ],
+            ),
+            backgroundColor: Colors.redAccent,
+            behavior: SnackBarBehavior.floating,
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           ),
         );
       }
@@ -472,7 +482,8 @@ class SettingsScreen extends StatelessWidget {
         ),
       ),
       trailing: isSelected
-          ? const Icon(Icons.check_circle_rounded, color: _primaryOrange, size: 22)
+          ? const Icon(Icons.check_circle_rounded,
+              color: _primaryOrange, size: 22)
           : null,
       onTap: () {
         context.read<AppState>().setThemeMode(mode);
@@ -485,8 +496,8 @@ class SettingsScreen extends StatelessWidget {
 
     if (context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Row(
+        SnackBar(
+          content: const Row(
             children: [
               SizedBox(
                 width: 16,
@@ -499,7 +510,10 @@ class SettingsScreen extends StatelessWidget {
             ],
           ),
           backgroundColor: _secondaryTeal,
-          duration: Duration(seconds: 30),
+          behavior: SnackBarBehavior.floating,
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          duration: const Duration(seconds: 30),
         ),
       );
     }
@@ -510,8 +524,8 @@ class SettingsScreen extends StatelessWidget {
       if (context.mounted) {
         ScaffoldMessenger.of(context).hideCurrentSnackBar();
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Row(
+          SnackBar(
+            content: const Row(
               children: [
                 Icon(Icons.check_circle, color: Colors.white),
                 SizedBox(width: 12),
@@ -520,6 +534,8 @@ class SettingsScreen extends StatelessWidget {
             ),
             backgroundColor: _secondaryTeal,
             behavior: SnackBarBehavior.floating,
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           ),
         );
       }
@@ -537,6 +553,8 @@ class SettingsScreen extends StatelessWidget {
             ),
             backgroundColor: Colors.redAccent,
             behavior: SnackBarBehavior.floating,
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           ),
         );
       }
@@ -583,8 +601,8 @@ class SettingsScreen extends StatelessWidget {
 
     if (confirm == true && context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Row(
+        SnackBar(
+          content: const Row(
             children: [
               SizedBox(
                 width: 16,
@@ -596,7 +614,11 @@ class SettingsScreen extends StatelessWidget {
               Text('Resetting all data...'),
             ],
           ),
-          duration: Duration(seconds: 2),
+          backgroundColor: _primaryOrange,
+          behavior: SnackBarBehavior.floating,
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          duration: const Duration(seconds: 2),
         ),
       );
 

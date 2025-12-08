@@ -1,33 +1,40 @@
 # Streakoo Releases 📱
 
-## Latest: v1.1.0 (December 2025)
+## Latest: v1.2.0 (December 9, 2025)
 
-Download: **[streakoo-v1.1.0.apk](streakoo-v1.1.0.apk)**
+Download: **[streakoo-v1.2.0.apk](streakoo-v1.2.0.apk)**
 
 ---
 
-## ✨ What's New in v1.1.0
+## ✨ What's New in v1.2.0
 
-### 🎆 Spectacular Level-Up Animation
-- Pulsing glow effects & rotating rings
-- Floating particles with confetti bursts
-- Haptic feedback for immersive experience
+### 🎨 Modern Auth Screen UI
+- Dark glassmorphism design matching welcome screen
+- Floating animated cloud icon with orange glow
+- Gradient orbs background (orange/teal)
+- Modern input fields with orange-accented borders
+- Gradient buttons with glow shadows
 
-### 🤖 AI Response Animations
-- Animated "thinking" dots when AI is processing
-- Shimmer loading states & typing effects
-- Fade-in animations for coach messages
+### 👑 Enhanced Level-Up Animation
+- New floating crown emoji with glow effect
+- Orange gradient continue button (matching theme)
+- Improved bounce and shimmer animations
 
-### 📱 Enhanced Home Screen Widget
-- Premium dark gradient design
-- Dynamic motivational messages with emojis
-- Auto-updates on app launch & habit completion
-- Smart fallback: "Add your first habit! 🌟"
+### 🔔 Improved Notifications
+- Better error handling and logging
+- Detailed debug output for troubleshooting
+- Try-catch wrappers for all initialization
+
+### 🎯 UX Improvements
+- Removed snackbar spam on individual habit completions
+- Snackbar only shows when ALL habits are done for the day
+- Themed snackbars (teal/orange) with rounded corners
+- Replaced green colors with app theme colors (teal/orange)
 
 ### 🛠️ Bug Fixes
-- Fixed blank widget on first install
-- Resolved 50+ deprecated API warnings
-- Better async context handling
+- Fixed green colors showing in health progress badges
+- Updated all success indicators to use teal (#1FD1A5)
+- Improved settings backup snackbar styling
 
 ---
 

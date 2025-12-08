@@ -94,14 +94,14 @@ class _HealthHabitProgressBadgeState extends State<HealthHabitProgressBadge> {
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
         color: isComplete
-            ? const Color(0xFF58CC02).withValues(alpha: 0.1)
+            ? const Color(0xFF1FD1A5).withValues(alpha: 0.1)
             : isNearlyComplete
                 ? Colors.orange.withValues(alpha: 0.1)
                 : Theme.of(context).colorScheme.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(8),
         border: Border.all(
           color: isComplete
-              ? const Color(0xFF58CC02).withValues(alpha: 0.3)
+              ? const Color(0xFF1FD1A5).withValues(alpha: 0.3)
               : isNearlyComplete
                   ? Colors.orange.withValues(alpha: 0.3)
                   : Colors.transparent,
@@ -115,10 +115,13 @@ class _HealthHabitProgressBadgeState extends State<HealthHabitProgressBadge> {
             isComplete ? Icons.check_circle : Icons.favorite,
             size: 14,
             color: isComplete
-                ? const Color(0xFF58CC02)
+                ? const Color(0xFF1FD1A5)
                 : isNearlyComplete
                     ? Colors.orange
-                    : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
+                    : Theme.of(context)
+                        .colorScheme
+                        .onSurface
+                        .withValues(alpha: 0.5),
           ),
           const SizedBox(width: 6),
           Text(
@@ -127,7 +130,7 @@ class _HealthHabitProgressBadgeState extends State<HealthHabitProgressBadge> {
               fontSize: 12,
               fontWeight: FontWeight.w600,
               color: isComplete
-                  ? const Color(0xFF58CC02)
+                  ? const Color(0xFF1FD1A5)
                   : isNearlyComplete
                       ? Colors.orange
                       : Theme.of(context).colorScheme.onSurface,
@@ -155,7 +158,7 @@ class HealthSyncIndicator extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
       decoration: BoxDecoration(
-        color: const Color(0xFF58CC02).withValues(alpha: 0.1),
+        color: const Color(0xFF1FD1A5).withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(6),
       ),
       child: const Row(
@@ -164,7 +167,7 @@ class HealthSyncIndicator extends StatelessWidget {
           Icon(
             Icons.sync,
             size: 10,
-            color: Color(0xFF58CC02),
+            color: Color(0xFF1FD1A5),
           ),
           SizedBox(width: 4),
           Text(
@@ -172,7 +175,7 @@ class HealthSyncIndicator extends StatelessWidget {
             style: TextStyle(
               fontSize: 10,
               fontWeight: FontWeight.bold,
-              color: Color(0xFF58CC02),
+              color: Color(0xFF1FD1A5),
             ),
           ),
         ],

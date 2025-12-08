@@ -54,26 +54,45 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _initializeNotifications() async {
-    // Initialize engines
-    await NotificationEngine.instance.initialize();
-    await SyncService.instance.initialize();
+    try {
+      debugPrint('🔔 Starting notification engine initialization...');
 
-    // Schedule focus task reminders
-    if (mounted) {
-      final appState = context.read<AppState>();
-      await NotificationEngine.instance
-          .scheduleFocusTaskReminders(appState.habits);
+      // Initialize notification engine
+      await NotificationEngine.instance.initialize();
+      debugPrint(
+          '✅ Notification engine initialized: ${NotificationEngine.instance.isInitialized}');
 
-      // Sync health habits on startup
-      appState.syncHealthHabits();
+      // Initialize sync service
+      await SyncService.instance.initialize();
+      debugPrint('✅ Sync service initialized');
 
-      // Auto-sync to cloud on app open
-      await SyncService.instance.syncOnAppOpen(
-        appState.habits,
-        appState.userLevel,
-      );
+      // Schedule focus task reminders
+      if (mounted) {
+        final appState = context.read<AppState>();
 
-      debugPrint('✅ Notification Engine & Sync Service initialized');
+        try {
+          await NotificationEngine.instance
+              .scheduleFocusTaskReminders(appState.habits);
+          debugPrint(
+              '✅ Focus task reminders scheduled for ${appState.habits.length} habits');
+        } catch (e) {
+          debugPrint('⚠️ Failed to schedule focus reminders: $e');
+        }
+
+        // Sync health habits on startup
+        appState.syncHealthHabits();
+
+        // Auto-sync to cloud on app open
+        await SyncService.instance.syncOnAppOpen(
+          appState.habits,
+          appState.userLevel,
+        );
+
+        debugPrint('✅ All initialization complete!');
+      }
+    } catch (e, stackTrace) {
+      debugPrint('❌ Notification initialization failed: $e');
+      debugPrint('Stack trace: $stackTrace');
     }
   }
 
@@ -110,21 +129,8 @@ class _HomeScreenState extends State<HomeScreen> {
     // Check state after completion
     final newLevel = appState.userLevel.level;
     final isAllDoneAfter = appState.allCompletedToday;
-    final xpGained = habit.actualXP;
 
-    // Show XP snackbar
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content:
-              Text('Nice! "${habit.name}" done for today. +$xpGained XP! 🎯'),
-          behavior: SnackBarBehavior.floating,
-          duration: const Duration(milliseconds: 1500),
-        ),
-      );
-    }
-
-    // Trigger single habit celebration sound only (no overlay)
+    // Trigger single habit celebration sound only (no overlay, no snackbar spam)
     CelebrationEngine.instance.celebrateSingleHabit(habit.name);
 
     // Priority 1: Check for level up (highest priority)
