@@ -23,10 +23,13 @@ class _NavWrapperState extends State<NavWrapper> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final color = theme.colorScheme;
+    final isDark = theme.brightness == Brightness.dark;
 
     return Scaffold(
       body: screens[index],
       bottomNavigationBar: NavigationBar(
+        backgroundColor:
+            isDark ? const Color(0xFF121212) : const Color(0xFFF8F9FA),
         selectedIndex: index,
 
         // 🔥 When a tab is selected

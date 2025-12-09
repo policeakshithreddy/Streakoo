@@ -208,6 +208,6 @@ class Habit {
   bool get isSportsHabit => category == 'Sports';
 
   // Check if this habit can be manually completed
-  // Sports habits can only be completed via health data or AI
-  bool get canManuallyComplete => !isSportsHabit;
+  // Habits with health tracking and goals enabled must be auto-completed by AI/health data
+  bool get canManuallyComplete => !(isHealthTracked && healthGoalValue != null);
 }

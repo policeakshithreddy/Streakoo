@@ -11,7 +11,6 @@ import '../services/health_validation_service.dart';
 import '../state/app_state.dart';
 import '../widgets/health_pickers.dart';
 import '../widgets/animated_validation_card.dart';
-import '../widgets/emoji_sleep_slider.dart';
 import '../widgets/stress_level_slider.dart';
 import '../widgets/glass_card.dart';
 import 'challenge_habit_approval_screen.dart';
@@ -48,6 +47,9 @@ class _HealthChallengeIntakeScreenState
   double _stressLevel = 3.0; // 1-5 scale
   String _workoutLocation = 'Both';
   double _dailyMinutes = 30.0; // 15-120 range
+  double _waterLitres = 2.0; // 1-4 litres
+  int _exerciseDays = 3; // 0-6+ days
+  int _sleepHours = 7; // 5-9 hours
   final _motivationCtrl = TextEditingController();
 
   final Map<String, dynamic> _specificAnswers = {};
@@ -335,14 +337,20 @@ class _HealthChallengeIntakeScreenState
           style: theme.textTheme.headlineSmall?.copyWith(
             fontWeight: FontWeight.bold,
           ),
-        ),
+        )
+            .animate()
+            .fadeIn(duration: 400.ms)
+            .slideY(begin: 0.3, end: 0, curve: Curves.easeOutCubic),
         const SizedBox(height: 8),
         Text(
           'Help us create a safe and effective plan',
           style: theme.textTheme.bodyMedium?.copyWith(
             color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
           ),
-        ),
+        )
+            .animate()
+            .fadeIn(delay: 100.ms, duration: 400.ms)
+            .slideY(begin: 0.3, end: 0, curve: Curves.easeOutCubic),
         const SizedBox(height: 24),
 
         // Improved Tile-based Pickers
@@ -567,15 +575,21 @@ class _HealthChallengeIntakeScreenState
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text('Health & Lifestyle',
-            style: theme.textTheme.headlineSmall
-                ?.copyWith(fontWeight: FontWeight.bold)),
+                style: theme.textTheme.headlineSmall
+                    ?.copyWith(fontWeight: FontWeight.bold))
+            .animate()
+            .fadeIn(duration: 400.ms)
+            .slideY(begin: 0.3, end: 0, curve: Curves.easeOutCubic),
         const SizedBox(height: 8),
         Text('Help us personalize your plan',
-            style: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.colorScheme.onSurface.withValues(alpha: 0.7))),
+                style: theme.textTheme.bodyMedium?.copyWith(
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.7)))
+            .animate()
+            .fadeIn(delay: 100.ms, duration: 400.ms)
+            .slideY(begin: 0.3, end: 0, curve: Curves.easeOutCubic),
         const SizedBox(height: 24),
 
-        // Medical
+        // Medical Conditions
         GlassCard(
           padding: const EdgeInsets.all(20),
           child: Column(
@@ -614,10 +628,13 @@ class _HealthChallengeIntakeScreenState
               ),
             ],
           ),
-        ),
+        )
+            .animate()
+            .fadeIn(delay: 200.ms, duration: 500.ms)
+            .slideY(begin: 0.15, end: 0, curve: Curves.easeOutCubic),
         const SizedBox(height: 16),
 
-        // Diet
+        // Dietary Preferences
         GlassCard(
           padding: const EdgeInsets.all(20),
           child:
@@ -654,31 +671,129 @@ class _HealthChallengeIntakeScreenState
                   .toList(),
             ),
           ]),
-        ),
+        )
+            .animate()
+            .fadeIn(delay: 300.ms, duration: 500.ms)
+            .slideY(begin: 0.15, end: 0, curve: Curves.easeOutCubic),
         const SizedBox(height: 16),
 
-        // Sleep & Stress
+        // Water Intake & Exercise
         GlassCard(
           padding: const EdgeInsets.all(20),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Sleep Quality',
+              Text('Daily Water Intake',
                   style: theme.textTheme.titleMedium
                       ?.copyWith(fontWeight: FontWeight.bold)),
               const SizedBox(height: 4),
-              Text('How refreshed do you feel?',
+              Text('How many litres per day?',
                   style: theme.textTheme.bodySmall),
               const SizedBox(height: 16),
-              EmojiSleepSlider(
-                initialValue: _sleepQuality,
-                onChanged: (v) => setState(() => _sleepQuality = v),
-              ),
+              _buildWaterLitreSelector(theme),
               Padding(
-                padding: const EdgeInsets.symmetric(vertical: 24),
+                padding: const EdgeInsets.symmetric(vertical: 20),
                 child:
                     Divider(color: theme.dividerColor.withValues(alpha: 0.1)),
               ),
+              Text('Weekly Exercise',
+                  style: theme.textTheme.titleMedium
+                      ?.copyWith(fontWeight: FontWeight.bold)),
+              const SizedBox(height: 4),
+              Text('Days you exercise per week',
+                  style: theme.textTheme.bodySmall),
+              const SizedBox(height: 16),
+              _buildExerciseDaysSelector(theme),
+            ],
+          ),
+        )
+            .animate()
+            .fadeIn(delay: 400.ms, duration: 500.ms)
+            .slideY(begin: 0.15, end: 0, curve: Curves.easeOutCubic),
+        const SizedBox(height: 16),
+
+        // Workout Location
+        GlassCard(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Workout Location',
+                  style: theme.textTheme.titleMedium
+                      ?.copyWith(fontWeight: FontWeight.bold)),
+              const SizedBox(height: 4),
+              Text('Where do you prefer to exercise?',
+                  style: theme.textTheme.bodySmall),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Expanded(
+                    child: _buildLocationCard(
+                      theme,
+                      icon: Icons.home_rounded,
+                      label: 'Home',
+                      selected: _workoutLocation == 'Home',
+                      onTap: () => setState(() => _workoutLocation = 'Home'),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _buildLocationCard(
+                      theme,
+                      icon: Icons.fitness_center_rounded,
+                      label: 'Gym',
+                      selected: _workoutLocation == 'Gym',
+                      onTap: () => setState(() => _workoutLocation = 'Gym'),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _buildLocationCard(
+                      theme,
+                      icon: Icons.sync_alt_rounded,
+                      label: 'Both',
+                      selected: _workoutLocation == 'Both',
+                      onTap: () => setState(() => _workoutLocation = 'Both'),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        )
+            .animate()
+            .fadeIn(delay: 500.ms, duration: 500.ms)
+            .slideY(begin: 0.15, end: 0, curve: Curves.easeOutCubic),
+        const SizedBox(height: 16),
+
+        // Sleep Hours
+        GlassCard(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Average Sleep',
+                  style: theme.textTheme.titleMedium
+                      ?.copyWith(fontWeight: FontWeight.bold)),
+              const SizedBox(height: 4),
+              Text('How many hours do you sleep?',
+                  style: theme.textTheme.bodySmall),
+              const SizedBox(height: 16),
+              _buildSleepHoursSelector(theme),
+            ],
+          ),
+        )
+            .animate()
+            .fadeIn(delay: 600.ms, duration: 500.ms)
+            .slideY(begin: 0.15, end: 0, curve: Curves.easeOutCubic),
+        const SizedBox(height: 16),
+
+        // Stress Level
+        GlassCard(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
               Text('Current Stress Level',
                   style: theme.textTheme.titleMedium
                       ?.copyWith(fontWeight: FontWeight.bold)),
@@ -691,8 +806,206 @@ class _HealthChallengeIntakeScreenState
               ),
             ],
           ),
-        ),
+        )
+            .animate()
+            .fadeIn(delay: 700.ms, duration: 500.ms)
+            .slideY(begin: 0.15, end: 0, curve: Curves.easeOutCubic),
       ],
+    );
+  }
+
+  Widget _buildWaterLitreSelector(ThemeData theme) {
+    final litreOptions = [1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0];
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+      children: litreOptions.map((litres) {
+        final isSelected = _waterLitres == litres;
+        return GestureDetector(
+          onTap: () => setState(() => _waterLitres = litres),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            width: 42,
+            height: 56,
+            decoration: BoxDecoration(
+              color: isSelected
+                  ? Colors.cyan.withValues(alpha: 0.2)
+                  : theme.colorScheme.surface.withValues(alpha: 0.3),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(
+                color: isSelected ? Colors.cyan : Colors.transparent,
+                width: 2,
+              ),
+            ),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.water_drop_rounded,
+                  size: 20,
+                  color: isSelected ? Colors.cyan : Colors.grey,
+                ),
+                Text(
+                  litres == litres.toInt()
+                      ? '${litres.toInt()}L'
+                      : '${litres}L',
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight:
+                        isSelected ? FontWeight.bold : FontWeight.normal,
+                    color: isSelected ? Colors.cyan : Colors.grey,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      }).toList(),
+    );
+  }
+
+  Widget _buildSleepHoursSelector(ThemeData theme) {
+    final sleepLabels = {
+      5: ('😴', 'Poor'),
+      6: ('😐', 'Low'),
+      7: ('😊', 'Good'),
+      8: ('😁', 'Great'),
+      9: ('🌟', 'Optimal'),
+    };
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+      children: sleepLabels.entries.map((entry) {
+        final hours = entry.key;
+        final emoji = entry.value.$1;
+        final label = entry.value.$2;
+        final isSelected = _sleepHours == hours;
+        return GestureDetector(
+          onTap: () => setState(() => _sleepHours = hours),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            width: 60,
+            padding: const EdgeInsets.symmetric(vertical: 12),
+            decoration: BoxDecoration(
+              color: isSelected
+                  ? Colors.indigo.withValues(alpha: 0.2)
+                  : theme.colorScheme.surface.withValues(alpha: 0.3),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: isSelected ? Colors.indigo : Colors.transparent,
+                width: 2,
+              ),
+            ),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(emoji, style: const TextStyle(fontSize: 22)),
+                const SizedBox(height: 4),
+                Text(
+                  '${hours}h',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight:
+                        isSelected ? FontWeight.bold : FontWeight.normal,
+                    color: isSelected ? Colors.indigo : Colors.grey,
+                  ),
+                ),
+                Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 9,
+                    color: isSelected
+                        ? Colors.indigo
+                        : Colors.grey.withValues(alpha: 0.7),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      }).toList(),
+    );
+  }
+
+  Widget _buildExerciseDaysSelector(ThemeData theme) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+      children: List.generate(7, (index) {
+        final days = index;
+        final isSelected = _exerciseDays == days;
+        final labels = ['0', '1', '2', '3', '4', '5', '6+'];
+        return GestureDetector(
+          onTap: () => setState(() => _exerciseDays = days),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: isSelected
+                  ? theme.colorScheme.primary.withValues(alpha: 0.2)
+                  : theme.colorScheme.surface.withValues(alpha: 0.3),
+              shape: BoxShape.circle,
+              border: Border.all(
+                color:
+                    isSelected ? theme.colorScheme.primary : Colors.transparent,
+                width: 2,
+              ),
+            ),
+            child: Center(
+              child: Text(
+                labels[index],
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                  color: isSelected ? theme.colorScheme.primary : Colors.grey,
+                ),
+              ),
+            ),
+          ),
+        );
+      }),
+    );
+  }
+
+  Widget _buildLocationCard(
+    ThemeData theme, {
+    required IconData icon,
+    required String label,
+    required bool selected,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(vertical: 16),
+        decoration: BoxDecoration(
+          color: selected
+              ? theme.colorScheme.primary.withValues(alpha: 0.15)
+              : theme.colorScheme.surface.withValues(alpha: 0.3),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: selected ? theme.colorScheme.primary : Colors.transparent,
+            width: 2,
+          ),
+        ),
+        child: Column(
+          children: [
+            Icon(
+              icon,
+              size: 28,
+              color: selected ? theme.colorScheme.primary : Colors.grey,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: selected ? FontWeight.bold : FontWeight.normal,
+                color: selected ? theme.colorScheme.primary : Colors.grey,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -735,8 +1048,6 @@ class _HealthChallengeIntakeScreenState
   }
 
   Widget _buildSpecificQuestions(ThemeData theme) {
-    final questions = _getQuestionsForType(_selectedType!);
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -748,45 +1059,47 @@ class _HealthChallengeIntakeScreenState
         ),
         const SizedBox(height: 8),
         Text(
-          'Help the AI customize your plan.',
+          'Help the AI customize your ${_getChallengeTitle(_selectedType!)} plan.',
           style: theme.textTheme.bodyMedium,
         ),
         const SizedBox(height: 24),
-        ...questions.map((q) {
-          return Padding(
-            padding: const EdgeInsets.only(bottom: 16),
-            child: TextField(
-              decoration: InputDecoration(
-                filled: true,
-                fillColor: theme.colorScheme.surface.withValues(alpha: 0.3),
-                labelText: q,
-                labelStyle: TextStyle(
-                    color: theme.colorScheme.onSurface.withValues(alpha: 0.7)),
-                floatingLabelBehavior: FloatingLabelBehavior.auto,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(16),
-                  borderSide: BorderSide(
-                      color: theme.colorScheme.outline.withValues(alpha: 0.2)),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(16),
-                  borderSide: BorderSide(
-                      color: theme.colorScheme.outline.withValues(alpha: 0.2)),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(16),
-                  borderSide:
-                      BorderSide(color: theme.colorScheme.primary, width: 2),
-                ),
-                contentPadding: const EdgeInsets.all(20),
-                prefixIcon: Icon(Icons.question_answer_outlined,
-                    color: theme.colorScheme.primary.withValues(alpha: 0.5)),
-              ),
-              onChanged: (v) => _specificAnswers[q] = v,
-            ),
-          );
-        }),
+
+        // Challenge-specific visual inputs
+        _buildChallengeSpecificInputs(theme),
+
         const SizedBox(height: 24),
+
+        // Motivation (optional text)
+        GlassCard(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Your Motivation (Optional)',
+                  style: theme.textTheme.titleMedium
+                      ?.copyWith(fontWeight: FontWeight.bold)),
+              const SizedBox(height: 8),
+              TextField(
+                controller: _motivationCtrl,
+                maxLines: 2,
+                decoration: InputDecoration(
+                  hintText: 'What drives you to start this challenge?',
+                  hintStyle: TextStyle(
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
+                  ),
+                  filled: true,
+                  fillColor: theme.colorScheme.surface.withValues(alpha: 0.3),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide.none,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+
+        const SizedBox(height: 16),
         Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
@@ -814,20 +1127,575 @@ class _HealthChallengeIntakeScreenState
     );
   }
 
-  List<String> _getQuestionsForType(ChallengeType type) {
-    switch (type) {
+  Widget _buildChallengeSpecificInputs(ThemeData theme) {
+    switch (_selectedType!) {
       case ChallengeType.weightManagement:
-        return ['What is your target weight?', 'Do you track calories?'];
+        return _buildWeightManagementInputs(theme);
       case ChallengeType.heartHealth:
-        return [
-          'Do you know your resting heart rate?',
-          'Any dietary restrictions?'
-        ];
+        return _buildHeartHealthInputs(theme);
       case ChallengeType.nutritionWellness:
-        return ['How much water do you drink?', 'Main nutritional goal?'];
+        return _buildNutritionInputs(theme);
       case ChallengeType.activityStrength:
-        return ['How many days can you workout?', 'Access to gym equipment?'];
+        return _buildActivityInputs(theme);
     }
+  }
+
+  Widget _buildWeightManagementInputs(ThemeData theme) {
+    return Column(
+      children: [
+        // Goal Type
+        GlassCard(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('What is your goal?',
+                  style: theme.textTheme.titleMedium
+                      ?.copyWith(fontWeight: FontWeight.bold)),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Expanded(
+                    child: _buildGoalCard(
+                      theme,
+                      icon: Icons.trending_down,
+                      label: 'Lose',
+                      color: Colors.red,
+                      selected: _specificAnswers['goal'] == 'Lose',
+                      onTap: () =>
+                          setState(() => _specificAnswers['goal'] = 'Lose'),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _buildGoalCard(
+                      theme,
+                      icon: Icons.balance,
+                      label: 'Maintain',
+                      color: Colors.green,
+                      selected: _specificAnswers['goal'] == 'Maintain',
+                      onTap: () =>
+                          setState(() => _specificAnswers['goal'] = 'Maintain'),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _buildGoalCard(
+                      theme,
+                      icon: Icons.trending_up,
+                      label: 'Gain',
+                      color: Colors.blue,
+                      selected: _specificAnswers['goal'] == 'Gain',
+                      onTap: () =>
+                          setState(() => _specificAnswers['goal'] = 'Gain'),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 16),
+        // Target Weight
+        GlassCard(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Target Weight',
+                  style: theme.textTheme.titleMedium
+                      ?.copyWith(fontWeight: FontWeight.bold)),
+              const SizedBox(height: 16),
+              _buildNumberSelector(
+                theme,
+                value: (_specificAnswers['targetWeight'] as int?) ?? 70,
+                min: 40,
+                max: 150,
+                unit: 'kg',
+                onChanged: (v) =>
+                    setState(() => _specificAnswers['targetWeight'] = v),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 16),
+        // Timeline
+        GlassCard(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Timeline',
+                  style: theme.textTheme.titleMedium
+                      ?.copyWith(fontWeight: FontWeight.bold)),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  for (final weeks in [4, 8, 12])
+                    Expanded(
+                      child: Padding(
+                        padding: EdgeInsets.only(right: weeks < 12 ? 12 : 0),
+                        child: _buildTimelineCard(
+                          theme,
+                          weeks: weeks,
+                          selected: _specificAnswers['timeline'] == weeks,
+                          onTap: () => setState(
+                              () => _specificAnswers['timeline'] = weeks),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildHeartHealthInputs(ThemeData theme) {
+    return Column(
+      children: [
+        // Cardio Level
+        GlassCard(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Current Cardio Level',
+                  style: theme.textTheme.titleMedium
+                      ?.copyWith(fontWeight: FontWeight.bold)),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  for (final level in [
+                    {'label': 'Low', 'emoji': '😮‍💨', 'value': 'low'},
+                    {'label': 'Moderate', 'emoji': '🙂', 'value': 'moderate'},
+                    {'label': 'Good', 'emoji': '💪', 'value': 'good'},
+                  ])
+                    Expanded(
+                      child: Padding(
+                        padding: EdgeInsets.only(
+                            right: level['value'] != 'good' ? 12 : 0),
+                        child: _buildEmojiCard(
+                          theme,
+                          emoji: level['emoji']!,
+                          label: level['label']!,
+                          selected:
+                              _specificAnswers['cardioLevel'] == level['value'],
+                          onTap: () => setState(() =>
+                              _specificAnswers['cardioLevel'] = level['value']),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 16),
+        // Cardio Goal
+        GlassCard(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Your Focus',
+                  style: theme.textTheme.titleMedium
+                      ?.copyWith(fontWeight: FontWeight.bold)),
+              const SizedBox(height: 16),
+              Wrap(
+                spacing: 10,
+                runSpacing: 10,
+                children: ['Endurance', 'Stamina', 'General Health', 'Recovery']
+                    .map((goal) => _buildGlassChip(
+                          label: goal,
+                          selected: _specificAnswers['cardioGoal'] == goal,
+                          onSelected: (_) => setState(
+                              () => _specificAnswers['cardioGoal'] = goal),
+                        ))
+                    .toList(),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildNutritionInputs(ThemeData theme) {
+    return Column(
+      children: [
+        // Daily Water Target
+        GlassCard(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Daily Water Target',
+                  style: theme.textTheme.titleMedium
+                      ?.copyWith(fontWeight: FontWeight.bold)),
+              const SizedBox(height: 16),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [6, 8, 10, 12].map((glasses) {
+                  final isSelected = _specificAnswers['waterTarget'] == glasses;
+                  return GestureDetector(
+                    onTap: () => setState(
+                        () => _specificAnswers['waterTarget'] = glasses),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 200),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 12),
+                      decoration: BoxDecoration(
+                        color: isSelected
+                            ? Colors.blue.withValues(alpha: 0.2)
+                            : Colors.transparent,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: isSelected
+                              ? Colors.blue
+                              : Colors.grey.withValues(alpha: 0.3),
+                          width: 2,
+                        ),
+                      ),
+                      child: Column(
+                        children: [
+                          Text('🥤', style: const TextStyle(fontSize: 24)),
+                          const SizedBox(height: 4),
+                          Text('$glasses',
+                              style: TextStyle(
+                                fontWeight: isSelected
+                                    ? FontWeight.bold
+                                    : FontWeight.normal,
+                                color: isSelected ? Colors.blue : Colors.grey,
+                              )),
+                        ],
+                      ),
+                    ),
+                  );
+                }).toList(),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 16),
+        // Nutrition Focus
+        GlassCard(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Nutrition Focus',
+                  style: theme.textTheme.titleMedium
+                      ?.copyWith(fontWeight: FontWeight.bold)),
+              const SizedBox(height: 16),
+              Wrap(
+                spacing: 10,
+                runSpacing: 10,
+                children: [
+                  'Energy',
+                  'Immunity',
+                  'Gut Health',
+                  'Weight',
+                  'Muscle'
+                ]
+                    .map((focus) => _buildGlassChip(
+                          label: focus,
+                          selected: _specificAnswers['nutritionFocus'] == focus,
+                          onSelected: (_) => setState(
+                              () => _specificAnswers['nutritionFocus'] = focus),
+                        ))
+                    .toList(),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildActivityInputs(ThemeData theme) {
+    return Column(
+      children: [
+        // Workout Days
+        GlassCard(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Workout Days Per Week',
+                  style: theme.textTheme.titleMedium
+                      ?.copyWith(fontWeight: FontWeight.bold)),
+              const SizedBox(height: 16),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [2, 3, 4, 5, 6].map((days) {
+                  final isSelected = _specificAnswers['workoutDays'] == days;
+                  return GestureDetector(
+                    onTap: () =>
+                        setState(() => _specificAnswers['workoutDays'] = days),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 200),
+                      width: 50,
+                      height: 50,
+                      decoration: BoxDecoration(
+                        color: isSelected
+                            ? theme.colorScheme.primary.withValues(alpha: 0.2)
+                            : Colors.transparent,
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: isSelected
+                              ? theme.colorScheme.primary
+                              : Colors.grey.withValues(alpha: 0.3),
+                          width: 2,
+                        ),
+                      ),
+                      child: Center(
+                        child: Text('$days',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: isSelected
+                                  ? FontWeight.bold
+                                  : FontWeight.normal,
+                              color: isSelected
+                                  ? theme.colorScheme.primary
+                                  : Colors.grey,
+                            )),
+                      ),
+                    ),
+                  );
+                }).toList(),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 16),
+        // Equipment Access
+        GlassCard(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Equipment Access',
+                  style: theme.textTheme.titleMedium
+                      ?.copyWith(fontWeight: FontWeight.bold)),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  for (final eq in [
+                    {'label': 'None', 'icon': Icons.block, 'value': 'none'},
+                    {
+                      'label': 'Basic',
+                      'icon': Icons.fitness_center,
+                      'value': 'basic'
+                    },
+                    {
+                      'label': 'Full Gym',
+                      'icon': Icons.sports_gymnastics,
+                      'value': 'full'
+                    },
+                  ])
+                    Expanded(
+                      child: Padding(
+                        padding: EdgeInsets.only(
+                            right: eq['value'] != 'full' ? 12 : 0),
+                        child: _buildLocationCard(
+                          theme,
+                          icon: eq['icon'] as IconData,
+                          label: eq['label'] as String,
+                          selected:
+                              _specificAnswers['equipment'] == eq['value'],
+                          onTap: () => setState(() =>
+                              _specificAnswers['equipment'] = eq['value']),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 16),
+        // Focus Area
+        GlassCard(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Focus Area',
+                  style: theme.textTheme.titleMedium
+                      ?.copyWith(fontWeight: FontWeight.bold)),
+              const SizedBox(height: 16),
+              Wrap(
+                spacing: 10,
+                runSpacing: 10,
+                children: [
+                  'Upper Body',
+                  'Lower Body',
+                  'Core',
+                  'Full Body',
+                  'Flexibility'
+                ]
+                    .map((area) => _buildGlassChip(
+                          label: area,
+                          selected: _specificAnswers['focusArea'] == area,
+                          onSelected: (_) => setState(
+                              () => _specificAnswers['focusArea'] = area),
+                        ))
+                    .toList(),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildGoalCard(
+    ThemeData theme, {
+    required IconData icon,
+    required String label,
+    required Color color,
+    required bool selected,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(vertical: 20),
+        decoration: BoxDecoration(
+          color: selected
+              ? color.withValues(alpha: 0.15)
+              : theme.colorScheme.surface.withValues(alpha: 0.3),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+              color: selected ? color : Colors.transparent, width: 2),
+        ),
+        child: Column(
+          children: [
+            Icon(icon, size: 28, color: selected ? color : Colors.grey),
+            const SizedBox(height: 8),
+            Text(label,
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: selected ? FontWeight.bold : FontWeight.normal,
+                  color: selected ? color : Colors.grey,
+                )),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEmojiCard(
+    ThemeData theme, {
+    required String emoji,
+    required String label,
+    required bool selected,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(vertical: 16),
+        decoration: BoxDecoration(
+          color: selected
+              ? theme.colorScheme.primary.withValues(alpha: 0.15)
+              : theme.colorScheme.surface.withValues(alpha: 0.3),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+              color: selected ? theme.colorScheme.primary : Colors.transparent,
+              width: 2),
+        ),
+        child: Column(
+          children: [
+            Text(emoji, style: const TextStyle(fontSize: 28)),
+            const SizedBox(height: 8),
+            Text(label,
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: selected ? FontWeight.bold : FontWeight.normal,
+                  color: selected ? theme.colorScheme.primary : Colors.grey,
+                )),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTimelineCard(
+    ThemeData theme, {
+    required int weeks,
+    required bool selected,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(vertical: 16),
+        decoration: BoxDecoration(
+          color: selected
+              ? theme.colorScheme.primary.withValues(alpha: 0.15)
+              : theme.colorScheme.surface.withValues(alpha: 0.3),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+              color: selected ? theme.colorScheme.primary : Colors.transparent,
+              width: 2),
+        ),
+        child: Column(
+          children: [
+            Text('$weeks',
+                style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: selected ? theme.colorScheme.primary : Colors.grey,
+                )),
+            Text('weeks',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: selected ? theme.colorScheme.primary : Colors.grey,
+                )),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildNumberSelector(
+    ThemeData theme, {
+    required int value,
+    required int min,
+    required int max,
+    required String unit,
+    required Function(int) onChanged,
+  }) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        IconButton(
+          onPressed: value > min ? () => onChanged(value - 1) : null,
+          icon: const Icon(Icons.remove_circle_outline),
+          iconSize: 32,
+        ),
+        const SizedBox(width: 16),
+        Text(
+          '$value $unit',
+          style: theme.textTheme.headlineMedium?.copyWith(
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        const SizedBox(width: 16),
+        IconButton(
+          onPressed: value < max ? () => onChanged(value + 1) : null,
+          icon: const Icon(Icons.add_circle_outline),
+          iconSize: 32,
+        ),
+      ],
+    );
   }
 
   Widget _buildBottomBar(ThemeData theme) {

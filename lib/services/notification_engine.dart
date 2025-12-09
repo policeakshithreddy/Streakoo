@@ -592,4 +592,118 @@ Be personal, use the habit name, mention streak if relevant, be energetic but no
 
   // Clear all patterns (for testing)
   void clearPatterns() => _patterns.clear();
+
+  /// Schedule predictive warnings for at-risk streaks
+  /// Uses StreakPredictorService to analyze habits and send proactive notifications
+  Future<void> schedulePredictiveWarnings(List<Habit> habits) async {
+    if (!_initialized) await initialize();
+
+    // Import dynamically to avoid circular dependencies
+    final predictions = _analyzeHabitsForPrediction(habits);
+
+    for (final prediction in predictions) {
+      if (!prediction['shouldWarn']) continue;
+
+      final habitId = prediction['habitId'] as String;
+      final habitName = prediction['habitName'] as String;
+      final emoji = prediction['emoji'] as String;
+      final streak = prediction['streak'] as int;
+      final reason = prediction['reason'] as String;
+      final riskLevel = prediction['riskLevel'] as String;
+
+      // Schedule warning notification for 6 PM if not completed
+      final now = tz.TZDateTime.now(tz.local);
+      var scheduledTime = tz.TZDateTime(
+        tz.local,
+        now.year,
+        now.month,
+        now.day,
+        18, // 6 PM
+        0,
+      );
+
+      // If past 6 PM, skip for today
+      if (scheduledTime.isBefore(now)) continue;
+
+      // Build notification message
+      String title;
+      String body;
+
+      if (riskLevel == 'critical') {
+        title = '🚨 Streak Emergency!';
+        body = '$emoji $habitName - $streak day streak at risk! $reason';
+      } else {
+        title = '⚠️ Streak Reminder';
+        body = '$emoji Don\'t forget $habitName today! $reason';
+      }
+
+      await _notifications.zonedSchedule(
+        habitId.hashCode + 888, // Unique ID for predictive warning
+        title,
+        body,
+        scheduledTime,
+        _getNotificationDetails(NotificationType.streak),
+        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+        uiLocalNotificationDateInterpretation:
+            UILocalNotificationDateInterpretation.absoluteTime,
+      );
+
+      debugPrint('🔮 Scheduled predictive warning for "$habitName" at 6 PM');
+    }
+  }
+
+  /// Simple habit analysis for predictions (avoids circular import)
+  List<Map<String, dynamic>> _analyzeHabitsForPrediction(List<Habit> habits) {
+    final results = <Map<String, dynamic>>[];
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+
+    for (final habit in habits) {
+      if (habit.streak == 0 || habit.completedToday) continue;
+
+      // Parse completion dates
+      final dates = habit.completionDates
+          .map((s) => DateTime.tryParse(s))
+          .whereType<DateTime>()
+          .toList();
+
+      if (dates.isEmpty) continue;
+
+      final daysSinceLastCompletion = today.difference(dates.last).inDays;
+
+      // Calculate risk
+      double riskScore = 0.0;
+      String reason = '';
+
+      if (daysSinceLastCompletion == 0 && now.hour >= 14) {
+        riskScore = now.hour >= 20 ? 0.6 : 0.3;
+        reason = 'Getting late in the day';
+      } else if (daysSinceLastCompletion == 1) {
+        riskScore = 0.7;
+        reason = 'Yesterday was missed';
+      } else if (daysSinceLastCompletion >= 2) {
+        riskScore = 0.9;
+        reason = 'Multiple days missed';
+      }
+
+      // Amplify risk for long streaks
+      if (habit.streak > 30) riskScore *= 1.2;
+
+      riskScore = riskScore.clamp(0.0, 1.0);
+
+      if (riskScore >= 0.5) {
+        results.add({
+          'habitId': habit.id,
+          'habitName': habit.name,
+          'emoji': habit.emoji,
+          'streak': habit.streak,
+          'reason': reason,
+          'riskLevel': riskScore >= 0.7 ? 'critical' : 'high',
+          'shouldWarn': true,
+        });
+      }
+    }
+
+    return results;
+  }
 }

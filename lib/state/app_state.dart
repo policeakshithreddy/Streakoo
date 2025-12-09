@@ -644,10 +644,10 @@ class AppState extends ChangeNotifier {
 
     final current = _habits[index];
 
-    // Prevent manual completion of sports habits
+    // Prevent manual completion of health-tracked habits with goals
     if (!isAiTriggered && !current.canManuallyComplete) {
       debugPrint(
-          '⚠️ Cannot manually complete sports habit "${current.name}". Use health data or AI.');
+          '⚠️ Cannot manually complete health-tracked habit "${current.name}". It will auto-complete when your health goal is met.');
       return;
     }
 

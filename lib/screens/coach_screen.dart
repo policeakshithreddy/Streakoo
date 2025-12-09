@@ -118,6 +118,8 @@ class _CoachScreenState extends State<CoachScreen> {
 
     if (!hasProgress) {
       return Scaffold(
+        backgroundColor:
+            isDark ? const Color(0xFF121212) : const Color(0xFFF8F9FA),
         appBar: AppBar(
           title: Text('Coach – ${widget.habit.name}'),
           centerTitle: true,
@@ -207,6 +209,8 @@ class _CoachScreenState extends State<CoachScreen> {
     }
 
     return Scaffold(
+      backgroundColor:
+          isDark ? const Color(0xFF121212) : const Color(0xFFF8F9FA),
       appBar: AppBar(
         title: Text('Coach – ${widget.habit.name}'),
         centerTitle: true,

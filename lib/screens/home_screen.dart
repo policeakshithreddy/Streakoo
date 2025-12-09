@@ -26,6 +26,8 @@ import 'add_habit_screen.dart';
 import 'settings_screen.dart';
 import 'auth_screen.dart';
 import '../widgets/freeze_animation_overlay.dart';
+import '../services/health_service.dart';
+import '../services/streak_predictor_service.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -75,8 +77,13 @@ class _HomeScreenState extends State<HomeScreen> {
               .scheduleFocusTaskReminders(appState.habits);
           debugPrint(
               '✅ Focus task reminders scheduled for ${appState.habits.length} habits');
+
+          // Schedule predictive streak warnings
+          await NotificationEngine.instance
+              .schedulePredictiveWarnings(appState.habits);
+          debugPrint('✅ Predictive streak warnings scheduled');
         } catch (e) {
-          debugPrint('⚠️ Failed to schedule focus reminders: $e');
+          debugPrint('⚠️ Failed to schedule reminders: $e');
         }
 
         // Sync health habits on startup
@@ -89,6 +96,9 @@ class _HomeScreenState extends State<HomeScreen> {
         );
 
         debugPrint('✅ All initialization complete!');
+
+        // Show streak warning popup if there are at-risk habits
+        _showStreakWarningPopup(appState);
       }
     } catch (e, stackTrace) {
       debugPrint('❌ Notification initialization failed: $e');
@@ -112,6 +122,21 @@ class _HomeScreenState extends State<HomeScreen> {
     Navigator.of(context).push(
       slideFromRight(const SettingsScreen()),
     );
+  }
+
+  String _getHealthMetricUnit(HealthMetricType metric) {
+    switch (metric) {
+      case HealthMetricType.steps:
+        return 'steps';
+      case HealthMetricType.sleep:
+        return 'hours';
+      case HealthMetricType.distance:
+        return 'km';
+      case HealthMetricType.calories:
+        return 'calories';
+      case HealthMetricType.heartRate:
+        return 'bpm';
+    }
   }
 
   Future<void> _handleComplete(
@@ -141,29 +166,27 @@ class _HomeScreenState extends State<HomeScreen> {
 
       // Show spectacular level-up screen immediately
       await Future.delayed(const Duration(milliseconds: 300));
-      if (mounted) {
-        await Navigator.of(context).push(
-          PageRouteBuilder(
-            opaque: false,
-            barrierColor: Colors.black87,
-            pageBuilder: (context, animation, secondaryAnimation) =>
-                SpectacularLevelUpScreen(
-              newLevel: newLevel,
-              title: title,
-              userLevel: appState.userLevel,
-              rewards: rewards,
-              onComplete: () {},
-            ),
-            transitionsBuilder:
-                (context, animation, secondaryAnimation, child) {
-              return FadeTransition(
-                opacity: animation,
-                child: child,
-              );
-            },
+      if (!mounted) return;
+      await Navigator.of(context).push(
+        PageRouteBuilder(
+          opaque: false,
+          barrierColor: Colors.black87,
+          pageBuilder: (context, animation, secondaryAnimation) =>
+              SpectacularLevelUpScreen(
+            newLevel: newLevel,
+            title: title,
+            userLevel: appState.userLevel,
+            rewards: rewards,
+            onComplete: () {},
           ),
-        );
-      }
+          transitionsBuilder: (context, animation, secondaryAnimation, child) {
+            return FadeTransition(
+              opacity: animation,
+              child: child,
+            );
+          },
+        ),
+      );
     }
     // Priority 2: Check for streak milestones
     else if (StreakMilestone.isMilestone(habit.streak)) {
@@ -184,11 +207,14 @@ class _HomeScreenState extends State<HomeScreen> {
       // Show Day Completed Toast
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Day Completed! You are unstoppable! 🎉🔥'),
+          SnackBar(
+            content: const Text('Day Completed! You are unstoppable! 🎉🔥'),
             behavior: SnackBarBehavior.floating,
-            backgroundColor: Color(0xFFFFA94A),
-            duration: Duration(seconds: 3),
+            backgroundColor: const Color(0xFFFFA94A),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            duration: const Duration(seconds: 3),
           ),
         );
       }
@@ -207,10 +233,13 @@ class _HomeScreenState extends State<HomeScreen> {
     final appState = context.watch<AppState>();
     final habits = appState.sortedHabits; // Focus tasks appear first!
     final userLevel = appState.userLevel;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Stack(
       children: [
         Scaffold(
+          backgroundColor:
+              isDark ? const Color(0xFF121212) : const Color(0xFFF8F9FA),
           appBar: AppBar(
             title: const Text('Streakoo 🔥'),
             actions: [
@@ -279,6 +308,8 @@ class _HomeScreenState extends State<HomeScreen> {
                     // Daily progress header
                     _buildDailyProgressHeader(appState,
                         Theme.of(context).brightness == Brightness.dark),
+                    // Streak warnings section
+                    _buildStreakWarnings(appState),
                     // Habits list
                     Expanded(
                       child: BrandedRefreshIndicator(
@@ -407,8 +438,53 @@ class _HomeScreenState extends State<HomeScreen> {
                                           DismissDirection.startToEnd) {
                                         // Swipe RIGHT → Complete the habit
                                         if (!habit.completedToday) {
-                                          await _handleComplete(
-                                              context, appState, habit);
+                                          // Check if this is a health-tracked habit with goals
+                                          if (habit.isHealthTracked &&
+                                              habit.healthGoalValue != null &&
+                                              habit.healthMetric != null) {
+                                            // Show informative dialog
+                                            if (mounted) {
+                                              final metricUnit =
+                                                  _getHealthMetricUnit(
+                                                      habit.healthMetric!);
+                                              await showDialog(
+                                                context: context,
+                                                builder: (context) =>
+                                                    AlertDialog(
+                                                  title: const Row(
+                                                    children: [
+                                                      Icon(
+                                                          Icons
+                                                              .health_and_safety,
+                                                          color: Color(
+                                                              0xFF1FD1A5)),
+                                                      SizedBox(width: 8),
+                                                      Text(
+                                                          'Auto-Tracked Habit'),
+                                                    ],
+                                                  ),
+                                                  content: Text(
+                                                    'This habit is automatically completed when you meet your health goal of ${habit.healthGoalValue} $metricUnit.\n\n'
+                                                    'Your progress is tracked by AI using your health data. Keep going! 💪',
+                                                    style: const TextStyle(
+                                                        height: 1.5),
+                                                  ),
+                                                  actions: [
+                                                    TextButton(
+                                                      onPressed: () =>
+                                                          Navigator.pop(
+                                                              context),
+                                                      child: const Text('OK'),
+                                                    ),
+                                                  ],
+                                                ),
+                                              );
+                                            }
+                                          } else {
+                                            // Regular habit - complete normally
+                                            await _handleComplete(
+                                                context, appState, habit);
+                                          }
                                         }
                                       } else {
                                         // Swipe LEFT → Skip/Uncomplete
@@ -423,6 +499,10 @@ class _HomeScreenState extends State<HomeScreen> {
                                                     '↩️ "${habit.name}" unmarked'),
                                                 behavior:
                                                     SnackBarBehavior.floating,
+                                                shape: RoundedRectangleBorder(
+                                                  borderRadius:
+                                                      BorderRadius.circular(12),
+                                                ),
                                                 duration: const Duration(
                                                     milliseconds: 1500),
                                               ),
@@ -439,6 +519,10 @@ class _HomeScreenState extends State<HomeScreen> {
                                                     '⏭️ "${habit.name}" skipped for today'),
                                                 behavior:
                                                     SnackBarBehavior.floating,
+                                                shape: RoundedRectangleBorder(
+                                                  borderRadius:
+                                                      BorderRadius.circular(12),
+                                                ),
                                                 duration: const Duration(
                                                     milliseconds: 1500),
                                               ),
@@ -836,5 +920,169 @@ class _HomeScreenState extends State<HomeScreen> {
         ],
       ),
     ).animate().fadeIn(duration: 300.ms).slideY(begin: -0.1, end: 0);
+  }
+
+  /// Build streak warnings section - now empty, warnings shown as popup
+  Widget _buildStreakWarnings(AppState appState) {
+    // Warnings are now shown as popup dialog, not inline
+    return const SizedBox.shrink();
+  }
+
+  /// Show streak warning popup if there are at-risk habits
+  void _showStreakWarningPopup(AppState appState) {
+    final predictions = StreakPredictorService.instance
+        .getHabitsNeedingWarning(appState.habits);
+
+    if (predictions.isEmpty || !mounted) return;
+
+    // Show bottom sheet with warnings
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isDismissible: true,
+      enableDrag: true,
+      builder: (context) {
+        final theme = Theme.of(context);
+        final isDark = theme.brightness == Brightness.dark;
+
+        return Container(
+          decoration: BoxDecoration(
+            color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Drag handle
+              Container(
+                margin: const EdgeInsets.only(top: 12),
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey.withValues(alpha: 0.3),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+
+              // Header
+              Padding(
+                padding: const EdgeInsets.all(20),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: Colors.orange.withValues(alpha: 0.2),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Icon(Icons.warning_amber_rounded,
+                          color: Colors.orange, size: 24),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Streaks Need Attention!',
+                            style: theme.textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          Text(
+                            '${predictions.length} habit${predictions.length > 1 ? 's' : ''} at risk today',
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: Colors.grey,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    IconButton(
+                      onPressed: () => Navigator.pop(context),
+                      icon: const Icon(Icons.close),
+                    ),
+                  ],
+                ),
+              ),
+
+              // Habit list
+              ...predictions.take(3).map((pred) => ListTile(
+                    leading: Container(
+                      width: 44,
+                      height: 44,
+                      decoration: BoxDecoration(
+                        color: _getRiskColor(pred.riskLevel)
+                            .withValues(alpha: 0.2),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Center(
+                        child: Text(pred.emoji,
+                            style: const TextStyle(fontSize: 20)),
+                      ),
+                    ),
+                    title: Text(pred.habitName),
+                    subtitle: Text(pred.reason,
+                        style: TextStyle(
+                          color: _getRiskColor(pred.riskLevel),
+                          fontSize: 12,
+                        )),
+                    trailing: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: _getRiskColor(pred.riskLevel)
+                            .withValues(alpha: 0.2),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        '🔥 ${pred.currentStreak}',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: _getRiskColor(pred.riskLevel),
+                        ),
+                      ),
+                    ),
+                    onTap: () {
+                      Navigator.pop(context);
+                      final habit = appState.habits.firstWhere(
+                        (h) => h.id == pred.habitId,
+                        orElse: () => appState.habits.first,
+                      );
+                      _openDetails(context, habit);
+                    },
+                  )),
+
+              const SizedBox(height: 8),
+
+              // Dismiss button
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
+                child: SizedBox(
+                  width: double.infinity,
+                  child: TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: const Text('Got it, I\'ll complete them!'),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Color _getRiskColor(StreakRiskLevel level) {
+    switch (level) {
+      case StreakRiskLevel.critical:
+        return Colors.red;
+      case StreakRiskLevel.high:
+        return Colors.orange;
+      case StreakRiskLevel.moderate:
+        return Colors.amber;
+      case StreakRiskLevel.safe:
+        return Colors.green;
+    }
   }
 }

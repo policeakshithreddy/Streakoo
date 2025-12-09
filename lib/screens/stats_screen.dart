@@ -51,6 +51,8 @@ class _StatsScreenState extends State<StatsScreen>
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
+      backgroundColor:
+          isDark ? const Color(0xFF121212) : const Color(0xFFF8F9FA),
       appBar: AppBar(
         title: const Text('Stats'),
         centerTitle: true,
@@ -1344,43 +1346,51 @@ class _AdvancedHealthCoachingCardState
                   ),
                   child: Row(
                     children: [
-                      // Avatar Stack
-                      SizedBox(
-                        width: 60,
-                        height: 30,
-                        child: Stack(
-                          children: [
-                            for (int i = 0; i < 3; i++)
-                              Positioned(
-                                left: i * 18.0,
-                                child: Container(
-                                  width: 28,
-                                  height: 28,
-                                  decoration: BoxDecoration(
-                                    color: Colors.white,
-                                    shape: BoxShape.circle,
-                                    border: Border.all(
-                                      color: theme.colorScheme.primary,
-                                      width: 2,
-                                    ),
-                                    image: DecorationImage(
-                                      image: NetworkImage(
-                                          'https://i.pravatar.cc/100?img=${i + 10}'), // Safe placeholder
-                                      fit: BoxFit.cover,
-                                    ),
-                                  ),
-                                ),
+                      // Animated emoji icons instead of fake avatars
+                      Row(
+                        children: [
+                          Container(
+                            width: 36,
+                            height: 36,
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                colors: [
+                                  theme.colorScheme.primary,
+                                  theme.colorScheme.secondary,
+                                ],
                               ),
-                          ],
-                        ),
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Center(
+                              child: Text('🔥', style: TextStyle(fontSize: 18)),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Container(
+                            width: 36,
+                            height: 36,
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                colors: [
+                                  Colors.orange,
+                                  Colors.deepOrange,
+                                ],
+                              ),
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Center(
+                              child: Text('⭐', style: TextStyle(fontSize: 18)),
+                            ),
+                          ),
+                        ],
                       ),
-                      const SizedBox(width: 8),
-                      const Expanded(
+                      const SizedBox(width: 12),
+                      Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'Join our community',
+                              '10K+ users building habits',
                               style: TextStyle(
                                 color: Colors.white,
                                 fontWeight: FontWeight.bold,
@@ -1388,7 +1398,7 @@ class _AdvancedHealthCoachingCardState
                               ),
                             ),
                             Text(
-                              'Start your journey',
+                              'Start your streak today!',
                               style: TextStyle(
                                 color: Colors.white70,
                                 fontSize: 10,
@@ -1398,15 +1408,30 @@ class _AdvancedHealthCoachingCardState
                         ),
                       ),
                       Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: const BoxDecoration(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 8),
+                        decoration: BoxDecoration(
                           color: Colors.white,
-                          shape: BoxShape.circle,
+                          borderRadius: BorderRadius.circular(20),
                         ),
-                        child: Icon(
-                          Icons.arrow_forward,
-                          size: 16,
-                          color: theme.colorScheme.primary,
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              'Go',
+                              style: TextStyle(
+                                color: theme.colorScheme.primary,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 12,
+                              ),
+                            ),
+                            const SizedBox(width: 4),
+                            Icon(
+                              Icons.arrow_forward,
+                              size: 14,
+                              color: theme.colorScheme.primary,
+                            ),
+                          ],
                         ),
                       ),
                     ],
@@ -1808,6 +1833,7 @@ class _AchievementsTab extends StatelessWidget {
   Widget build(BuildContext context) {
     final appState = context.watch<AppState>();
     final habits = appState.habits;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     // Calculate achievement stats
     final totalCompletedDays = getTotalCompletedDays(habits);
@@ -1816,237 +1842,269 @@ class _AchievementsTab extends StatelessWidget {
         : habits.map((h) => h.streak).reduce((a, b) => a > b ? a : b);
     final totalHabits = habits.length;
     final perfectDays = getPerfectDays(habits);
-
-    // Build achievement list - simpler approach
-    final List<Widget> achievementWidgets = [];
-    bool hasDailyHeader = false;
-
-    // Daily Completion achievements
-    if (perfectDays >= 1) {
-      if (!hasDailyHeader) {
-        achievementWidgets
-            .add(_buildCategoryHeader(context, '🎯 Daily Completion'));
-        achievementWidgets.add(const SizedBox(height: 12));
-        hasDailyHeader = true;
-      }
-      achievementWidgets.add(const _AchievementCard(
-          icon: '⭐',
-          title: 'First Perfect Day',
-          description: 'Completed all habits in one day',
-          color: Colors.amber,
-          unlocked: true));
-    }
-    if (perfectDays >= 7) {
-      if (!hasDailyHeader) {
-        achievementWidgets
-            .add(_buildCategoryHeader(context, '🎯 Daily Completion'));
-        achievementWidgets.add(const SizedBox(height: 12));
-        hasDailyHeader = true;
-      }
-      achievementWidgets.add(const _AchievementCard(
-          icon: '🌟',
-          title: 'Week Warrior',
-          description: '7 perfect days achieved',
-          color: Colors.orange,
-          unlocked: true));
-    }
-    if (perfectDays >= 30) {
-      if (!hasDailyHeader) {
-        achievementWidgets
-            .add(_buildCategoryHeader(context, '🎯 Daily Completion'));
-        achievementWidgets.add(const SizedBox(height: 12));
-        hasDailyHeader = true;
-      }
-      achievementWidgets.add(const _AchievementCard(
-          icon: '💫',
-          title: 'Month Master',
-          description: '30 perfect days achieved',
-          color: Colors.purple,
-          unlocked: true));
-    }
-
-    // Streak achievements
-    if (longestStreak >= 3 || longestStreak >= 7 || longestStreak >= 30) {
-      if (achievementWidgets.isNotEmpty) {
-        achievementWidgets.add(const SizedBox(height: 24));
-      }
-      achievementWidgets
-          .add(_buildCategoryHeader(context, '🔥 Streak Achievements'));
-      achievementWidgets.add(const SizedBox(height: 12));
-
-      if (longestStreak >= 3) {
-        achievementWidgets.add(const _AchievementCard(
-            icon: '🔥',
-            title: 'Streak Starter',
-            description: 'Maintained a 3-day streak',
-            color: Colors.red,
-            unlocked: true));
-      }
-      if (longestStreak >= 7) {
-        achievementWidgets.add(const _AchievementCard(
-            icon: '💥',
-            title: 'Week Streak',
-            description: 'Maintained a 7-day streak',
-            color: Colors.deepOrange,
-            unlocked: true));
-      }
-      if (longestStreak >= 30) {
-        achievementWidgets.add(const _AchievementCard(
-            icon: '🚀',
-            title: 'Unstoppable',
-            description: 'Maintained a 30-day streak!',
-            color: Colors.indigo,
-            unlocked: true));
-      }
-    }
-
-    // Habit Collection achievements
-    if (totalHabits >= 1 || totalHabits >= 5 || totalHabits >= 10) {
-      if (achievementWidgets.isNotEmpty) {
-        achievementWidgets.add(const SizedBox(height: 24));
-      }
-      achievementWidgets.add(_buildCategoryHeader(context, '📚 Collection'));
-      achievementWidgets.add(const SizedBox(height: 12));
-
-      if (totalHabits >= 1) {
-        achievementWidgets.add(const _AchievementCard(
-            icon: '🌱',
-            title: 'First Habit',
-            description: 'Created your first habit',
-            color: Colors.green,
-            unlocked: true));
-      }
-      if (totalHabits >= 5) {
-        achievementWidgets.add(const _AchievementCard(
-            icon: '🌿',
-            title: 'Habit Apprentice',
-            description: '5 habits created',
-            color: Colors.teal,
-            unlocked: true));
-      }
-      if (totalHabits >= 10) {
-        achievementWidgets.add(const _AchievementCard(
-            icon: '🌳',
-            title: 'Habit Master',
-            description: '10 habits created',
-            color: Colors.cyan,
-            unlocked: true));
-      }
-    }
-
-    // Total Completions achievements
-    if (totalCompletedDays >= 10 ||
-        totalCompletedDays >= 50 ||
-        totalCompletedDays >= 100) {
-      if (achievementWidgets.isNotEmpty) {
-        achievementWidgets.add(const SizedBox(height: 24));
-      }
-      achievementWidgets
-          .add(_buildCategoryHeader(context, '💪 Total Completions'));
-      achievementWidgets.add(const SizedBox(height: 12));
-
-      if (totalCompletedDays >= 10) {
-        achievementWidgets.add(const _AchievementCard(
-            icon: '💪',
-            title: 'Committed',
-            description: '10 total completions',
-            color: Colors.blue,
-            unlocked: true));
-      }
-      if (totalCompletedDays >= 50) {
-        achievementWidgets.add(_AchievementCard(
-            icon: '🏆',
-            title: 'Dedicated',
-            description: '50 total completions',
-            color: Colors.yellow.shade700,
-            unlocked: true));
-      }
-      if (totalCompletedDays >= 100) {
-        achievementWidgets.add(const _AchievementCard(
-            icon: '👑',
-            title: 'Legendary',
-            description: '100 total completions!',
-            color: Colors.deepPurple,
-            unlocked: true));
-      }
-    }
-
-    // Show empty state if no achievements
-    if (achievementWidgets.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.emoji_events_outlined,
-                size: 80, color: Colors.grey),
-            const SizedBox(height: 16),
-            Text('No achievements yet',
-                style: Theme.of(context).textTheme.titleLarge),
-            const SizedBox(height: 8),
-            Text(
-              'Complete habits to unlock achievements!',
-              style: Theme.of(context).textTheme.bodyMedium,
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ),
-      );
-    }
+    final categories = habits.map((h) => h.category).toSet().length;
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header
-          Text(
-            'Achievements',
-            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
+          // Stats Summary
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: isDark
+                    ? [const Color(0xFF1E1E2E), const Color(0xFF2A2A3E)]
+                    : [Colors.white, const Color(0xFFF5F5F5)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: isDark ? Colors.white10 : Colors.grey.shade200,
+              ),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                _buildStatItem(context, '$totalHabits', 'Habits'),
+                _buildStatItem(context, '$longestStreak', 'Best Streak'),
+                _buildStatItem(context, '$perfectDays', 'Perfect Days'),
+                _buildStatItem(context, '$totalCompletedDays', 'Total Done'),
+              ],
+            ),
           ),
-          const SizedBox(height: 8),
-          Text(
-            'Your earned milestones',
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: Theme.of(context)
-                      .colorScheme
-                      .onSurface
-                      .withValues(alpha: 0.6),
-                ),
-          ),
+
           const SizedBox(height: 24),
 
-          // Animate list items
-          ...List.generate(achievementWidgets.length, (index) {
-            return _AnimatedListItem(
-              index: index,
-              child: achievementWidgets[index],
-            );
-          }),
+          // Daily Completion Section
+          _buildCategoryHeader(context, 'Daily Completion'),
+          const SizedBox(height: 12),
+          _EnhancedAchievementCard(
+            icon: '⭐',
+            title: 'First Perfect Day',
+            description: 'Complete all habits in one day',
+            rarity: 'Bronze',
+            unlocked: perfectDays >= 1,
+            progress: perfectDays >= 1 ? 1.0 : 0.0,
+            current: perfectDays >= 1 ? 1 : 0,
+            target: 1,
+          ),
+          _EnhancedAchievementCard(
+            icon: '🌟',
+            title: 'Week Champion',
+            description: '7 perfect days',
+            rarity: 'Silver',
+            unlocked: perfectDays >= 7,
+            progress: (perfectDays / 7).clamp(0.0, 1.0),
+            current: perfectDays.clamp(0, 7),
+            target: 7,
+          ),
+          _EnhancedAchievementCard(
+            icon: '💫',
+            title: 'Monthly Master',
+            description: '30 perfect days',
+            rarity: 'Gold',
+            unlocked: perfectDays >= 30,
+            progress: (perfectDays / 30).clamp(0.0, 1.0),
+            current: perfectDays.clamp(0, 30),
+            target: 30,
+          ),
+
+          const SizedBox(height: 24),
+
+          // Streak Section
+          _buildCategoryHeader(context, 'Streak Records'),
+          const SizedBox(height: 12),
+          _EnhancedAchievementCard(
+            icon: '🔥',
+            title: 'Getting Started',
+            description: '3-day streak',
+            rarity: 'Bronze',
+            unlocked: longestStreak >= 3,
+            progress: (longestStreak / 3).clamp(0.0, 1.0),
+            current: longestStreak.clamp(0, 3),
+            target: 3,
+          ),
+          _EnhancedAchievementCard(
+            icon: '💥',
+            title: 'Week Warrior',
+            description: '7-day streak',
+            rarity: 'Silver',
+            unlocked: longestStreak >= 7,
+            progress: (longestStreak / 7).clamp(0.0, 1.0),
+            current: longestStreak.clamp(0, 7),
+            target: 7,
+          ),
+          _EnhancedAchievementCard(
+            icon: '🚀',
+            title: 'Unstoppable',
+            description: '30-day streak',
+            rarity: 'Gold',
+            unlocked: longestStreak >= 30,
+            progress: (longestStreak / 30).clamp(0.0, 1.0),
+            current: longestStreak.clamp(0, 30),
+            target: 30,
+          ),
+          _EnhancedAchievementCard(
+            icon: '👑',
+            title: 'Streak Legend',
+            description: '100-day streak',
+            rarity: 'Platinum',
+            unlocked: longestStreak >= 100,
+            progress: (longestStreak / 100).clamp(0.0, 1.0),
+            current: longestStreak.clamp(0, 100),
+            target: 100,
+          ),
+
+          const SizedBox(height: 24),
+
+          // Collection Section
+          _buildCategoryHeader(context, 'Habit Collection'),
+          const SizedBox(height: 12),
+          _EnhancedAchievementCard(
+            icon: '🌱',
+            title: 'First Step',
+            description: 'Create your first habit',
+            rarity: 'Bronze',
+            unlocked: totalHabits >= 1,
+            progress: totalHabits >= 1 ? 1.0 : 0.0,
+            current: totalHabits >= 1 ? 1 : 0,
+            target: 1,
+          ),
+          _EnhancedAchievementCard(
+            icon: '🌿',
+            title: 'Building Momentum',
+            description: '5 habits created',
+            rarity: 'Silver',
+            unlocked: totalHabits >= 5,
+            progress: (totalHabits / 5).clamp(0.0, 1.0),
+            current: totalHabits.clamp(0, 5),
+            target: 5,
+          ),
+          _EnhancedAchievementCard(
+            icon: '🌳',
+            title: 'Habit Architect',
+            description: '10 habits created',
+            rarity: 'Gold',
+            unlocked: totalHabits >= 10,
+            progress: (totalHabits / 10).clamp(0.0, 1.0),
+            current: totalHabits.clamp(0, 10),
+            target: 10,
+          ),
+
+          const SizedBox(height: 24),
+
+          // Total Completions Section
+          _buildCategoryHeader(context, 'Total Completions'),
+          const SizedBox(height: 12),
+          _EnhancedAchievementCard(
+            icon: '💪',
+            title: 'Committed',
+            description: '10 total completions',
+            rarity: 'Bronze',
+            unlocked: totalCompletedDays >= 10,
+            progress: (totalCompletedDays / 10).clamp(0.0, 1.0),
+            current: totalCompletedDays.clamp(0, 10),
+            target: 10,
+          ),
+          _EnhancedAchievementCard(
+            icon: '🏆',
+            title: 'Dedicated',
+            description: '50 total completions',
+            rarity: 'Silver',
+            unlocked: totalCompletedDays >= 50,
+            progress: (totalCompletedDays / 50).clamp(0.0, 1.0),
+            current: totalCompletedDays.clamp(0, 50),
+            target: 50,
+          ),
+          _EnhancedAchievementCard(
+            icon: '👑',
+            title: 'Legendary',
+            description: '100 total completions',
+            rarity: 'Gold',
+            unlocked: totalCompletedDays >= 100,
+            progress: (totalCompletedDays / 100).clamp(0.0, 1.0),
+            current: totalCompletedDays.clamp(0, 100),
+            target: 100,
+          ),
+          _EnhancedAchievementCard(
+            icon: '💎',
+            title: 'Diamond Status',
+            description: '500 total completions',
+            rarity: 'Platinum',
+            unlocked: totalCompletedDays >= 500,
+            progress: (totalCompletedDays / 500).clamp(0.0, 1.0),
+            current: totalCompletedDays.clamp(0, 500),
+            target: 500,
+          ),
+
+          const SizedBox(height: 24),
+
+          // Variety Section
+          _buildCategoryHeader(context, 'Variety'),
+          const SizedBox(height: 12),
+          _EnhancedAchievementCard(
+            icon: '🎨',
+            title: 'Multi-Tasker',
+            description: 'Habits in 3 categories',
+            rarity: 'Bronze',
+            unlocked: categories >= 3,
+            progress: (categories / 3).clamp(0.0, 1.0),
+            current: categories.clamp(0, 3),
+            target: 3,
+          ),
+          _EnhancedAchievementCard(
+            icon: '🌈',
+            title: 'Well Rounded',
+            description: 'Habits in 5 categories',
+            rarity: 'Silver',
+            unlocked: categories >= 5,
+            progress: (categories / 5).clamp(0.0, 1.0),
+            current: categories.clamp(0, 5),
+            target: 5,
+          ),
+
+          const SizedBox(height: 24),
         ],
       ),
     );
   }
 
-  Widget _buildCategoryHeader(BuildContext context, String title) {
-    return Row(
+  Widget _buildStatItem(BuildContext context, String value, String label) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return Column(
       children: [
-        Container(
-          height: 2,
-          width: 4,
-          color: Theme.of(context).colorScheme.primary,
-        ),
-        const SizedBox(width: 8),
         Text(
-          title,
+          value,
           style: TextStyle(
-            fontSize: 18,
+            fontSize: 20,
             fontWeight: FontWeight.bold,
-            color: Theme.of(context).colorScheme.primary,
+            color: isDark ? Colors.white : Colors.black87,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 11,
+            color: isDark ? Colors.grey[400] : Colors.grey[600],
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildCategoryHeader(BuildContext context, String title) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return Text(
+      title,
+      style: TextStyle(
+        fontSize: 16,
+        fontWeight: FontWeight.w600,
+        color: isDark ? Colors.grey[300] : Colors.grey[700],
+      ),
     );
   }
 
@@ -2061,7 +2119,6 @@ class _AchievementsTab extends StatelessWidget {
   int getPerfectDays(List<Habit> habits) {
     if (habits.isEmpty) return 0;
 
-    // Get all unique dates where all habits were completed
     final allDates = <String>{};
     for (final habit in habits) {
       allDates.addAll(habit.completionDates);
@@ -2083,20 +2140,42 @@ class _AchievementsTab extends StatelessWidget {
   }
 }
 
-class _AchievementCard extends StatelessWidget {
+// Enhanced Achievement Card with Progress Bar
+class _EnhancedAchievementCard extends StatelessWidget {
   final String icon;
   final String title;
   final String description;
-  final Color color;
+  final String rarity; // Bronze, Silver, Gold, Platinum
   final bool unlocked;
+  final double progress;
+  final int current;
+  final int target;
 
-  const _AchievementCard({
+  const _EnhancedAchievementCard({
     required this.icon,
     required this.title,
     required this.description,
-    required this.color,
+    required this.rarity,
     required this.unlocked,
+    required this.progress,
+    required this.current,
+    required this.target,
   });
+
+  Color get rarityColor {
+    switch (rarity) {
+      case 'Bronze':
+        return const Color(0xFFCD7F32);
+      case 'Silver':
+        return const Color(0xFFC0C0C0);
+      case 'Gold':
+        return const Color(0xFFFFD700);
+      case 'Platinum':
+        return const Color(0xFFE5E4E2);
+      default:
+        return Colors.grey;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -2105,115 +2184,144 @@ class _AchievementCard extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        gradient: unlocked
-            ? LinearGradient(
-                colors: [
-                  color.withValues(alpha: isDark ? 0.2 : 0.12),
-                  color.withValues(alpha: isDark ? 0.1 : 0.05),
-                ],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              )
-            : null,
-        color: unlocked
-            ? null
-            : (isDark ? const Color(0xFF1A1A2E) : Colors.grey[100]),
-        borderRadius: BorderRadius.circular(18),
+        color: isDark ? const Color(0xFF1E1E2E) : Colors.white,
+        borderRadius: BorderRadius.circular(14),
         border: Border.all(
           color: unlocked
-              ? color.withValues(alpha: 0.4)
-              : (isDark ? Colors.grey[700]! : Colors.grey[300]!),
-          width: unlocked ? 2 : 1,
+              ? rarityColor.withValues(alpha: 0.5)
+              : (isDark ? Colors.grey[800]! : Colors.grey[200]!),
+          width: unlocked ? 1.5 : 1,
         ),
         boxShadow: unlocked
             ? [
                 BoxShadow(
-                  color: color.withValues(alpha: 0.15),
-                  blurRadius: 10,
-                  offset: const Offset(0, 4),
+                  color: rarityColor.withValues(alpha: 0.1),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
                 ),
               ]
             : null,
       ),
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(14),
         child: Row(
           children: [
+            // Icon
             Container(
-              width: 60,
-              height: 60,
+              width: 50,
+              height: 50,
               decoration: BoxDecoration(
-                gradient: unlocked
-                    ? LinearGradient(
-                        colors: [color, color.withValues(alpha: 0.7)],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      )
-                    : null,
                 color: unlocked
-                    ? null
-                    : (isDark ? Colors.grey[700] : Colors.grey[300]),
-                borderRadius: BorderRadius.circular(16),
-                boxShadow: unlocked
-                    ? [
-                        BoxShadow(
-                          color: color.withValues(alpha: 0.3),
-                          blurRadius: 8,
-                          offset: const Offset(0, 2),
-                        ),
-                      ]
-                    : null,
+                    ? rarityColor.withValues(alpha: 0.15)
+                    : (isDark ? Colors.grey[800] : Colors.grey[100]),
+                borderRadius: BorderRadius.circular(12),
               ),
               child: Center(
                 child: Text(
                   icon,
                   style: TextStyle(
-                    fontSize: 28,
+                    fontSize: 24,
                     color: unlocked ? null : Colors.grey,
                   ),
                 ),
               ),
             ),
-            const SizedBox(width: 16),
+            const SizedBox(width: 14),
+            // Content
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    title,
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
-                      color: unlocked
-                          ? (isDark ? Colors.white : Colors.black87)
-                          : Colors.grey,
-                    ),
+                  Row(
+                    children: [
+                      Text(
+                        title,
+                        style: TextStyle(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 15,
+                          color: unlocked
+                              ? (isDark ? Colors.white : Colors.black87)
+                              : (isDark ? Colors.grey[500] : Colors.grey[600]),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      // Rarity badge
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 6,
+                          vertical: 2,
+                        ),
+                        decoration: BoxDecoration(
+                          color: rarityColor.withValues(
+                              alpha: unlocked ? 0.2 : 0.1),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Text(
+                          rarity,
+                          style: TextStyle(
+                            fontSize: 9,
+                            fontWeight: FontWeight.w600,
+                            color: unlocked ? rarityColor : Colors.grey,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                   const SizedBox(height: 4),
                   Text(
                     description,
                     style: TextStyle(
-                      fontSize: 13,
-                      color: unlocked
-                          ? (isDark ? Colors.grey[300] : Colors.grey[600])
-                          : Colors.grey,
+                      fontSize: 12,
+                      color: isDark ? Colors.grey[400] : Colors.grey[600],
                     ),
                   ),
+                  if (!unlocked) ...[
+                    const SizedBox(height: 8),
+                    // Progress bar
+                    Row(
+                      children: [
+                        Expanded(
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(4),
+                            child: LinearProgressIndicator(
+                              value: progress,
+                              backgroundColor:
+                                  isDark ? Colors.grey[800] : Colors.grey[200],
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                rarityColor.withValues(alpha: 0.7),
+                              ),
+                              minHeight: 6,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Text(
+                          '$current/$target',
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w500,
+                            color: isDark ? Colors.grey[400] : Colors.grey[600],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
                 ],
               ),
             ),
-            if (!unlocked)
+            // Unlocked checkmark
+            if (unlocked)
               Container(
-                width: 36,
-                height: 36,
+                width: 28,
+                height: 28,
                 decoration: BoxDecoration(
-                  color: isDark ? Colors.grey[800] : Colors.grey[200],
-                  borderRadius: BorderRadius.circular(10),
+                  color: rarityColor.withValues(alpha: 0.15),
+                  shape: BoxShape.circle,
                 ),
                 child: Icon(
-                  Icons.lock_rounded,
-                  color: isDark ? Colors.grey[500] : Colors.grey[400],
-                  size: 20,
+                  Icons.check_rounded,
+                  color: rarityColor,
+                  size: 16,
                 ),
               ),
           ],

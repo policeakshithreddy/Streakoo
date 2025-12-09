@@ -6,11 +6,11 @@ class AppTheme {
   static const _accentTeal = Color(0xFF1FD1A5); // mint/teal
 
   // Dark theme colors
-  static const _bgDark = Color(0xFF050816); // main background
-  static const _cardDark = Color(0xFF0B1020); // cards
+  static const _bgDark = Color(0xFF121212); // Modern dark background
+  static const _cardDark = Color(0xFF1E1E1E); // Slightly lighter cards
 
   // Light theme colors
-  static const _bgLight = Color(0xFFFDFBF7); // Cream background
+  static const _bgLight = Color(0xFFF8F9FA); // Soft off-white background
   static const _cardLight = Color(0xFFFFFFFF); // White cards
 
   static ThemeData get light {
@@ -38,13 +38,13 @@ class AppTheme {
       appBarTheme: AppBarTheme(
         backgroundColor: _bgLight.withValues(alpha: 0.95),
         elevation: 0,
-        centerTitle: false, // iOS alignment
+        centerTitle: true, // Center alignment
         foregroundColor: const Color(0xFF1A1A1A),
         titleTextStyle: GoogleFonts.inter(
           color: const Color(0xFF1A1A1A),
-          fontSize: 34, // iOS large title
-          fontWeight: FontWeight.bold,
-          letterSpacing: -0.5,
+          fontSize: 18, // Normal size
+          fontWeight: FontWeight.w600, // Semi-bold, not too heavy
+          letterSpacing: 0,
         ),
       ),
       navigationBarTheme: NavigationBarThemeData(
@@ -80,6 +80,18 @@ class AppTheme {
             borderRadius: BorderRadius.circular(12),
           ),
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+        ),
+      ),
+      snackBarTheme: SnackBarThemeData(
+        behavior: SnackBarBehavior.floating,
+        backgroundColor: const Color(0xFF323232), // Dark gray for light theme
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+        elevation: 4,
+        contentTextStyle: GoogleFonts.inter(
+          fontSize: 14,
+          color: Colors.white,
         ),
       ),
       textTheme: GoogleFonts.interTextTheme()
@@ -171,13 +183,13 @@ class AppTheme {
       appBarTheme: AppBarTheme(
         backgroundColor: _bgDark.withValues(alpha: 0.95),
         elevation: 0,
-        centerTitle: false, // iOS alignment
+        centerTitle: true, // Center alignment
         foregroundColor: Colors.white,
         titleTextStyle: GoogleFonts.inter(
           color: Colors.white,
-          fontSize: 34,
-          fontWeight: FontWeight.bold,
-          letterSpacing: -0.5,
+          fontSize: 18, // Normal size
+          fontWeight: FontWeight.w600, // Semi-bold, not too heavy
+          letterSpacing: 0,
         ),
       ),
       navigationBarTheme: NavigationBarThemeData(
@@ -210,6 +222,19 @@ class AppTheme {
             borderRadius: BorderRadius.circular(12),
           ),
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+        ),
+      ),
+      snackBarTheme: SnackBarThemeData(
+        behavior: SnackBarBehavior.floating,
+        backgroundColor:
+            const Color(0xFF4A4A4A), // Lighter soft gray for dark theme
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+        elevation: 4,
+        contentTextStyle: GoogleFonts.inter(
+          fontSize: 14,
+          color: Colors.white,
         ),
       ),
       textTheme: GoogleFonts.interTextTheme()
