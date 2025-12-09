@@ -23,22 +23,32 @@ This project is submitted for the Google Agents Intensive Capstone Project.
 *   **Activity Rings**: Apple-style activity rings showing steps, distance, calories, and active minutes.
 *   **Health Data Dashboard**: Comprehensive view of heart rate, sleep, steps, and distance metrics.
 *   **Personalized Challenges**: AI-generated health challenges based on your goals and activity level.
+*   **Visual Health Onboarding**: Beautiful intake flow with water intake (litres), sleep hours selector, exercise tracking, and cascade animations.
+
+### Smart AI Features 🤖
+*   **Predictive Streak Warnings**: ML-style pattern analysis detects at-risk habits and sends 6 PM push notifications.
+*   **Streak Risk Popup**: Dismissible popup on app open showing habits that need attention.
+*   **Weekday Pattern Analysis**: Identifies your weak days (e.g., "Fridays are historically weak").
+*   **Daily Brief**: AI-generated daily insights and motivation based on your habits.
+*   **Weekly Reports**: Comprehensive weekly analysis of your habit patterns.
 
 ### Engagement & Motivation
 *   **Celebration Animations**: Beautiful confetti effects for habit completions and level-ups.
 *   **Streak Flames**: Animated flame indicators showing your current streak intensity.
-*   **Daily Brief**: AI-generated daily insights and motivation based on your habits.
-*   **Weekly Reports**: Comprehensive weekly analysis of your habit patterns.
+*   **Milestone Celebrations**: Special celebrations for streak milestones (7, 30, 100 days).
+*   **Achievement System**: Rarity tiers and progress indicators for locked achievements.
 
 ### Widgets & UI
-### Widgets & UI
-*   **Android Home Widgets (Duolingo Style)**:
-    *   **1x1 Streak**: "3D" orange tile with fire emoji.
-    *   **2x2 Standard**: Blue card with vivid green progress stats.
-    *   **4x2 Dashboard**: Comprehensive split-view stats.
-    *   **3x3 Focus Widget**: Configurable widget with 3 modes (Habits, Steps, Sleep) and full-color themes.
+*   **Android Home Widgets (Modern Glass Design)**:
+    *   **1x1 Streak**: Compact streak counter with fire emoji
+    *   **2x2 Standard**: Daily goals progress with glass background
+    *   **3x3 Focus Widget**: Configurable widget with choice of:
+        - 🔥 **Habits Mastery** - Completion % with progress ring
+        - 👟 **Step Crusher** - Daily step count
+        - 😴 **Sleep Zen** - Sleep duration & quality
 *   **Focus Task Manager**: Prioritize and manage your most important daily tasks.
-*   **Smooth Animations**: Polished page transitions, level-up celebrations, and micro-interactions.
+*   **Smooth Animations**: Staggered cascade animations, polished page transitions, and micro-interactions.
+*   **Modern Dark Theme**: Consistent #121212 styling with rounded SnackBars and glass cards.
 
 ### Platform Support
 *   **Android**: Full support with Health Connect integration
@@ -51,6 +61,7 @@ This project is submitted for the Google Agents Intensive Capstone Project.
 *   **Backend**: Supabase (PostgreSQL, Auth, Realtime)
 *   **AI**: Groq API with Llama models
 *   **State Management**: Provider
+*   **Animations**: flutter_animate
 
 ## 🚀 Getting Started
 
@@ -174,7 +185,8 @@ flutter run
 3.  **Add Habits**: Create new habits, set emojis, and frequencies.
 4.  **Complete Habits**: Mark habits as done to earn XP and maintain streaks.
 5.  **AI Coach**: Chat with the AI Coach for advice (unlocks after completing your first habit!).
-6.  **Sync**: Your data is automatically saved to the cloud. Try logging in from another device!
+6.  **Widgets**: Add home screen widgets (1x1, 2x2, or 3x3 Focus) to track progress at a glance.
+7.  **Sync**: Your data is automatically saved to the cloud. Try logging in from another device!
 
 ## 📄 License
 
