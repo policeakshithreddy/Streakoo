@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:provider/provider.dart';
 
@@ -22,10 +23,48 @@ class CoachScreen extends StatefulWidget {
 
 class _CoachScreenState extends State<CoachScreen> {
   final TextEditingController _controller = TextEditingController();
+  final ScrollController _scrollController = ScrollController();
   final List<CoachMessage> _messages = [];
   bool _isTyping = false;
 
   late AiCoachService _ai;
+
+  // Quick reply options based on context
+  List<String> _getQuickReplies(String response) {
+    final lower = response.toLowerCase();
+
+    if (lower.contains('streak') || lower.contains('days')) {
+      return ['How do I maintain it?', 'What if I miss a day?', 'Thanks! 🙏'];
+    }
+    if (lower.contains('tip') || lower.contains('try')) {
+      return ['Tell me more', 'I\'ll try that!', 'Any alternatives?'];
+    }
+    if (lower.contains('congratulations') || lower.contains('amazing')) {
+      return ['Thanks! 😊', 'What\'s next?', 'How can I improve?'];
+    }
+
+    return ['Tell me more', 'How do I start?', 'Thanks! 🙏'];
+  }
+
+  // Detect message type from response
+  CoachMessageType _detectMessageType(String response) {
+    final lower = response.toLowerCase();
+
+    if (lower.contains('congratulations') ||
+        lower.contains('amazing') ||
+        lower.contains('🎉') ||
+        lower.contains('🏆')) {
+      return CoachMessageType.celebration;
+    }
+
+    if (lower.contains('tip:') ||
+        lower.contains('pro tip') ||
+        lower.contains('💡')) {
+      return CoachMessageType.tip;
+    }
+
+    return CoachMessageType.normal;
+  }
 
   @override
   void initState() {
@@ -37,9 +76,39 @@ class _CoachScreenState extends State<CoachScreen> {
       CoachMessage(
         from: 'coach',
         text:
-            "Hey! I'm your Streakoo Coach 🤖🔥\nWhat do you want help with regarding \"${widget.habit.name}\"?",
+            "Hey! I'm Koo ✨\nLet's talk about \"${widget.habit.name}\" – what's on your mind?",
+        quickReplies: const [
+          'Tips to improve',
+          'Why is this hard?',
+          'Motivation please!'
+        ],
       ),
     );
+  }
+
+  void _scrollToBottom() {
+    Future.delayed(const Duration(milliseconds: 100), () {
+      if (_scrollController.hasClients) {
+        _scrollController.animateTo(
+          _scrollController.position.maxScrollExtent,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeOut,
+        );
+      }
+    });
+  }
+
+  void _handleQuickReply(String reply) {
+    _controller.text = reply;
+    _send();
+  }
+
+  void _handleReaction(int messageIndex, String emoji) {
+    HapticFeedback.lightImpact();
+    setState(() {
+      _messages[messageIndex] =
+          _messages[messageIndex].copyWith(reaction: emoji);
+    });
   }
 
   Future<void> _send() async {
@@ -51,6 +120,7 @@ class _CoachScreenState extends State<CoachScreen> {
       _controller.clear();
       _isTyping = true;
     });
+    _scrollToBottom();
 
     await Future.delayed(const Duration(milliseconds: 250));
 
@@ -70,10 +140,10 @@ class _CoachScreenState extends State<CoachScreen> {
             habit: widget.habit,
             userMessage: text,
             streak: widget.habit.streak,
-            allHabits: appState.habits, // Pass all habits for context
-            userLevel: appState.userLevel.level, // Pass user level
-            totalXP: appState.totalXP, // Pass total XP
-            todaySteps: todaySteps, // Health data
+            allHabits: appState.habits,
+            userLevel: appState.userLevel.level,
+            totalXP: appState.totalXP,
+            todaySteps: todaySteps,
             todayDistance: todayDistance,
             todaySleep: todaySleep,
             todayHeartRate: todayHeartRate,
@@ -85,25 +155,34 @@ class _CoachScreenState extends State<CoachScreen> {
           );
 
       setState(() {
-        _messages.add(CoachMessage(from: 'coach', text: reply));
+        _messages.add(CoachMessage(
+          from: 'coach',
+          text: reply,
+          messageType: _detectMessageType(reply),
+          quickReplies: _getQuickReplies(reply),
+        ));
         _isTyping = false;
       });
+      _scrollToBottom();
     } catch (e) {
       setState(() {
         _messages.add(
           const CoachMessage(
             from: 'coach',
             text: "Hmm… something went wrong 😅\nTry again in a bit.",
+            quickReplies: ['Try again'],
           ),
         );
         _isTyping = false;
       });
+      _scrollToBottom();
     }
   }
 
   @override
   void dispose() {
     _controller.dispose();
+    _scrollController.dispose();
     super.dispose();
   }
 
@@ -112,7 +191,7 @@ class _CoachScreenState extends State<CoachScreen> {
     final appState = context.watch<AppState>();
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    // Check if user has made ANY progress (completed any habit at least once)
+    // Check if user has made ANY progress
     final hasProgress =
         appState.habits.any((h) => h.streak > 0 || h.completedToday);
 
@@ -121,7 +200,7 @@ class _CoachScreenState extends State<CoachScreen> {
         backgroundColor:
             isDark ? const Color(0xFF121212) : const Color(0xFFF8F9FA),
         appBar: AppBar(
-          title: Text('Coach – ${widget.habit.name}'),
+          title: Text('Koo – ${widget.habit.name}'),
           centerTitle: true,
         ),
         body: Center(
@@ -163,7 +242,7 @@ class _CoachScreenState extends State<CoachScreen> {
                 ).animate().fadeIn(delay: 150.ms),
                 const SizedBox(height: 16),
                 Text(
-                  'Complete at least one habit to unlock your AI Coach! 🤖\n\nOnce you make some progress, I\'ll be here to help you level up.',
+                  'Complete at least one habit to unlock Koo! ✨\n\nOnce you make some progress, I\'ll be here to help you level up.',
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: 15,
@@ -212,13 +291,30 @@ class _CoachScreenState extends State<CoachScreen> {
       backgroundColor:
           isDark ? const Color(0xFF121212) : const Color(0xFFF8F9FA),
       appBar: AppBar(
-        title: Text('Coach – ${widget.habit.name}'),
+        title: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(6),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [Color(0xFFFFA94A), Color(0xFFFF6B6B)],
+                ),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Text('✨', style: TextStyle(fontSize: 14)),
+            ),
+            const SizedBox(width: 8),
+            Text('Koo – ${widget.habit.name}'),
+          ],
+        ),
         centerTitle: true,
       ),
       body: Column(
         children: [
           Expanded(
             child: ListView.builder(
+              controller: _scrollController,
               padding: const EdgeInsets.all(16),
               itemCount: _messages.length + (_isTyping ? 1 : 0),
               itemBuilder: (context, index) {
@@ -229,8 +325,11 @@ class _CoachScreenState extends State<CoachScreen> {
                   );
                 }
 
+                final message = _messages[index];
                 return CoachMessageBubble(
-                  message: _messages[index],
+                  message: message,
+                  onQuickReplyTap: _handleQuickReply,
+                  onReactionTap: (emoji) => _handleReaction(index, emoji),
                 );
               },
             ),
@@ -253,7 +352,7 @@ class _CoachScreenState extends State<CoachScreen> {
                     textInputAction: TextInputAction.send,
                     onSubmitted: (_) => _send(),
                     decoration: InputDecoration(
-                      hintText: 'Ask your coach…',
+                      hintText: 'Ask Koo…',
                       filled: true,
                       fillColor: isDark
                           ? Colors.white.withValues(alpha: 0.08)
@@ -290,7 +389,7 @@ class _CoachScreenState extends State<CoachScreen> {
                     height: 48,
                     decoration: BoxDecoration(
                       gradient: const LinearGradient(
-                        colors: [CoachScreen._primaryOrange, Color(0xFFFFBB6E)],
+                        colors: [CoachScreen._primaryOrange, Color(0xFFFF6B6B)],
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
                       ),

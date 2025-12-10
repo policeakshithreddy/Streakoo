@@ -43,10 +43,10 @@ class _HealthChallengeIntakeScreenState
   final List<String> _medicalConditions = [];
   final List<String> _dietaryPreferences = [];
   final List<String> _allergies = [];
-  double _sleepQuality = 3.0; // 1-5 scale
+  final double _sleepQuality = 3.0; // 1-5 scale
   double _stressLevel = 3.0; // 1-5 scale
   String _workoutLocation = 'Both';
-  double _dailyMinutes = 30.0; // 15-120 range
+  final double _dailyMinutes = 30.0; // 15-120 range
   double _waterLitres = 2.0; // 1-4 litres
   int _exerciseDays = 3; // 0-6+ days
   int _sleepHours = 7; // 5-9 hours
@@ -473,7 +473,7 @@ class _HealthChallengeIntakeScreenState
           padding: EdgeInsets.zero,
           child: DropdownButtonFormField<String>(
             dropdownColor: theme.colorScheme.surfaceContainer,
-            value: _fitnessLevel,
+            initialValue: _fitnessLevel,
             items: ['Beginner', 'Intermediate', 'Advanced', 'Athlete']
                 .map((l) => DropdownMenuItem(value: l, child: Text(l)))
                 .toList(),
@@ -496,7 +496,7 @@ class _HealthChallengeIntakeScreenState
           padding: EdgeInsets.zero,
           child: DropdownButtonFormField<String>(
             dropdownColor: theme.colorScheme.surfaceContainer,
-            value: _activityLevel,
+            initialValue: _activityLevel,
             items: [
               'Sedentary',
               'Lightly Active',
@@ -1361,7 +1361,7 @@ class _HealthChallengeIntakeScreenState
                       ),
                       child: Column(
                         children: [
-                          Text('🥤', style: const TextStyle(fontSize: 24)),
+                          const Text('🥤', style: TextStyle(fontSize: 24)),
                           const SizedBox(height: 4),
                           Text('$glasses',
                               style: TextStyle(
@@ -1826,12 +1826,14 @@ class _HealthChallengeIntakeScreenState
 
     // Simulate loading steps text change
     Future.delayed(const Duration(seconds: 1), () {
-      if (mounted && _loadingText != "Done!")
+      if (mounted && _loadingText != "Done!") {
         setState(() => _loadingText = "Structuring your challenge...");
+      }
     });
     Future.delayed(const Duration(seconds: 3), () {
-      if (mounted && _loadingText != "Done!")
+      if (mounted && _loadingText != "Done!") {
         setState(() => _loadingText = "Finalizing habits...");
+      }
     });
 
     try {

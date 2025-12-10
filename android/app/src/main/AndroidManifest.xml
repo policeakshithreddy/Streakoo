@@ -4,6 +4,10 @@
     <!-- Notification Permissions for Android 13+ -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     
+    <!-- Exact Alarm Permissions for Android 12+ (required for scheduled notifications) -->
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
+    <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
+    
     <!-- Health Connect Permissions -->
     <uses-permission android:name="android.permission.health.READ_STEPS" />
     <uses-permission android:name="android.permission.health.READ_SLEEP" />
@@ -86,24 +90,6 @@
             </intent-filter>
             <meta-data android:name="android.appwidget.provider"
                 android:resource="@xml/widget_info_small" />
-        </receiver>
-        <!-- Focus Widget Config Activity -->
-        <activity
-            android:name=".FocusWidgetConfigActivity"
-            android:theme="@style/LaunchTheme"
-            android:exported="true">
-            <intent-filter>
-                <action android:name="android.appwidget.action.APPWIDGET_CONFIGURE" />
-            </intent-filter>
-        </activity>
-
-        <!-- Focus 3x3 Widget -->
-        <receiver android:name=".StreakooWidgetFocus" android:exported="true">
-            <intent-filter>
-                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
-            </intent-filter>
-            <meta-data android:name="android.appwidget.provider"
-                android:resource="@xml/widget_info_focus" />
         </receiver>
     </application>
 </manifest>

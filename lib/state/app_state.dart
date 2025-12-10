@@ -23,6 +23,7 @@ class AppState extends ChangeNotifier {
   final List<Map<String, dynamic>> _achievements = [];
   bool _isFirstRun = true;
   ThemeMode _themeMode = ThemeMode.dark;
+  bool _hasShownStreakWarningSession = false;
 
   // Gamification
   int _totalXP = 0;
@@ -80,6 +81,12 @@ class AppState extends ChangeNotifier {
       List.unmodifiable(_achievements);
   bool get isFirstRun => _isFirstRun;
   ThemeMode get themeMode => _themeMode;
+  bool get hasShownStreakWarningSession => _hasShownStreakWarningSession;
+
+  void markStreakWarningShown() {
+    _hasShownStreakWarningSession = true;
+    notifyListeners();
+  }
 
   // Gamification getters
   int get totalXP => _totalXP;

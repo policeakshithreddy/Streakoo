@@ -1,4 +1,3 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -598,7 +597,7 @@ class _AuthScreenState extends State<AuthScreen> with TickerProviderStateMixin {
           decoration: InputDecoration(
             labelText: 'Verification Code',
             labelStyle: TextStyle(color: subtitleColor),
-            prefixIcon: Icon(Icons.lock_clock_outlined, color: _primaryOrange),
+            prefixIcon: const Icon(Icons.lock_clock_outlined, color: _primaryOrange),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(14),
               borderSide:
@@ -666,7 +665,7 @@ class _AuthScreenState extends State<AuthScreen> with TickerProviderStateMixin {
         const SizedBox(height: 16),
         TextButton(
           onPressed: _isLoading ? null : _resendCode,
-          child: Text('Resend Code', style: TextStyle(color: _primaryOrange)),
+          child: const Text('Resend Code', style: TextStyle(color: _primaryOrange)),
         ),
         TextButton(
           onPressed: () {
@@ -782,7 +781,7 @@ class _AuthScreenState extends State<AuthScreen> with TickerProviderStateMixin {
           decoration: InputDecoration(
             labelText: 'Email',
             labelStyle: TextStyle(color: subtitleColor),
-            prefixIcon: Icon(Icons.email_outlined, color: _primaryOrange),
+            prefixIcon: const Icon(Icons.email_outlined, color: _primaryOrange),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(14),
               borderSide:
@@ -817,7 +816,7 @@ class _AuthScreenState extends State<AuthScreen> with TickerProviderStateMixin {
           decoration: InputDecoration(
             labelText: 'Password',
             labelStyle: TextStyle(color: subtitleColor),
-            prefixIcon: Icon(Icons.lock_outlined, color: _primaryOrange),
+            prefixIcon: const Icon(Icons.lock_outlined, color: _primaryOrange),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(14),
               borderSide:
@@ -905,7 +904,7 @@ class _AuthScreenState extends State<AuthScreen> with TickerProviderStateMixin {
             _isLogin
                 ? "Don't have an account? Sign Up"
                 : 'Already have an account? Sign In',
-            style: TextStyle(color: _primaryOrange),
+            style: const TextStyle(color: _primaryOrange),
           ),
         ),
         const SizedBox(height: 20),
@@ -936,11 +935,11 @@ class _AuthScreenState extends State<AuthScreen> with TickerProviderStateMixin {
                 color: _secondaryTeal.withValues(alpha: 0.5),
               ),
             ),
-            child: Row(
+            child: const Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Icon(Icons.person_outline, color: _secondaryTeal, size: 20),
-                const SizedBox(width: 8),
+                SizedBox(width: 8),
                 Text(
                   'Continue as Guest',
                   style: TextStyle(

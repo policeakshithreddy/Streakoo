@@ -10,6 +10,9 @@ import 'services/health_checker_service.dart';
 import 'services/local_notification_service.dart';
 import 'config/env.dart';
 import 'utils/animation_config.dart';
+import 'services/weekly_challenge_service.dart';
+import 'services/koo_care_service.dart';
+import 'services/daily_brief_service.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -32,6 +35,15 @@ Future<void> main() async {
 
   // Start periodic health data checking (every 15 minutes)
   HealthCheckerService.instance.startPeriodicCheck(appState);
+
+  // Initialize Engagement Services
+  await WeeklyChallengeService.instance.initialize();
+  await KooCareService.instance.initialize();
+
+  // Schedule Engagement Notifications
+  await DailyBriefService.instance.scheduleDailyNotifications();
+  await WeeklyChallengeService.instance.scheduleMondayNotification();
+  await WeeklyChallengeService.instance.scheduleProgressNotification();
 
   runApp(
     ChangeNotifierProvider.value(

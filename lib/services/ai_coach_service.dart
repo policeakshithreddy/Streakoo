@@ -101,21 +101,42 @@ ${healthLines.join('\n')}
         }
       }
 
-      // Natural, friendly system prompt with full context
-      const systemPrompt =
-          '''You're a supportive friend helping someone build better habits. You have their COMPLETE habit data and health metrics.
+      // Get time-of-day greeting
+      final hour = DateTime.now().hour;
+      String timeGreeting;
+      if (hour < 12) {
+        timeGreeting = 'morning';
+      } else if (hour < 17) {
+        timeGreeting = 'afternoon';
+      } else {
+        timeGreeting = 'evening';
+      }
 
-Keep it real:
-- Be warm, encouraging, but honest
-- Give ONE clear, actionable tip based on their ACTUAL data
-- Keep responses to 2-3 sentences MAX
-- Use casual language and emojis
-- Reference their health data and habits when relevant
-- Sound like you're texting a friend who knows their journey
+      // Natural, friendly system prompt with personality
+      final systemPrompt =
+          '''You are "Koo" ✨ - a warm, encouraging habit coach who genuinely cares about the user's wellbeing. You have access to their COMPLETE habit and health data.
 
-Example good responses:
-"Your running streak is at 12 days - nice! Since you're crushing it there, maybe use that same energy for meditation? 🧘"
-"You've done 8,500 steps today but only 5 hours of sleep. Maybe skip the intense workout and prioritize rest tonight? 😴"''';
+YOUR PERSONALITY:
+- Warm and friendly like a supportive best friend
+- Genuinely excited about their wins (big or small!)
+- Empathetic when they're struggling
+- Uses emojis naturally (not excessively)
+- Speaks casually but respectfully
+
+CURRENT TIME: It's $timeGreeting right now.
+
+RESPONSE RULES:
+- Keep it SHORT: 2-3 sentences max
+- Give ONE specific, actionable tip based on THEIR data
+- Reference their actual habits/health stats when relevant
+- Celebrate streaks and progress enthusiastically 🎉
+- If they're struggling, be gentle and understanding
+- Never be preachy or lecture them
+
+EXAMPLE RESPONSES:
+"Wow, 15 days on meditation! 🧘 That's seriously impressive. Since you're crushing it, maybe pair it with your morning run for a zen combo? ✨"
+"I see you got 8k steps but only 5 hours sleep - you're pushing hard! 💪 Tonight, maybe wind down early? Your body will thank you 😴"
+"Day 1 is the hardest, but hey - you're HERE and that's what counts! Start tiny, like 2 minutes. You've got this 🔥"''';
 
       final userPrompt = '''$userContext$healthContext
 
@@ -145,38 +166,68 @@ Give them a quick, friendly response using their data. Be specific. Keep it SHOR
   String _getFallbackResponse(String userMessage) {
     final lower = userMessage.toLowerCase();
 
-    // Natural fallback responses
-    if (lower.contains('how') || lower.contains('start')) {
-      return 'Start tiny! Like, embarrassingly small. 2 minutes is perfect. Once it\'s a habit, you can go bigger. Trust me on this one 💪';
+    // Warm, friendly fallback responses with personality
+    if (lower.contains('how') ||
+        lower.contains('start') ||
+        lower.contains('begin')) {
+      return 'Hey! Here\'s my secret: start embarrassingly small 😊 Like, 2 minutes small. Once it clicks, you can level up. Trust the process! 💪';
     }
-    if (lower.contains('motivat') || lower.contains('why')) {
-      return 'Real talk: the motivation comes AFTER you start, not before. Just do 2 minutes today. That\'s it. You got this! 🔥';
+    if (lower.contains('motivat') ||
+        lower.contains('why') ||
+        lower.contains('purpose')) {
+      return 'Real talk: motivation shows up AFTER you start, not before ✨ Just do 2 minutes today - that\'s it! Future you will be so grateful 🔥';
     }
     if (lower.contains('hard') ||
         lower.contains('difficult') ||
-        lower.contains('struggle')) {
-      return 'Yeah, it\'s tough at first. But here\'s the thing - every streak starts at day 1. You\'re building something solid here. Keep going! 💙';
+        lower.contains('struggle') ||
+        lower.contains('can\'t')) {
+      return 'I hear you - it\'s not easy, and that\'s okay 💙 Every streak starts at day 1. You\'re building something amazing, one day at a time. I believe in you!';
     }
-    if (lower.contains('time') || lower.contains('busy')) {
-      return 'I hear you! Try stacking it with something you already do. Like "after coffee" or "before bed". Makes it automatic 🎯';
+    if (lower.contains('time') ||
+        lower.contains('busy') ||
+        lower.contains('schedule')) {
+      return 'Totally get it - life\'s hectic! 🏃 Try "habit stacking": attach it to something you already do, like "right after coffee" or "before bed". Makes it automatic! ☕';
     }
-    if (lower.contains('forget')) {
-      return 'Set a simple reminder or put it where you\'ll see it. Phone lock screen, bathroom mirror, whatever works! 📱';
+    if (lower.contains('forget') || lower.contains('remember')) {
+      return 'Forgetting happens! 📱 Put a sticky note where you can\'t miss it, or set a fun reminder. Small tricks = big wins! ✨';
+    }
+    if (lower.contains('streak') ||
+        lower.contains('broke') ||
+        lower.contains('lost') ||
+        lower.contains('fail')) {
+      return 'Hey, streaks aren\'t everything 💛 What matters is you\'re back! Every champion has setbacks. Today is a fresh start - let\'s go! 🚀';
+    }
+    if (lower.contains('thanks') ||
+        lower.contains('thank you') ||
+        lower.contains('helpful')) {
+      return 'You\'re so welcome! 🥰 I\'m always here cheering you on. Keep being awesome! ✨';
+    }
+    if (lower.contains('good') ||
+        lower.contains('great') ||
+        lower.contains('awesome') ||
+        lower.contains('amazing')) {
+      return 'That\'s what I love to hear! 🎉 Keep that energy going - you\'re on fire! 🔥';
     }
 
-    // Default friendly response
-    return 'I\'m here to help! What\'s holding you back? Or what\'s working for you? Let\'s figure this out together 🤝';
+    // Default friendly response with personality
+    return 'I\'m Koo, your habit buddy! 🤗 What\'s on your mind? Whether you need tips, motivation, or just want to chat about your journey - I\'m here! ✨';
   }
 
   String getQuickEncouragement(int streak) {
     if (streak == 0) {
-      return 'Day 1 is the hardest. You got this! 💪';
+      return 'Fresh start! Day 1 is where legends begin 🌟 Let\'s do this! 💪';
+    } else if (streak == 1) {
+      return 'Day 1 complete! 🎉 You just did the hardest part - starting!';
     } else if (streak < 7) {
-      return 'Nice! $streak days down. Keep the momentum! 🔥';
+      return '$streak days strong! 🔥 You\'re building something amazing!';
+    } else if (streak < 14) {
+      return 'A whole week+ ($streak days)! 🚀 You\'re officially building a habit!';
     } else if (streak < 30) {
-      return 'Wow, $streak days! You\'re crushing it! 🚀';
+      return '$streak days! 🌟 You\'re in the habit-forming zone now!';
+    } else if (streak < 100) {
+      return 'WOW! $streak days! 🏆 You\'re a habit champion!';
     } else {
-      return '$streak days?! That\'s seriously impressive! 🏆';
+      return '🎊 $streak DAYS?! You\'re literally unstoppable! Legend status! 👑';
     }
   }
 

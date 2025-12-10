@@ -347,7 +347,7 @@ class NotificationEngine {
         message,
         scheduledDate,
         _getNotificationDetails(type),
-        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+        androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
         uiLocalNotificationDateInterpretation:
             UILocalNotificationDateInterpretation.absoluteTime,
         matchDateTimeComponents: DateTimeComponents.dayOfWeekAndTime,
@@ -578,7 +578,7 @@ Be personal, use the habit name, mention streak if relevant, be energetic but no
         message,
         scheduledDate,
         _getNotificationDetails(NotificationType.hard), // High priority
-        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+        androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
         uiLocalNotificationDateInterpretation:
             UILocalNotificationDateInterpretation.absoluteTime,
       );
@@ -643,7 +643,7 @@ Be personal, use the habit name, mention streak if relevant, be energetic but no
         body,
         scheduledTime,
         _getNotificationDetails(NotificationType.streak),
-        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+        androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
         uiLocalNotificationDateInterpretation:
             UILocalNotificationDateInterpretation.absoluteTime,
       );

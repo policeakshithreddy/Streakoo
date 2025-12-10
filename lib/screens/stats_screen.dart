@@ -316,6 +316,9 @@ class _OverviewTab extends StatelessWidget {
               final insights = snapshot.data!;
 
               return Card(
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? const Color(0xFF191919)
+                    : null,
                 child: Padding(
                   padding: const EdgeInsets.all(16),
                   child: Column(
@@ -434,13 +437,14 @@ class _OverviewTab extends StatelessWidget {
               final consistencyValue = _calculateWeeklyConsistency(habits);
               return Container(
                 decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: isDark
-                        ? [const Color(0xFF1A1A2E), const Color(0xFF16162A)]
-                        : [Colors.white, const Color(0xFFFFFAF5)],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
+                  color: isDark ? const Color(0xFF191919) : null,
+                  gradient: isDark
+                      ? null
+                      : const LinearGradient(
+                          colors: [Colors.white, Color(0xFFFFFAF5)],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
                   borderRadius: BorderRadius.circular(20),
                   border: Border.all(
                     color: isDark
@@ -978,10 +982,12 @@ class _HealthDashboardTabState extends State<_HealthDashboardTab> {
             // AI Summary Card
             if (_weeklySummary != null) ...[
               Card(
-                color: Theme.of(context)
-                    .colorScheme
-                    .primaryContainer
-                    .withValues(alpha: 0.1),
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? const Color(0xFF191919)
+                    : Theme.of(context)
+                        .colorScheme
+                        .primaryContainer
+                        .withValues(alpha: 0.1),
                 child: Padding(
                   padding: const EdgeInsets.all(16),
                   child: Column(
@@ -1369,7 +1375,7 @@ class _AdvancedHealthCoachingCardState
                           Container(
                             width: 36,
                             height: 36,
-                            decoration: BoxDecoration(
+                            decoration: const BoxDecoration(
                               gradient: LinearGradient(
                                 colors: [
                                   Colors.orange,
@@ -1385,7 +1391,7 @@ class _AdvancedHealthCoachingCardState
                         ],
                       ),
                       const SizedBox(width: 12),
-                      Expanded(
+                      const Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
@@ -1853,13 +1859,14 @@ class _AchievementsTab extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: isDark
-                    ? [const Color(0xFF1E1E2E), const Color(0xFF2A2A3E)]
-                    : [Colors.white, const Color(0xFFF5F5F5)],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
+              color: isDark ? const Color(0xFF191919) : null,
+              gradient: isDark
+                  ? null
+                  : const LinearGradient(
+                      colors: [Colors.white, Color(0xFFF5F5F5)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
               borderRadius: BorderRadius.circular(16),
               border: Border.all(
                 color: isDark ? Colors.white10 : Colors.grey.shade200,
@@ -2184,7 +2191,7 @@ class _EnhancedAchievementCard extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E1E2E) : Colors.white,
+        color: isDark ? const Color(0xFF191919) : Colors.white,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
           color: unlocked
@@ -2382,7 +2389,7 @@ class _StatCard extends StatelessWidget {
 
     return Container(
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1A1A2E) : Colors.white,
+        color: isDark ? const Color(0xFF191919) : Colors.white,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
           color: isDark ? Colors.grey[800]! : Colors.grey[200]!,

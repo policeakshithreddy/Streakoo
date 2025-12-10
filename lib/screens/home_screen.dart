@@ -98,7 +98,10 @@ class _HomeScreenState extends State<HomeScreen> {
         debugPrint('✅ All initialization complete!');
 
         // Show streak warning popup if there are at-risk habits
-        _showStreakWarningPopup(appState);
+        if (!appState.hasShownStreakWarningSession) {
+          _showStreakWarningPopup(appState);
+          appState.markStreakWarningShown();
+        }
       }
     } catch (e, stackTrace) {
       debugPrint('❌ Notification initialization failed: $e');
@@ -950,64 +953,71 @@ class _HomeScreenState extends State<HomeScreen> {
             color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
             borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
           ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // Drag handle
-              Container(
-                margin: const EdgeInsets.only(top: 12),
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: Colors.grey.withValues(alpha: 0.3),
-                  borderRadius: BorderRadius.circular(2),
+          child: SafeArea(
+            top: false,
+            child: ListView(
+              shrinkWrap: true,
+              physics:
+                  const ClampingScrollPhysics(), // Prevent bouncing if not needed
+              children: [
+                // Drag handle
+                Center(
+                  child: Container(
+                    margin: const EdgeInsets.only(top: 12),
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: Colors.grey.withValues(alpha: 0.3),
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
                 ),
-              ),
 
-              // Header
-              Padding(
-                padding: const EdgeInsets.all(20),
-                child: Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(10),
-                      decoration: BoxDecoration(
-                        color: Colors.orange.withValues(alpha: 0.2),
-                        borderRadius: BorderRadius.circular(12),
+                // Header
+                Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: Colors.orange.withValues(alpha: 0.2),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Icon(Icons.warning_amber_rounded,
+                            color: Colors.orange, size: 24),
                       ),
-                      child: const Icon(Icons.warning_amber_rounded,
-                          color: Colors.orange, size: 24),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Streaks Need Attention!',
-                            style: theme.textTheme.titleMedium?.copyWith(
-                              fontWeight: FontWeight.bold,
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Streaks Need Attention!',
+                              style: theme.textTheme.titleMedium?.copyWith(
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
-                          ),
-                          Text(
-                            '${predictions.length} habit${predictions.length > 1 ? 's' : ''} at risk today',
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              color: Colors.grey,
+                            Text(
+                              '${predictions.length} habit${predictions.length > 1 ? 's' : ''} at risk today',
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: Colors.grey,
+                              ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
-                    ),
-                    IconButton(
-                      onPressed: () => Navigator.pop(context),
-                      icon: const Icon(Icons.close),
-                    ),
-                  ],
+                      IconButton(
+                        onPressed: () => Navigator.pop(context),
+                        icon: const Icon(Icons.close),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
 
-              // Habit list
-              ...predictions.take(3).map((pred) => ListTile(
+                // Habit list items
+                ...predictions.take(5).map((pred) {
+                  return ListTile(
                     leading: Container(
                       width: 44,
                       height: 44,
@@ -1051,22 +1061,24 @@ class _HomeScreenState extends State<HomeScreen> {
                       );
                       _openDetails(context, habit);
                     },
-                  )),
+                  );
+                }),
 
-              const SizedBox(height: 8),
+                const SizedBox(height: 8),
 
-              // Dismiss button
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
-                child: SizedBox(
-                  width: double.infinity,
-                  child: TextButton(
-                    onPressed: () => Navigator.pop(context),
-                    child: const Text('Got it, I\'ll complete them!'),
+                // Dismiss button
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+                  child: SizedBox(
+                    width: double.infinity,
+                    child: TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text('Got it, I\'ll complete them!'),
+                    ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         );
       },
