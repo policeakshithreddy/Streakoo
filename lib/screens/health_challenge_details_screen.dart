@@ -2,10 +2,13 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../models/health_challenge.dart';
-import '../widgets/glass_card.dart';
 
 class HealthChallengeDetailsScreen extends StatelessWidget {
   final HealthChallenge challenge;
+
+  // Purple theme colors (matching Wind AI)
+  static const _primaryPurple = Color(0xFF8B5CF6);
+  static const _secondaryPink = Color(0xFFEC4899);
 
   const HealthChallengeDetailsScreen({
     super.key,
@@ -15,46 +18,53 @@ class HealthChallengeDetailsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
 
     return Scaffold(
+      backgroundColor: isDark ? const Color(0xFF0D0D0D) : Colors.white,
       body: CustomScrollView(
         slivers: [
-          // Animated Header
+          // Animated Header with purple gradient
           SliverAppBar(
-            expandedHeight: 280,
+            expandedHeight: 300,
             pinned: true,
-            backgroundColor: theme.scaffoldBackgroundColor,
+            backgroundColor: isDark ? const Color(0xFF0D0D0D) : Colors.white,
             flexibleSpace: FlexibleSpaceBar(
               background: Stack(
                 fit: StackFit.expand,
                 children: [
-                  // Gradient Background
+                  // Purple Gradient Background
                   Container(
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
-                        colors: [
-                          theme.colorScheme.primary.withValues(alpha: 0.2),
-                          theme.colorScheme.secondary.withValues(alpha: 0.1),
-                          theme.scaffoldBackgroundColor,
-                        ],
+                        colors: isDark
+                            ? [
+                                _primaryPurple.withValues(alpha: 0.25),
+                                _secondaryPink.withValues(alpha: 0.1),
+                                const Color(0xFF0D0D0D),
+                              ]
+                            : [
+                                _primaryPurple.withValues(alpha: 0.15),
+                                _secondaryPink.withValues(alpha: 0.08),
+                                Colors.white,
+                              ],
                       ),
                     ),
                   ),
 
-                  // Animated Particles/Orbs (Simple CSS-like effects)
+                  // Animated Orb
                   Positioned(
-                    top: 50,
-                    right: -30,
+                    top: 30,
+                    right: -40,
                     child: ImageFiltered(
-                      imageFilter: ImageFilter.blur(sigmaX: 40, sigmaY: 40),
+                      imageFilter: ImageFilter.blur(sigmaX: 50, sigmaY: 50),
                       child: Container(
-                        width: 150,
-                        height: 150,
+                        width: 180,
+                        height: 180,
                         decoration: BoxDecoration(
-                          color:
-                              theme.colorScheme.primary.withValues(alpha: 0.3),
+                          color: _primaryPurple.withValues(alpha: 0.4),
                           shape: BoxShape.circle,
                         ),
                       ),
@@ -64,6 +74,23 @@ class HealthChallengeDetailsScreen extends StatelessWidget {
                         duration: 4.seconds),
                   ),
 
+                  // Second Orb
+                  Positioned(
+                    bottom: 60,
+                    left: -30,
+                    child: ImageFiltered(
+                      imageFilter: ImageFilter.blur(sigmaX: 40, sigmaY: 40),
+                      child: Container(
+                        width: 120,
+                        height: 120,
+                        decoration: BoxDecoration(
+                          color: _secondaryPink.withValues(alpha: 0.3),
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                    ),
+                  ),
+
                   // Content
                   Padding(
                     padding: const EdgeInsets.all(24.0),
@@ -71,41 +98,79 @@ class HealthChallengeDetailsScreen extends StatelessWidget {
                       mainAxisAlignment: MainAxisAlignment.end,
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
+                        // Wind AI Badge
                         Container(
                           padding: const EdgeInsets.symmetric(
                               horizontal: 12, vertical: 6),
                           decoration: BoxDecoration(
-                            color: theme.colorScheme.primaryContainer,
+                            gradient: const LinearGradient(
+                              colors: [_primaryPurple, _secondaryPink],
+                            ),
                             borderRadius: BorderRadius.circular(20),
                           ),
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              const Icon(Icons.auto_awesome, size: 14),
+                              const Icon(Icons.auto_awesome,
+                                  size: 14, color: Colors.white),
                               const SizedBox(width: 6),
                               Text(
-                                'AI PERSONALIZED PLAN',
-                                style: theme.textTheme.labelSmall
-                                    ?.copyWith(fontWeight: FontWeight.bold),
+                                'WIND AI PLAN',
+                                style: theme.textTheme.labelSmall?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white,
+                                ),
                               ),
                             ],
                           ),
                         ).animate().fadeIn().slideX(),
-                        const SizedBox(height: 12),
+                        const SizedBox(height: 16),
                         Text(
                           challenge.title,
-                          style: theme.textTheme.headlineMedium?.copyWith(
+                          style: TextStyle(
+                            fontSize: 28,
                             fontWeight: FontWeight.bold,
                             height: 1.1,
+                            color: isDark ? Colors.white : Colors.black87,
                           ),
                         ).animate().fadeIn(delay: 200.ms).slideX(),
-                        const SizedBox(height: 8),
-                        Text(
-                          '${challenge.durationWeeks} Week Program • Type: ${_formatType(challenge.type)}',
-                          style: theme.textTheme.bodyMedium?.copyWith(
-                            color: theme.textTheme.bodyMedium?.color
-                                ?.withValues(alpha: 0.7),
-                          ),
+                        const SizedBox(height: 10),
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 10, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: _primaryPurple.withValues(alpha: 0.15),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Text(
+                                '${challenge.durationWeeks} Weeks',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                  color: _primaryPurple,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 10, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: _secondaryPink.withValues(alpha: 0.15),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Text(
+                                _formatType(challenge.type),
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                  color: _secondaryPink,
+                                ),
+                              ),
+                            ),
+                          ],
                         ).animate().fadeIn(delay: 400.ms),
                       ],
                     ),
@@ -117,110 +182,79 @@ class HealthChallengeDetailsScreen extends StatelessWidget {
 
           // Content Body
           SliverPadding(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(20),
             sliver: SliverList(
               delegate: SliverChildListDelegate([
                 // 1. My Goal Section
-                _buildSectionHeader(theme, 'MY GOAL', Icons.flag_outlined),
+                _buildSectionHeader('MY GOAL', Icons.flag_rounded, isDark),
                 const SizedBox(height: 12),
-                GlassCard(
-                  opacity: 0.05,
-                  padding: const EdgeInsets.all(20),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        challenge.description,
-                        style: theme.textTheme.bodyLarge?.copyWith(height: 1.5),
-                      ),
-                    ],
+                _buildCard(
+                  isDark: isDark,
+                  child: Text(
+                    challenge.description,
+                    style: TextStyle(
+                      fontSize: 15,
+                      height: 1.6,
+                      color: isDark ? Colors.white70 : Colors.black87,
+                    ),
                   ),
                 ).animate().fadeIn().slideY(begin: 0.1),
 
-                const SizedBox(height: 32),
+                const SizedBox(height: 28),
 
                 // 2. The Strategy
-                _buildSectionHeader(
-                    theme, 'THE STRATEGY', Icons.lightbulb_outline),
+                _buildSectionHeader('AI STRATEGY', Icons.auto_awesome, isDark),
                 const SizedBox(height: 12),
-                GlassCard(
-                  opacity: 0.05,
-                  padding: const EdgeInsets.all(20),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        challenge.aiInsight.isNotEmpty
-                            ? challenge.aiInsight
-                            : 'Your AI coach has designed this plan to restart your metabolism and build consistency.',
-                        style:
-                            theme.textTheme.bodyMedium?.copyWith(height: 1.6),
-                      ),
-                    ],
+                _buildCard(
+                  isDark: isDark,
+                  child: Text(
+                    challenge.aiInsight.isNotEmpty
+                        ? challenge.aiInsight
+                        : 'Wind AI has designed this plan to optimize your progress and build lasting habits.',
+                    style: TextStyle(
+                      fontSize: 15,
+                      height: 1.6,
+                      color: isDark ? Colors.white70 : Colors.black87,
+                    ),
                   ),
                 ).animate().fadeIn(delay: 200.ms).slideY(begin: 0.1),
 
-                const SizedBox(height: 32),
+                const SizedBox(height: 28),
 
                 // 3. Daily Habits
                 _buildSectionHeader(
-                    theme, 'DAILY HABITS', Icons.check_circle_outline),
+                    'DAILY HABITS', Icons.check_circle_outline, isDark),
                 const SizedBox(height: 12),
                 if (challenge.recommendedHabits.isNotEmpty)
-                  ...challenge.recommendedHabits.map((habit) => Padding(
-                        padding: const EdgeInsets.only(bottom: 8.0),
-                        child: GlassCard(
-                          opacity: 0.03,
-                          child: ListTile(
-                            leading: Container(
-                              padding: const EdgeInsets.all(8),
-                              decoration: BoxDecoration(
-                                color: theme.colorScheme.primary
-                                    .withValues(alpha: 0.1),
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Text(habit.emoji,
-                                  style: const TextStyle(fontSize: 20)),
-                            ),
-                            title: Text(habit.name,
-                                style: const TextStyle(
-                                    fontWeight: FontWeight.bold)),
-                            subtitle: Text(habit.frequency),
-                          ),
-                        ),
-                      ))
+                  ...challenge.recommendedHabits.asMap().entries.map((entry) {
+                    final index = entry.key;
+                    final habit = entry.value;
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 10.0),
+                      child: _buildHabitCard(habit, isDark)
+                          .animate()
+                          .fadeIn(delay: (300 + index * 100).ms)
+                          .slideX(begin: 0.1),
+                    );
+                  })
                 else
-                  const Text('No specific habits linked.'),
+                  _buildCard(
+                    isDark: isDark,
+                    child: Text(
+                      'No specific habits linked yet.',
+                      style: TextStyle(
+                        color: isDark ? Colors.grey[400] : Colors.grey[600],
+                      ),
+                    ),
+                  ),
 
-                const SizedBox(height: 32),
+                const SizedBox(height: 28),
 
                 // 4. Progress
-                _buildSectionHeader(theme, 'PROGRESS', Icons.timeline),
+                _buildSectionHeader(
+                    'PROGRESS', Icons.trending_up_rounded, isDark),
                 const SizedBox(height: 12),
-                GlassCard(
-                  opacity: 0.05,
-                  padding: const EdgeInsets.all(24),
-                  child: Column(
-                    children: [
-                      CircularProgressIndicator(
-                        value: ((challenge.progressSnapshots?.length ?? 0) /
-                                (challenge.durationWeeks * 7))
-                            .clamp(0.0, 1.0),
-                        strokeWidth: 8,
-                        backgroundColor:
-                            theme.colorScheme.surface.withValues(alpha: 0.2),
-                        valueColor:
-                            AlwaysStoppedAnimation(theme.colorScheme.primary),
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        'Week 1 of ${challenge.durationWeeks}',
-                        style: theme.textTheme.titleMedium
-                            ?.copyWith(fontWeight: FontWeight.bold),
-                      ),
-                    ],
-                  ),
-                ),
+                _buildProgressCard(isDark),
 
                 const SizedBox(height: 50),
               ]),
@@ -231,21 +265,203 @@ class HealthChallengeDetailsScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildSectionHeader(ThemeData theme, String title, IconData icon) {
+  Widget _buildSectionHeader(String title, IconData icon, bool isDark) {
     return Row(
       children: [
-        Icon(icon, size: 18, color: theme.colorScheme.primary),
-        const SizedBox(width: 8),
+        Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [
+                _primaryPurple.withValues(alpha: 0.15),
+                _secondaryPink.withValues(alpha: 0.15),
+              ],
+            ),
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Icon(icon, size: 18, color: _primaryPurple),
+        ),
+        const SizedBox(width: 10),
         Text(
           title,
-          style: theme.textTheme.labelLarge?.copyWith(
+          style: TextStyle(
+            fontSize: 13,
             fontWeight: FontWeight.bold,
-            color: theme.colorScheme.primary,
+            color: _primaryPurple,
             letterSpacing: 1.0,
           ),
         ),
       ],
     );
+  }
+
+  Widget _buildCard({required bool isDark, required Widget child}) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color:
+              isDark ? Colors.white.withValues(alpha: 0.08) : Colors.grey[200]!,
+        ),
+        boxShadow: isDark
+            ? null
+            : [
+                BoxShadow(
+                  color: Colors.grey.withValues(alpha: 0.08),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+      ),
+      child: child,
+    );
+  }
+
+  Widget _buildHabitCard(dynamic habit, bool isDark) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: isDark ? Colors.white.withValues(alpha: 0.03) : Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color:
+              isDark ? Colors.white.withValues(alpha: 0.08) : Colors.grey[200]!,
+        ),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 48,
+            height: 48,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  _primaryPurple.withValues(alpha: 0.15),
+                  _secondaryPink.withValues(alpha: 0.15),
+                ],
+              ),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Center(
+              child: Text(habit.emoji, style: const TextStyle(fontSize: 22)),
+            ),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  habit.name,
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: isDark ? Colors.white : Colors.black87,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  habit.frequency,
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: isDark ? Colors.grey[400] : Colors.grey[600],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Icon(
+            Icons.chevron_right,
+            color: isDark ? Colors.grey[600] : Colors.grey[400],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildProgressCard(bool isDark) {
+    final progressPercent = ((challenge.progressSnapshots?.length ?? 0) /
+            (challenge.durationWeeks * 7))
+        .clamp(0.0, 1.0);
+    final currentWeek = ((challenge.progressSnapshots?.length ?? 0) / 7)
+        .ceil()
+        .clamp(1, challenge.durationWeeks);
+
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: isDark
+              ? [
+                  _primaryPurple.withValues(alpha: 0.15),
+                  _secondaryPink.withValues(alpha: 0.1),
+                ]
+              : [
+                  _primaryPurple.withValues(alpha: 0.08),
+                  _secondaryPink.withValues(alpha: 0.05),
+                ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: _primaryPurple.withValues(alpha: 0.2),
+        ),
+      ),
+      child: Column(
+        children: [
+          SizedBox(
+            width: 100,
+            height: 100,
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                SizedBox(
+                  width: 100,
+                  height: 100,
+                  child: CircularProgressIndicator(
+                    value: progressPercent,
+                    strokeWidth: 10,
+                    backgroundColor: isDark
+                        ? Colors.white.withValues(alpha: 0.1)
+                        : Colors.grey[200],
+                    valueColor: const AlwaysStoppedAnimation(
+                      _primaryPurple,
+                    ),
+                  ),
+                ),
+                Text(
+                  '${(progressPercent * 100).round()}%',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: isDark ? Colors.white : Colors.black87,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'Week $currentWeek of ${challenge.durationWeeks}',
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: isDark ? Colors.white : Colors.black87,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Keep going! You\'re making progress.',
+            style: TextStyle(
+              fontSize: 13,
+              color: isDark ? Colors.grey[400] : Colors.grey[600],
+            ),
+          ),
+        ],
+      ),
+    ).animate().fadeIn(delay: 400.ms).scale(begin: const Offset(0.95, 0.95));
   }
 
   String _formatType(ChallengeType type) {

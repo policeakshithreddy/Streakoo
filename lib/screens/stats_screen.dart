@@ -18,6 +18,7 @@ import '../widgets/health_connection_dialog.dart';
 import '../widgets/challenge_progress_widget.dart';
 import '../widgets/activity_rings_widget.dart';
 import 'health_coaching_intro_screen.dart';
+import 'year_in_review_screen.dart';
 
 class StatsScreen extends StatefulWidget {
   const StatsScreen({super.key});
@@ -532,6 +533,100 @@ class _OverviewTab extends StatelessWidget {
 
           const SizedBox(height: 24),
 
+          // Year in Review Card
+          Builder(
+            builder: (context) {
+              final isDark = Theme.of(context).brightness == Brightness.dark;
+              final currentYear = DateTime.now().year;
+
+              return GestureDetector(
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) =>
+                          YearInReviewScreen(year: currentYear),
+                    ),
+                  );
+                },
+                child: Container(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: isDark
+                          ? [
+                              const Color(0xFF6366F1).withOpacity(0.8),
+                              const Color(0xFF8B5CF6).withOpacity(0.8),
+                              const Color(0xFFEC4899).withOpacity(0.8),
+                            ]
+                          : [
+                              const Color(0xFF6366F1),
+                              const Color(0xFF8B5CF6),
+                              const Color(0xFFEC4899),
+                            ],
+                    ),
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xFF8B5CF6).withValues(alpha: 0.3),
+                        blurRadius: 12,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  padding: const EdgeInsets.all(20),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 56,
+                        height: 56,
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.2),
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: const Center(
+                          child: Text('🎉', style: TextStyle(fontSize: 28)),
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              '$currentYear Wrapped',
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 18,
+                                color: Colors.white,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              'See your year in review',
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: Colors.white.withOpacity(0.9),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const Icon(
+                        Icons.arrow_forward_ios,
+                        color: Colors.white,
+                        size: 20,
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
+
+          const SizedBox(height: 24),
+
           // Perfect day status
           if (perfectDay)
             const _AchievementTile(
@@ -744,6 +839,7 @@ class _HealthDashboardTabState extends State<_HealthDashboardTab> {
   final List<int> _weeklySteps = List.filled(7, 0);
   final List<double> _weeklySleep = List.filled(7, 0);
   final List<double> _weeklyDistance = List.filled(7, 0);
+  final List<double> _weeklyCalories = List.filled(7, 0);
 
   String? _weeklySummary;
   int? _selectedDayIndex;
@@ -766,6 +862,10 @@ class _HealthDashboardTabState extends State<_HealthDashboardTab> {
       // Steps
       final steps = await _healthService.getStepCount(date);
       _weeklySteps[i] = steps;
+
+      // Calories
+      final calories = await _healthService.getCalories(date);
+      _weeklyCalories[i] = calories;
 
       // Sleep (mock logic or real if available)
       // For now, we'll use a placeholder or previous logic if available
@@ -973,6 +1073,11 @@ class _HealthDashboardTabState extends State<_HealthDashboardTab> {
 
             const SizedBox(height: 16),
 
+            // NEW: Quick Health Stats Row
+            _buildHealthStatsRow(context, displaySteps, stepsGoal),
+
+            const SizedBox(height: 16),
+
             // Health Challenge Widget
             if (appState.activeHealthChallenge != null)
               const ChallengeProgressWidget(),
@@ -999,7 +1104,7 @@ class _HealthDashboardTabState extends State<_HealthDashboardTab> {
                               color: Theme.of(context).colorScheme.primary),
                           const SizedBox(width: 8),
                           Text(
-                            'AI Coach Insights',
+                            'Wind Insights 🌬️',
                             style: TextStyle(
                               fontWeight: FontWeight.bold,
                               color: Theme.of(context).colorScheme.primary,
@@ -1103,352 +1208,338 @@ class _HealthDashboardTabState extends State<_HealthDashboardTab> {
     );
   }
 
+  Widget _buildHealthStatsRow(BuildContext context, int steps, int stepsGoal) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    // Calculate health score (0-100)
+    final stepsScore = (steps / stepsGoal * 100).clamp(0, 100);
+    final sleepScore =
+        (_weeklySleep.isNotEmpty ? _weeklySleep.last / 8 * 100 : 50)
+            .clamp(0.0, 100.0);
+    final healthScore = ((stepsScore + sleepScore) / 2).round();
+
+    // Get calories and distance
+    final calories =
+        _weeklyCalories.isNotEmpty ? _weeklyCalories.last.round() : 0;
+    final distance = _weeklyDistance.isNotEmpty ? _weeklyDistance.last : 0.0;
+
+    return Row(
+      children: [
+        // Health Score Card
+        Expanded(
+          child: _HealthMetricCard(
+            icon: Icons.favorite_rounded,
+            iconColor: _getHealthScoreColor(healthScore),
+            title: 'Health Score',
+            value: '$healthScore',
+            unit: '/100',
+            isDark: isDark,
+          ),
+        ),
+        const SizedBox(width: 12),
+        // Calories Card
+        Expanded(
+          child: _HealthMetricCard(
+            icon: Icons.local_fire_department_rounded,
+            iconColor: const Color(0xFFFF9800),
+            title: 'Calories',
+            value: '$calories',
+            unit: 'kcal',
+            isDark: isDark,
+          ),
+        ),
+        const SizedBox(width: 12),
+        // Distance Card
+        Expanded(
+          child: _HealthMetricCard(
+            icon: Icons.directions_walk_rounded,
+            iconColor: const Color(0xFF4CAF50),
+            title: 'Distance',
+            value: distance.toStringAsFixed(1),
+            unit: 'km',
+            isDark: isDark,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Color _getHealthScoreColor(int score) {
+    if (score >= 80) return const Color(0xFF4CAF50);
+    if (score >= 60) return const Color(0xFFFFA726);
+    if (score >= 40) return const Color(0xFFFF7043);
+    return const Color(0xFFE91E63);
+  }
+
   Widget _buildDiscoverCoachingCard(BuildContext context) {
     return const _AdvancedHealthCoachingCard();
   }
 }
 
-class _AdvancedHealthCoachingCard extends StatefulWidget {
+// Simplified Wind Health Coaching Card
+class _AdvancedHealthCoachingCard extends StatelessWidget {
   const _AdvancedHealthCoachingCard();
 
   @override
-  State<_AdvancedHealthCoachingCard> createState() =>
-      _AdvancedHealthCoachingCardState();
-}
-
-class _AdvancedHealthCoachingCardState
-    extends State<_AdvancedHealthCoachingCard> {
-  final PageController _pageController = PageController();
-  int _currentPage = 0;
-  Timer? _timer;
-
-  final List<Map<String, dynamic>> _slides = [
-    {
-      'title': 'Unlock AI\nHealth Coaching',
-      'desc': 'Get a personalized 4-week plan based on your health data.',
-      'icon': Icons.auto_awesome,
-    },
-    {
-      'title': 'Daily Smart\nInsights',
-      'desc': 'Receive adaptive tips to optimize your sleep and workouts.',
-      'icon': Icons.lightbulb_outline,
-    },
-    {
-      'title': 'Visualize\nYour Progress',
-      'desc': 'See your health trends with advanced interactive charts.',
-      'icon': Icons.insights,
-    },
-  ];
-
-  @override
-  void initState() {
-    super.initState();
-    _startAutoScroll();
-  }
-
-  void _startAutoScroll() {
-    _timer = Timer.periodic(const Duration(seconds: 4), (timer) {
-      if (_pageController.hasClients) {
-        int next = (_currentPage + 1) % _slides.length;
-        _pageController.animateToPage(
-          next,
-          duration: const Duration(milliseconds: 600),
-          curve: Curves.easeInOutCubic,
-        );
-      }
-    });
-  }
-
-  @override
-  void dispose() {
-    _timer?.cancel();
-    _pageController.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return GestureDetector(
       onTap: () {
-        Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (_) => const HealthCoachingIntroScreen(),
-          ),
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => const HealthCoachingIntroScreen()),
         );
       },
       child: Container(
+        padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(24),
-          gradient: const LinearGradient(
-            colors: [
-              Color(0xFFFFA94A), // Orange
-              Color(0xFF1FD1A5), // Teal
-            ],
+          gradient: LinearGradient(
+            colors: isDark
+                ? [const Color(0xFF1A1A2E), const Color(0xFF16213E)]
+                : [Colors.white, const Color(0xFFF8F9FF)],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
+          border: Border.all(
+            color: isDark
+                ? Colors.white.withValues(alpha: 0.08)
+                : const Color(0xFF8B5CF6).withValues(alpha: 0.2),
+            width: 1,
+          ),
           boxShadow: [
             BoxShadow(
-              color: const Color(0xFF1FD1A5).withValues(alpha: 0.3),
-              blurRadius: 20,
-              offset: const Offset(0, 10),
+              color: const Color(0xFF8B5CF6)
+                  .withValues(alpha: isDark ? 0.15 : 0.08),
+              blurRadius: 24,
+              offset: const Offset(0, 8),
             ),
           ],
         ),
-        child: Stack(
+        child: Row(
           children: [
-            // Decorative background patterns
-            Positioned(
-              top: -20,
-              right: -20,
-              child: Container(
-                width: 150,
-                height: 150,
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.1),
-                  shape: BoxShape.circle,
+            // Modern AI Avatar with gradient ring
+            Container(
+              width: 64,
+              height: 64,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(20),
+                gradient: const LinearGradient(
+                  colors: [Color(0xFF8B5CF6), Color(0xFFEC4899)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
                 ),
-              ),
-            ),
-            Positioned(
-              bottom: -40,
-              left: -40,
-              child: Container(
-                width: 120,
-                height: 120,
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.05),
-                  shape: BoxShape.circle,
-                ),
-              ),
-            ),
-
-            Column(
-              children: [
-                // CAROUSEL SECTION
-                SizedBox(
-                  height: 180,
-                  child: PageView.builder(
-                    controller: _pageController,
-                    onPageChanged: (index) {
-                      setState(() => _currentPage = index);
-                    },
-                    itemCount: _slides.length,
-                    itemBuilder: (context, index) {
-                      final item = _slides[index];
-                      return Padding(
-                        padding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            // Animated Icon
-                            Container(
-                              padding: const EdgeInsets.all(12),
-                              decoration: BoxDecoration(
-                                color: Colors.white.withValues(alpha: 0.2),
-                                shape: BoxShape.circle,
-                                border: Border.all(
-                                  color: Colors.white.withValues(alpha: 0.3),
-                                  width: 1,
-                                ),
-                              ),
-                              child: Icon(
-                                item['icon'] as IconData,
-                                color: Colors.white,
-                                size: 28,
-                              ),
-                            )
-                                .animate(
-                                    key: ValueKey('icon_$index'),
-                                    onPlay: (c) => c.repeat())
-                                .shimmer(
-                                    duration: 2000.ms,
-                                    color: Colors.white.withValues(alpha: 0.8))
-                                .animate()
-                                .scale(
-                                  begin: const Offset(0.9, 0.9),
-                                  end: const Offset(1.0, 1.0),
-                                  duration: 400.ms,
-                                  curve: Curves.easeOutBack,
-                                ),
-
-                            const SizedBox(width: 16),
-
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    item['title'] as String,
-                                    style: const TextStyle(
-                                      fontSize: 20,
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.white,
-                                      height: 1.1,
-                                    ),
-                                  )
-                                      .animate(key: ValueKey('title_$index'))
-                                      .fadeIn()
-                                      .slideX(
-                                          begin: 0.2,
-                                          curve: Curves.easeOutCubic,
-                                          duration: 400.ms),
-                                  const SizedBox(height: 8),
-                                  Text(
-                                    item['desc'] as String,
-                                    style: TextStyle(
-                                      fontSize: 13,
-                                      color:
-                                          Colors.white.withValues(alpha: 0.9),
-                                      height: 1.4,
-                                    ),
-                                  )
-                                      .animate(key: ValueKey('desc_$index'))
-                                      .fadeIn(delay: 100.ms, duration: 400.ms),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                      );
-                    },
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFF8B5CF6).withValues(alpha: 0.4),
+                    blurRadius: 16,
+                    offset: const Offset(0, 6),
                   ),
-                ),
-
-                // PAGE INDICATORS
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: List.generate(_slides.length, (index) {
-                    return AnimatedContainer(
-                      duration: const Duration(milliseconds: 300),
-                      margin: const EdgeInsets.symmetric(horizontal: 4),
-                      width: _currentPage == index ? 20 : 6,
-                      height: 6,
-                      decoration: BoxDecoration(
-                        color: _currentPage == index
-                            ? Colors.white
-                            : Colors.white.withValues(alpha: 0.4),
-                        borderRadius: BorderRadius.circular(3),
+                ],
+              ),
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  // Inner icon container
+                  Container(
+                    width: 56,
+                    height: 56,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(16),
+                      color: Colors.white.withValues(alpha: 0.15),
+                    ),
+                    child: const Center(
+                      child: Icon(
+                        Icons.auto_awesome,
+                        color: Colors.white,
+                        size: 28,
                       ),
-                    );
-                  }),
-                ),
-
-                const SizedBox(height: 16),
-
-                // SOCIAL PROOF & CTA
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  margin:
-                      const EdgeInsets.only(left: 16, right: 16, bottom: 16),
-                  decoration: BoxDecoration(
-                    color: Colors.black.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(
-                      color: Colors.white.withValues(alpha: 0.1),
                     ),
                   ),
-                  child: Row(
+                ],
+              ),
+            ),
+            const SizedBox(width: 16),
+            // Text Content
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
                     children: [
-                      // Animated emoji icons instead of fake avatars
-                      Row(
-                        children: [
-                          Container(
-                            width: 36,
-                            height: 36,
-                            decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                colors: [
-                                  theme.colorScheme.primary,
-                                  theme.colorScheme.secondary,
-                                ],
-                              ),
-                              shape: BoxShape.circle,
-                            ),
-                            child: const Center(
-                              child: Text('🔥', style: TextStyle(fontSize: 18)),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Container(
-                            width: 36,
-                            height: 36,
-                            decoration: const BoxDecoration(
-                              gradient: LinearGradient(
-                                colors: [
-                                  Colors.orange,
-                                  Colors.deepOrange,
-                                ],
-                              ),
-                              shape: BoxShape.circle,
-                            ),
-                            child: const Center(
-                              child: Text('⭐', style: TextStyle(fontSize: 18)),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(width: 12),
-                      const Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              '10K+ users building habits',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 12,
-                              ),
-                            ),
-                            Text(
-                              'Start your streak today!',
-                              style: TextStyle(
-                                color: Colors.white70,
-                                fontSize: 10,
-                              ),
-                            ),
-                          ],
+                      Text(
+                        'Wind',
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color:
+                              isDark ? Colors.white : const Color(0xFF1A1A2E),
+                          letterSpacing: -0.5,
                         ),
                       ),
+                      const SizedBox(width: 8),
+                      // AI Badge
                       Container(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 12, vertical: 8),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(20),
+                          horizontal: 8,
+                          vertical: 3,
                         ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(
-                              'Go',
-                              style: TextStyle(
-                                color: theme.colorScheme.primary,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 12,
-                              ),
-                            ),
-                            const SizedBox(width: 4),
-                            Icon(
-                              Icons.arrow_forward,
-                              size: 14,
-                              color: theme.colorScheme.primary,
-                            ),
-                          ],
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(
+                            colors: [Color(0xFF8B5CF6), Color(0xFFEC4899)],
+                          ),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Text(
+                          'AI',
+                          style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                            letterSpacing: 0.5,
+                          ),
                         ),
                       ),
                     ],
                   ),
+                  const SizedBox(height: 6),
+                  Text(
+                    'Personalized health insights & coaching',
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: isDark ? Colors.grey[400] : Colors.grey[600],
+                      height: 1.3,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            // Animated Arrow
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    const Color(0xFF8B5CF6).withValues(alpha: 0.15),
+                    const Color(0xFFEC4899).withValues(alpha: 0.15),
+                  ],
                 ),
-              ],
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: const Icon(
+                Icons.arrow_forward_rounded,
+                color: Color(0xFF8B5CF6),
+                size: 22,
+              ),
             ),
           ],
         ),
       ),
-    ).animate().fadeIn(duration: 600.ms).slideY(begin: 0.2, end: 0);
+    ).animate().fadeIn(duration: 500.ms).slideY(begin: 0.1, end: 0);
+  }
+}
+
+// Modern Health Metric Card
+class _HealthMetricCard extends StatelessWidget {
+  final IconData icon;
+  final Color iconColor;
+  final String title;
+  final String value;
+  final String unit;
+  final bool isDark;
+
+  const _HealthMetricCard({
+    required this.icon,
+    required this.iconColor,
+    required this.title,
+    required this.value,
+    required this.unit,
+    required this.isDark,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: isDark
+                ? Colors.black.withValues(alpha: 0.3)
+                : Colors.black.withValues(alpha: 0.05),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+        border: Border.all(
+          color: isDark
+              ? Colors.white.withValues(alpha: 0.08)
+              : Colors.grey.withValues(alpha: 0.1),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Icon
+          Container(
+            width: 32,
+            height: 32,
+            decoration: BoxDecoration(
+              color: iconColor.withValues(alpha: 0.15),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(icon, color: iconColor, size: 18),
+          ),
+          const SizedBox(height: 10),
+          // Title
+          Text(
+            title,
+            style: TextStyle(
+              fontSize: 11,
+              color: isDark ? Colors.grey[400] : Colors.grey[600],
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          const SizedBox(height: 2),
+          // Value + Unit
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                value,
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: isDark ? Colors.white : Colors.black87,
+                ),
+              ),
+              const SizedBox(width: 2),
+              Padding(
+                padding: const EdgeInsets.only(bottom: 2),
+                child: Text(
+                  unit,
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: isDark ? Colors.grey[500] : Colors.grey[600],
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    ).animate().fadeIn(duration: 400.ms).scale(
+          begin: const Offset(0.95, 0.95),
+          end: const Offset(1, 1),
+          duration: 350.ms,
+          curve: Curves.easeOut,
+        );
   }
 }
 
@@ -1472,81 +1563,168 @@ class _WeeklyChart extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     final days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              title,
-              style: theme.textTheme.titleSmall?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 16),
-            SizedBox(
-              height: 120,
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: List.generate(7, (index) {
-                  final value = data[index];
-                  final heightPercent = (value / maxValue).clamp(0.0, 1.0);
-                  final isSelected = selectedIndex == index;
+    // Calculate week-over-week change
+    final currentWeekAvg = (data[4] + data[5] + data[6]) / 3;
+    final prevWeekAvg = (data[0] + data[1] + data[2]) / 3;
+    final percentChange = prevWeekAvg > 0
+        ? ((currentWeekAvg - prevWeekAvg) / prevWeekAvg * 100).round()
+        : 0;
+    final isImproved = percentChange > 0;
 
-                  return Expanded(
-                    child: GestureDetector(
-                      onTap: () => onTap?.call(index),
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 4),
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.end,
-                          children: [
-                            TweenAnimationBuilder<double>(
-                              tween: Tween(begin: 0, end: heightPercent),
-                              duration:
-                                  Duration(milliseconds: 500 + (index * 50)),
-                              curve: Curves.easeOutCubic,
-                              builder: (context, animValue, _) {
-                                return Container(
-                                  height: 80 * animValue,
-                                  decoration: BoxDecoration(
-                                    color: isSelected
-                                        ? color
-                                        : color.withValues(alpha: 0.1),
-                                    borderRadius: const BorderRadius.vertical(
-                                      top: Radius.circular(4),
-                                    ),
-                                    border: isSelected
-                                        ? Border.all(
-                                            color: Colors.black12, width: 2)
-                                        : null,
-                                  ),
-                                );
-                              },
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              days[index],
-                              style: theme.textTheme.bodySmall?.copyWith(
-                                fontSize: 10,
-                                fontWeight: isSelected ? FontWeight.bold : null,
-                                color: isSelected ? color : null,
-                              ),
-                            ),
-                          ],
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: isDark
+                ? Colors.black.withValues(alpha: 0.3)
+                : Colors.black.withValues(alpha: 0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header with comparison badge
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                title,
+                style: theme.textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              // Week-over-week comparison badge
+              if (percentChange != 0)
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: isImproved
+                        ? const Color(0xFF4CAF50).withValues(alpha: 0.15)
+                        : const Color(0xFFE91E63).withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        isImproved ? Icons.trending_up : Icons.trending_down,
+                        size: 14,
+                        color: isImproved
+                            ? const Color(0xFF4CAF50)
+                            : const Color(0xFFE91E63),
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        '${isImproved ? '+' : ''}$percentChange%',
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                          color: isImproved
+                              ? const Color(0xFF4CAF50)
+                              : const Color(0xFFE91E63),
                         ),
                       ),
+                    ],
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          SizedBox(
+            height: 120,
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: List.generate(7, (index) {
+                final value = data[index];
+                final heightPercent = (value / maxValue).clamp(0.0, 1.0);
+                final isSelected = selectedIndex == index;
+                final isToday = index == 6;
+
+                return Expanded(
+                  child: GestureDetector(
+                    onTap: () => onTap?.call(index),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 3),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: [
+                          // Value label for selected/today
+                          if (isSelected || isToday)
+                            Padding(
+                              padding: const EdgeInsets.only(bottom: 4),
+                              child: Text(
+                                value.toInt().toString(),
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                  color: color,
+                                ),
+                              ),
+                            ),
+                          TweenAnimationBuilder<double>(
+                            tween: Tween(begin: 0, end: heightPercent),
+                            duration:
+                                Duration(milliseconds: 500 + (index * 50)),
+                            curve: Curves.easeOutCubic,
+                            builder: (context, animValue, _) {
+                              return Container(
+                                height: 70 * animValue,
+                                decoration: BoxDecoration(
+                                  gradient: LinearGradient(
+                                    colors: isSelected || isToday
+                                        ? [color, color.withValues(alpha: 0.7)]
+                                        : [
+                                            color.withValues(alpha: 0.3),
+                                            color.withValues(alpha: 0.1)
+                                          ],
+                                    begin: Alignment.topCenter,
+                                    end: Alignment.bottomCenter,
+                                  ),
+                                  borderRadius: BorderRadius.circular(6),
+                                  boxShadow: (isSelected || isToday)
+                                      ? [
+                                          BoxShadow(
+                                            color: color.withValues(alpha: 0.3),
+                                            blurRadius: 6,
+                                            offset: const Offset(0, 2),
+                                          ),
+                                        ]
+                                      : null,
+                                ),
+                              );
+                            },
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            days[index],
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              fontSize: 10,
+                              fontWeight: (isSelected || isToday)
+                                  ? FontWeight.bold
+                                  : null,
+                              color: (isSelected || isToday) ? color : null,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                  );
-                }),
-              ),
+                  ),
+                );
+              }),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -1842,280 +2020,239 @@ class _AchievementsTab extends StatelessWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     // Calculate achievement stats
-    final totalCompletedDays = getTotalCompletedDays(habits);
+    final totalCompletedDays = _getTotalCompletedDays(habits);
     final longestStreak = habits.isEmpty
         ? 0
         : habits.map((h) => h.streak).reduce((a, b) => a > b ? a : b);
     final totalHabits = habits.length;
-    final perfectDays = getPerfectDays(habits);
+    final perfectDays = _getPerfectDays(habits);
     final categories = habits.map((h) => h.category).toSet().length;
 
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
+      physics: const ClampingScrollPhysics(),
+      padding: const EdgeInsets.symmetric(vertical: 20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Stats Summary
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: isDark ? const Color(0xFF191919) : null,
-              gradient: isDark
-                  ? null
-                  : const LinearGradient(
-                      colors: [Colors.white, Color(0xFFF5F5F5)],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(
-                color: isDark ? Colors.white10 : Colors.grey.shade200,
-              ),
-            ),
+          // Stats Summary - Modern pill cards
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
-                _buildStatItem(context, '$totalHabits', 'Habits'),
-                _buildStatItem(context, '$longestStreak', 'Best Streak'),
-                _buildStatItem(context, '$perfectDays', 'Perfect Days'),
-                _buildStatItem(context, '$totalCompletedDays', 'Total Done'),
+                _ModernStatPill(
+                    value: '$totalHabits',
+                    label: 'Habits',
+                    color: const Color(0xFF6366F1),
+                    isDark: isDark),
+                const SizedBox(width: 8),
+                _ModernStatPill(
+                    value: '$longestStreak',
+                    label: 'Best',
+                    color: const Color(0xFFFFA94A),
+                    isDark: isDark),
+                const SizedBox(width: 8),
+                _ModernStatPill(
+                    value: '$perfectDays',
+                    label: 'Perfect',
+                    color: const Color(0xFF10B981),
+                    isDark: isDark),
+                const SizedBox(width: 8),
+                _ModernStatPill(
+                    value: '$totalCompletedDays',
+                    label: 'Done',
+                    color: const Color(0xFF1FD1A5),
+                    isDark: isDark),
               ],
             ),
+          ).animate().fadeIn(duration: 400.ms).slideY(begin: -0.1, end: 0),
+
+          const SizedBox(height: 28),
+
+          // Daily Completion - Horizontal Scroll
+          _buildCategorySection(
+            context,
+            title: '⭐ Daily Completion',
+            achievements: [
+              _AchievementData('⭐', 'First Perfect', 'Complete all habits',
+                  'Bronze', perfectDays >= 1, perfectDays >= 1 ? 1.0 : 0.0),
+              _AchievementData(
+                  '🌟',
+                  'Week Champion',
+                  '7 perfect days',
+                  'Silver',
+                  perfectDays >= 7,
+                  (perfectDays / 7).clamp(0.0, 1.0)),
+              _AchievementData(
+                  '💫',
+                  'Monthly Master',
+                  '30 perfect days',
+                  'Gold',
+                  perfectDays >= 30,
+                  (perfectDays / 30).clamp(0.0, 1.0)),
+            ],
+            isDark: isDark,
           ),
 
           const SizedBox(height: 24),
 
-          // Daily Completion Section
-          _buildCategoryHeader(context, 'Daily Completion'),
-          const SizedBox(height: 12),
-          _EnhancedAchievementCard(
-            icon: '⭐',
-            title: 'First Perfect Day',
-            description: 'Complete all habits in one day',
-            rarity: 'Bronze',
-            unlocked: perfectDays >= 1,
-            progress: perfectDays >= 1 ? 1.0 : 0.0,
-            current: perfectDays >= 1 ? 1 : 0,
-            target: 1,
-          ),
-          _EnhancedAchievementCard(
-            icon: '🌟',
-            title: 'Week Champion',
-            description: '7 perfect days',
-            rarity: 'Silver',
-            unlocked: perfectDays >= 7,
-            progress: (perfectDays / 7).clamp(0.0, 1.0),
-            current: perfectDays.clamp(0, 7),
-            target: 7,
-          ),
-          _EnhancedAchievementCard(
-            icon: '💫',
-            title: 'Monthly Master',
-            description: '30 perfect days',
-            rarity: 'Gold',
-            unlocked: perfectDays >= 30,
-            progress: (perfectDays / 30).clamp(0.0, 1.0),
-            current: perfectDays.clamp(0, 30),
-            target: 30,
+          // Streak Records - Horizontal Scroll
+          _buildCategorySection(
+            context,
+            title: '🔥 Streak Records',
+            achievements: [
+              _AchievementData(
+                  '🔥',
+                  'Getting Started',
+                  '3-day streak',
+                  'Bronze',
+                  longestStreak >= 3,
+                  (longestStreak / 3).clamp(0.0, 1.0)),
+              _AchievementData('💥', 'Week Warrior', '7-day streak', 'Silver',
+                  longestStreak >= 7, (longestStreak / 7).clamp(0.0, 1.0)),
+              _AchievementData('🚀', 'Unstoppable', '30-day streak', 'Gold',
+                  longestStreak >= 30, (longestStreak / 30).clamp(0.0, 1.0)),
+              _AchievementData(
+                  '👑',
+                  'Streak Legend',
+                  '100-day streak',
+                  'Platinum',
+                  longestStreak >= 100,
+                  (longestStreak / 100).clamp(0.0, 1.0)),
+            ],
+            isDark: isDark,
           ),
 
           const SizedBox(height: 24),
 
-          // Streak Section
-          _buildCategoryHeader(context, 'Streak Records'),
-          const SizedBox(height: 12),
-          _EnhancedAchievementCard(
-            icon: '🔥',
-            title: 'Getting Started',
-            description: '3-day streak',
-            rarity: 'Bronze',
-            unlocked: longestStreak >= 3,
-            progress: (longestStreak / 3).clamp(0.0, 1.0),
-            current: longestStreak.clamp(0, 3),
-            target: 3,
-          ),
-          _EnhancedAchievementCard(
-            icon: '💥',
-            title: 'Week Warrior',
-            description: '7-day streak',
-            rarity: 'Silver',
-            unlocked: longestStreak >= 7,
-            progress: (longestStreak / 7).clamp(0.0, 1.0),
-            current: longestStreak.clamp(0, 7),
-            target: 7,
-          ),
-          _EnhancedAchievementCard(
-            icon: '🚀',
-            title: 'Unstoppable',
-            description: '30-day streak',
-            rarity: 'Gold',
-            unlocked: longestStreak >= 30,
-            progress: (longestStreak / 30).clamp(0.0, 1.0),
-            current: longestStreak.clamp(0, 30),
-            target: 30,
-          ),
-          _EnhancedAchievementCard(
-            icon: '👑',
-            title: 'Streak Legend',
-            description: '100-day streak',
-            rarity: 'Platinum',
-            unlocked: longestStreak >= 100,
-            progress: (longestStreak / 100).clamp(0.0, 1.0),
-            current: longestStreak.clamp(0, 100),
-            target: 100,
+          // Collection - Horizontal Scroll
+          _buildCategorySection(
+            context,
+            title: '🌱 Habit Collection',
+            achievements: [
+              _AchievementData('🌱', 'First Step', 'Create 1 habit', 'Bronze',
+                  totalHabits >= 1, totalHabits >= 1 ? 1.0 : 0.0),
+              _AchievementData('🌿', 'Building', '5 habits', 'Silver',
+                  totalHabits >= 5, (totalHabits / 5).clamp(0.0, 1.0)),
+              _AchievementData('🌳', 'Architect', '10 habits', 'Gold',
+                  totalHabits >= 10, (totalHabits / 10).clamp(0.0, 1.0)),
+            ],
+            isDark: isDark,
           ),
 
           const SizedBox(height: 24),
 
-          // Collection Section
-          _buildCategoryHeader(context, 'Habit Collection'),
-          const SizedBox(height: 12),
-          _EnhancedAchievementCard(
-            icon: '🌱',
-            title: 'First Step',
-            description: 'Create your first habit',
-            rarity: 'Bronze',
-            unlocked: totalHabits >= 1,
-            progress: totalHabits >= 1 ? 1.0 : 0.0,
-            current: totalHabits >= 1 ? 1 : 0,
-            target: 1,
-          ),
-          _EnhancedAchievementCard(
-            icon: '🌿',
-            title: 'Building Momentum',
-            description: '5 habits created',
-            rarity: 'Silver',
-            unlocked: totalHabits >= 5,
-            progress: (totalHabits / 5).clamp(0.0, 1.0),
-            current: totalHabits.clamp(0, 5),
-            target: 5,
-          ),
-          _EnhancedAchievementCard(
-            icon: '🌳',
-            title: 'Habit Architect',
-            description: '10 habits created',
-            rarity: 'Gold',
-            unlocked: totalHabits >= 10,
-            progress: (totalHabits / 10).clamp(0.0, 1.0),
-            current: totalHabits.clamp(0, 10),
-            target: 10,
-          ),
-
-          const SizedBox(height: 24),
-
-          // Total Completions Section
-          _buildCategoryHeader(context, 'Total Completions'),
-          const SizedBox(height: 12),
-          _EnhancedAchievementCard(
-            icon: '💪',
-            title: 'Committed',
-            description: '10 total completions',
-            rarity: 'Bronze',
-            unlocked: totalCompletedDays >= 10,
-            progress: (totalCompletedDays / 10).clamp(0.0, 1.0),
-            current: totalCompletedDays.clamp(0, 10),
-            target: 10,
-          ),
-          _EnhancedAchievementCard(
-            icon: '🏆',
-            title: 'Dedicated',
-            description: '50 total completions',
-            rarity: 'Silver',
-            unlocked: totalCompletedDays >= 50,
-            progress: (totalCompletedDays / 50).clamp(0.0, 1.0),
-            current: totalCompletedDays.clamp(0, 50),
-            target: 50,
-          ),
-          _EnhancedAchievementCard(
-            icon: '👑',
-            title: 'Legendary',
-            description: '100 total completions',
-            rarity: 'Gold',
-            unlocked: totalCompletedDays >= 100,
-            progress: (totalCompletedDays / 100).clamp(0.0, 1.0),
-            current: totalCompletedDays.clamp(0, 100),
-            target: 100,
-          ),
-          _EnhancedAchievementCard(
-            icon: '💎',
-            title: 'Diamond Status',
-            description: '500 total completions',
-            rarity: 'Platinum',
-            unlocked: totalCompletedDays >= 500,
-            progress: (totalCompletedDays / 500).clamp(0.0, 1.0),
-            current: totalCompletedDays.clamp(0, 500),
-            target: 500,
+          // Total Completions - Horizontal Scroll
+          _buildCategorySection(
+            context,
+            title: '💪 Total Completions',
+            achievements: [
+              _AchievementData(
+                  '💪',
+                  'Committed',
+                  '10 completions',
+                  'Bronze',
+                  totalCompletedDays >= 10,
+                  (totalCompletedDays / 10).clamp(0.0, 1.0)),
+              _AchievementData(
+                  '🏆',
+                  'Dedicated',
+                  '50 completions',
+                  'Silver',
+                  totalCompletedDays >= 50,
+                  (totalCompletedDays / 50).clamp(0.0, 1.0)),
+              _AchievementData(
+                  '👑',
+                  'Legendary',
+                  '100 completions',
+                  'Gold',
+                  totalCompletedDays >= 100,
+                  (totalCompletedDays / 100).clamp(0.0, 1.0)),
+              _AchievementData(
+                  '💎',
+                  'Diamond',
+                  '500 completions',
+                  'Platinum',
+                  totalCompletedDays >= 500,
+                  (totalCompletedDays / 500).clamp(0.0, 1.0)),
+            ],
+            isDark: isDark,
           ),
 
           const SizedBox(height: 24),
 
-          // Variety Section
-          _buildCategoryHeader(context, 'Variety'),
-          const SizedBox(height: 12),
-          _EnhancedAchievementCard(
-            icon: '🎨',
-            title: 'Multi-Tasker',
-            description: 'Habits in 3 categories',
-            rarity: 'Bronze',
-            unlocked: categories >= 3,
-            progress: (categories / 3).clamp(0.0, 1.0),
-            current: categories.clamp(0, 3),
-            target: 3,
-          ),
-          _EnhancedAchievementCard(
-            icon: '🌈',
-            title: 'Well Rounded',
-            description: 'Habits in 5 categories',
-            rarity: 'Silver',
-            unlocked: categories >= 5,
-            progress: (categories / 5).clamp(0.0, 1.0),
-            current: categories.clamp(0, 5),
-            target: 5,
+          // Variety - Horizontal Scroll
+          _buildCategorySection(
+            context,
+            title: '🎨 Variety',
+            achievements: [
+              _AchievementData('🎨', 'Multi-Tasker', '3 categories', 'Bronze',
+                  categories >= 3, (categories / 3).clamp(0.0, 1.0)),
+              _AchievementData('☯️', 'Well Rounded', '5 categories', 'Silver',
+                  categories >= 5, (categories / 5).clamp(0.0, 1.0)),
+            ],
+            isDark: isDark,
           ),
 
-          const SizedBox(height: 24),
+          const SizedBox(height: 40),
         ],
       ),
     );
   }
 
-  Widget _buildStatItem(BuildContext context, String value, String label) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+  Widget _buildCategorySection(
+    BuildContext context, {
+    required String title,
+    required List<_AchievementData> achievements,
+    required bool isDark,
+  }) {
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          value,
-          style: TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-            color: isDark ? Colors.white : Colors.black87,
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Text(
+            title,
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w700,
+              color: isDark ? Colors.white : Colors.black87,
+            ),
           ),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 11,
-            color: isDark ? Colors.grey[400] : Colors.grey[600],
+        ).animate().fadeIn(delay: 100.ms),
+        const SizedBox(height: 12),
+        SizedBox(
+          height: 140,
+          child: ListView.builder(
+            scrollDirection: Axis.horizontal,
+            physics: const ClampingScrollPhysics(),
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            itemCount: achievements.length,
+            itemBuilder: (context, index) {
+              final a = achievements[index];
+              return Padding(
+                padding: EdgeInsets.only(
+                    right: index < achievements.length - 1 ? 12 : 0),
+                child: _ModernAchievementCard(
+                  icon: a.icon,
+                  title: a.title,
+                  description: a.description,
+                  rarity: a.rarity,
+                  unlocked: a.unlocked,
+                  progress: a.progress,
+                  isDark: isDark,
+                )
+                    .animate(delay: (index * 80).ms)
+                    .fadeIn()
+                    .slideX(begin: 0.15, end: 0),
+              );
+            },
           ),
         ),
       ],
     );
   }
 
-  Widget _buildCategoryHeader(BuildContext context, String title) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    return Text(
-      title,
-      style: TextStyle(
-        fontSize: 16,
-        fontWeight: FontWeight.w600,
-        color: isDark ? Colors.grey[300] : Colors.grey[700],
-      ),
-    );
-  }
-
-  int getTotalCompletedDays(List<Habit> habits) {
+  int _getTotalCompletedDays(List<Habit> habits) {
     int total = 0;
     for (final habit in habits) {
       total += habit.completionDates.length;
@@ -2123,14 +2260,12 @@ class _AchievementsTab extends StatelessWidget {
     return total;
   }
 
-  int getPerfectDays(List<Habit> habits) {
+  int _getPerfectDays(List<Habit> habits) {
     if (habits.isEmpty) return 0;
-
     final allDates = <String>{};
     for (final habit in habits) {
       allDates.addAll(habit.completionDates);
     }
-
     int perfectDays = 0;
     for (final date in allDates) {
       bool allCompleted = true;
@@ -2142,31 +2277,91 @@ class _AchievementsTab extends StatelessWidget {
       }
       if (allCompleted) perfectDays++;
     }
-
     return perfectDays;
   }
 }
 
-// Enhanced Achievement Card with Progress Bar
-class _EnhancedAchievementCard extends StatelessWidget {
+// Data class for achievements
+class _AchievementData {
   final String icon;
   final String title;
   final String description;
-  final String rarity; // Bronze, Silver, Gold, Platinum
+  final String rarity;
   final bool unlocked;
   final double progress;
-  final int current;
-  final int target;
 
-  const _EnhancedAchievementCard({
+  _AchievementData(this.icon, this.title, this.description, this.rarity,
+      this.unlocked, this.progress);
+}
+
+// Modern stat pill widget
+class _ModernStatPill extends StatelessWidget {
+  final String value;
+  final String label;
+  final Color color;
+  final bool isDark;
+
+  const _ModernStatPill({
+    required this.value,
+    required this.label,
+    required this.color,
+    required this.isDark,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        decoration: BoxDecoration(
+          color: isDark
+              ? color.withValues(alpha: 0.15)
+              : color.withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Column(
+          children: [
+            Text(
+              value,
+              style: TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.bold,
+                color: color,
+              ),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 11,
+                color: isDark ? Colors.grey[400] : Colors.grey[600],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// Modern achievement card with circular progress
+class _ModernAchievementCard extends StatelessWidget {
+  final String icon;
+  final String title;
+  final String description;
+  final String rarity;
+  final bool unlocked;
+  final double progress;
+  final bool isDark;
+
+  const _ModernAchievementCard({
     required this.icon,
     required this.title,
     required this.description,
     required this.rarity,
     required this.unlocked,
     required this.progress,
-    required this.current,
-    required this.target,
+    required this.isDark,
   });
 
   Color get rarityColor {
@@ -2174,11 +2369,11 @@ class _EnhancedAchievementCard extends StatelessWidget {
       case 'Bronze':
         return const Color(0xFFCD7F32);
       case 'Silver':
-        return const Color(0xFFC0C0C0);
+        return const Color(0xFFA8A8A8);
       case 'Gold':
         return const Color(0xFFFFD700);
       case 'Platinum':
-        return const Color(0xFFE5E4E2);
+        return const Color(0xFF26C6DA);
       default:
         return Colors.grey;
     }
@@ -2186,153 +2381,104 @@ class _EnhancedAchievementCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
     return Container(
-      margin: const EdgeInsets.only(bottom: 12),
+      width: 120,
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF191919) : Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(
-          color: unlocked
-              ? rarityColor.withValues(alpha: 0.5)
-              : (isDark ? Colors.grey[800]! : Colors.grey[200]!),
-          width: unlocked ? 1.5 : 1,
-        ),
-        boxShadow: unlocked
-            ? [
-                BoxShadow(
-                  color: rarityColor.withValues(alpha: 0.1),
-                  blurRadius: 8,
-                  offset: const Offset(0, 2),
-                ),
-              ]
+        color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: unlocked
+            ? Border.all(color: rarityColor.withValues(alpha: 0.5), width: 1.5)
             : null,
+        boxShadow: [
+          BoxShadow(
+            color: unlocked
+                ? rarityColor.withValues(alpha: 0.15)
+                : Colors.black.withValues(alpha: isDark ? 0.3 : 0.06),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
-      child: Padding(
-        padding: const EdgeInsets.all(14),
-        child: Row(
-          children: [
-            // Icon
-            Container(
-              width: 50,
-              height: 50,
-              decoration: BoxDecoration(
-                color: unlocked
-                    ? rarityColor.withValues(alpha: 0.15)
-                    : (isDark ? Colors.grey[800] : Colors.grey[100]),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Center(
-                child: Text(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          // Progress ring with icon
+          SizedBox(
+            width: 52,
+            height: 52,
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                // Progress ring
+                SizedBox(
+                  width: 52,
+                  height: 52,
+                  child: CircularProgressIndicator(
+                    value: progress,
+                    strokeWidth: 3,
+                    backgroundColor:
+                        isDark ? Colors.grey[800] : Colors.grey[200],
+                    valueColor: AlwaysStoppedAnimation(
+                      unlocked
+                          ? rarityColor
+                          : rarityColor.withValues(alpha: 0.5),
+                    ),
+                  ),
+                ),
+                // Icon
+                Text(
                   icon,
                   style: TextStyle(
                     fontSize: 24,
                     color: unlocked ? null : Colors.grey,
                   ),
                 ),
-              ),
-            ),
-            const SizedBox(width: 14),
-            // Content
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Text(
-                        title,
-                        style: TextStyle(
-                          fontWeight: FontWeight.w600,
-                          fontSize: 15,
-                          color: unlocked
-                              ? (isDark ? Colors.white : Colors.black87)
-                              : (isDark ? Colors.grey[500] : Colors.grey[600]),
-                        ),
+                // Checkmark for unlocked
+                if (unlocked)
+                  Positioned(
+                    right: 0,
+                    bottom: 0,
+                    child: Container(
+                      width: 18,
+                      height: 18,
+                      decoration: BoxDecoration(
+                        color: rarityColor,
+                        shape: BoxShape.circle,
                       ),
-                      const SizedBox(width: 8),
-                      // Rarity badge
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 6,
-                          vertical: 2,
-                        ),
-                        decoration: BoxDecoration(
-                          color: rarityColor.withValues(
-                              alpha: unlocked ? 0.2 : 0.1),
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                        child: Text(
-                          rarity,
-                          style: TextStyle(
-                            fontSize: 9,
-                            fontWeight: FontWeight.w600,
-                            color: unlocked ? rarityColor : Colors.grey,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    description,
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: isDark ? Colors.grey[400] : Colors.grey[600],
+                      child: const Icon(Icons.check,
+                          color: Colors.white, size: 12),
                     ),
                   ),
-                  if (!unlocked) ...[
-                    const SizedBox(height: 8),
-                    // Progress bar
-                    Row(
-                      children: [
-                        Expanded(
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(4),
-                            child: LinearProgressIndicator(
-                              value: progress,
-                              backgroundColor:
-                                  isDark ? Colors.grey[800] : Colors.grey[200],
-                              valueColor: AlwaysStoppedAnimation<Color>(
-                                rarityColor.withValues(alpha: 0.7),
-                              ),
-                              minHeight: 6,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 10),
-                        Text(
-                          '$current/$target',
-                          style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w500,
-                            color: isDark ? Colors.grey[400] : Colors.grey[600],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ],
-              ),
+              ],
             ),
-            // Unlocked checkmark
-            if (unlocked)
-              Container(
-                width: 28,
-                height: 28,
-                decoration: BoxDecoration(
-                  color: rarityColor.withValues(alpha: 0.15),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(
-                  Icons.check_rounded,
-                  color: rarityColor,
-                  size: 16,
-                ),
-              ),
-          ],
-        ),
+          ),
+          const SizedBox(height: 10),
+          // Title
+          Text(
+            title,
+            textAlign: TextAlign.center,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: unlocked
+                  ? (isDark ? Colors.white : Colors.black87)
+                  : (isDark ? Colors.grey[500] : Colors.grey[600]),
+            ),
+          ),
+          const SizedBox(height: 2),
+          // Rarity
+          Text(
+            rarity,
+            style: TextStyle(
+              fontSize: 10,
+              fontWeight: FontWeight.w500,
+              color: unlocked ? rarityColor : Colors.grey,
+            ),
+          ),
+        ],
       ),
     );
   }

@@ -28,7 +28,7 @@ class _WelcomeScreenState extends State<WelcomeScreen>
       emoji: '🔥',
       title: 'Welcome to Streakoo',
       subtitle:
-          'Your personal habit companion that helps you build lasting habits, track your health, and celebrate every win along the way.',
+          'Your personal habit companion with a stunning modern design that makes building habits feel amazing.',
       description:
           'Join thousands of people who are transforming their lives one habit at a time.',
       isWelcome: true,
@@ -38,9 +38,9 @@ class _WelcomeScreenState extends State<WelcomeScreen>
       emoji: '📊',
       title: 'Smart Habit Tracking',
       subtitle:
-          'Create unlimited habits and track them daily with our intuitive interface.',
+          'Create habits with quick templates or build your own with our beautiful interface.',
       description:
-          '• Build powerful streaks that keep you motivated\n• Earn XP and level up as you complete habits\n• Set custom reminders for each habit\n• View detailed statistics and progress charts',
+          '• Build powerful streaks that keep you motivated\n• Choose from ready-made habit packs or create custom\n• Earn XP, level up, and watch your progress\n• Beautiful animations celebrate every completion',
     ),
     OnboardingPage(
       emoji: '❤️',
@@ -48,22 +48,23 @@ class _WelcomeScreenState extends State<WelcomeScreen>
       subtitle:
           'Connect Apple Health or Google Fit to auto-complete health habits.',
       description:
-          '• Steps, sleep, and heart rate tracking\n• Automatic habit completion based on your data\n• Set personalized health goals\n• Get AI-powered health coaching and insights',
+          '• Steps, sleep, and heart rate tracking\n• Automatic habit completion from your data\n• AI-powered health coaching with personalized plans\n• Track your wellness journey in your profile',
     ),
     OnboardingPage(
-      emoji: '🤖',
-      title: 'AI-Powered Coaching',
-      subtitle: 'Get personalized guidance from your intelligent habit coach.',
-      description:
-          '• Daily briefs tailored to your progress\n• Smart insights based on your patterns\n• Personalized tips to improve consistency\n• Weekly reports and trend analysis',
-    ),
-    OnboardingPage(
-      emoji: '🎉',
-      title: 'Celebrate Every Win',
+      emoji: '✨',
+      title: 'Meet Wind AI',
       subtitle:
-          'Unlock achievements, earn rewards, and make habit building fun.',
+          'Your personal habit coach that works for you — zero effort, maximum results.',
       description:
-          '• Beautiful celebration animations\n• Milestone achievements and badges\n• Level progression system\n• Share your wins with friends',
+          '• Smart daily briefs tailored just for you\n• Ask AI anything about your habits\n• Beautiful purple-themed AI chat experience\n• Weekly insights and progress reports',
+    ),
+    OnboardingPage(
+      emoji: '🏆',
+      title: 'Achievements & Rewards',
+      subtitle:
+          'Unlock 10+ badges, explore your gallery, and make habit building fun.',
+      description:
+          '• Interactive achievement gallery with animations\n• Unlock badges like Streak Royalty and Diamond\n• See all earned and locked achievements\n• Level up and show off your progress',
     ),
   ];
 

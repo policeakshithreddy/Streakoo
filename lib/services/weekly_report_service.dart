@@ -22,6 +22,7 @@ class WeeklyReportService {
     required List<Habit> habits,
     int? xpEarned,
     int? levelsGained,
+    String? existingSummary,
   }) async {
     // Ensure weekStart is a Monday
     final monday = _getMonday(weekStart);
@@ -134,6 +135,7 @@ class WeeklyReportService {
       strugglingHabits: strugglingHabits,
       healthStats: healthStats,
       previousWeekRate: _previousWeekRate,
+      existingSummary: existingSummary,
     );
 
     // Store current rate for next week's comparison
@@ -240,12 +242,14 @@ class WeeklyReportService {
     List<Habit> habits, {
     int? xpEarned,
     int? levelsGained,
+    String? existingSummary,
   }) async {
     return await generateWeeklyReport(
       weekStart: DateTime.now(),
       habits: habits,
       xpEarned: xpEarned,
       levelsGained: levelsGained,
+      existingSummary: existingSummary,
     );
   }
 
@@ -261,7 +265,13 @@ class WeeklyReportService {
     required List<String> strugglingHabits,
     WeeklyHealthStats? healthStats,
     double? previousWeekRate,
+    String? existingSummary,
   }) async {
+    // If we have an existing summary, use it to save API calls
+    if (existingSummary != null && existingSummary.isNotEmpty) {
+      return existingSummary;
+    }
+
     if (!AppConfig.isApiConfigured || !AppConfig.useAIForCoaching) {
       return _getFallbackSummary(completionRate, previousWeekRate);
     }
@@ -307,7 +317,7 @@ Write a 2-3 sentence encouraging summary. Be specific, use the data, add emojis,
 
       final summary = await GroqAIService.instance.generateResponse(
         systemPrompt:
-            'You are Koo, a warm and motivational habit coach. Write brief, data-driven, encouraging summaries with emojis.',
+            'You are Wind, a calm, supportive habit guide. Write brief, data-driven, encouraging summaries with emojis.',
         userPrompt: prompt,
         maxTokens: 120,
         temperature: 0.7,

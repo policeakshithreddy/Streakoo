@@ -6,6 +6,7 @@ import '../models/habit.dart';
 import '../models/user_level.dart';
 import 'supabase_service.dart';
 import 'guest_service.dart';
+import '../models/sync_conflict_result.dart';
 
 /// Sync operation types
 enum SyncOperation {
@@ -116,52 +117,97 @@ class SyncService {
     return hoursSinceSync >= 1;
   }
 
-  /// Perform a full sync on app open
-  Future<SyncResult> syncOnAppOpen(
+  /// Perform a full sync on app open with conflict detection
+  Future<SyncConflictResult> syncOnAppOpen(
       List<Habit> localHabits, UserLevel localLevel) async {
     // Skip for guests
     if (await _guest.isGuestUser()) {
-      return SyncResult(success: true, message: 'Guest mode - no sync needed');
+      return SyncConflictResult.noConflicts();
     }
 
     // Skip if not authenticated
     if (!_supabase.isAuthenticated) {
-      return SyncResult(success: false, message: 'Not authenticated');
-    }
-
-    // Skip if sync not needed
-    if (!(await needsSync())) {
-      return SyncResult(success: true, message: 'Already synced recently');
+      return SyncConflictResult.noConflicts();
     }
 
     // Skip if already syncing
     if (_isSyncing) {
-      return SyncResult(success: false, message: 'Sync already in progress');
+      return SyncConflictResult.noConflicts();
     }
 
     _isSyncing = true;
-    debugPrint('🔄 Starting app open sync...');
+    debugPrint('🔄 Starting app open sync with conflict detection...');
 
     try {
       // First, process any pending offline operations
       await _processPendingQueue();
 
-      // Sync habits to cloud
+      // Phase 1: Fetch cloud habits WITH streak data (for comparison)
+      final cloudHabitsWithStreaks = await _supabase.fetchHabitsFromCloud();
+
+      // Phase 2: Sync metadata only (without streaks) to cloud
+      // This updates names, goals, emojis, etc.
       await _supabase.syncHabitsToCloud(localHabits);
 
-      // Sync user level
+      // Phase 3: Sync user level
       await _supabase.syncUserLevelToCloud(localLevel);
+
+      // Phase 4: Detect streak conflicts
+      final conflictResult = _detectStreakConflicts(
+        cloudHabitsWithStreaks,
+        localHabits,
+      );
 
       await _updateLastSyncTime();
 
-      debugPrint('✅ App open sync completed');
-      return SyncResult(success: true, message: 'Sync completed');
+      if (conflictResult.hasStreakConflicts) {
+        debugPrint(
+            '⚠️ Detected ${conflictResult.differences.length} streak conflicts');
+      } else {
+        debugPrint('✅ App open sync completed - no conflicts');
+      }
+
+      return conflictResult;
     } catch (e) {
       debugPrint('❌ App open sync failed: $e');
-      return SyncResult(success: false, message: 'Sync failed: $e');
+      return SyncConflictResult.noConflicts();
     } finally {
       _isSyncing = false;
     }
+  }
+
+  /// Detect streak conflicts between cloud and local habits
+  SyncConflictResult _detectStreakConflicts(
+    List<Habit> cloudHabits,
+    List<Habit> localHabits,
+  ) {
+    final differences = <HabitStreakDiff>[];
+
+    // Create a map of cloud habits by ID for quick lookup
+    final cloudMap = {for (var h in cloudHabits) h.id: h};
+
+    for (final localHabit in localHabits) {
+      final cloudHabit = cloudMap[localHabit.id];
+      if (cloudHabit == null) continue; // New habit, no conflict
+
+      // Check if streaks differ
+      if (cloudHabit.streak != localHabit.streak) {
+        differences.add(HabitStreakDiff(
+          habitId: localHabit.id,
+          habitName: localHabit.name,
+          emoji: localHabit.emoji,
+          cloudStreak: cloudHabit.streak,
+          localStreak: localHabit.streak,
+        ));
+      }
+    }
+
+    return SyncConflictResult(
+      hasStreakConflicts: differences.isNotEmpty,
+      cloudHabits: cloudHabits,
+      localHabits: localHabits,
+      differences: differences,
+    );
   }
 
   /// Add an operation to the offline queue

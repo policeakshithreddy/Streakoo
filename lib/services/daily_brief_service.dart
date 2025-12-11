@@ -228,7 +228,7 @@ class DailyBriefService {
 
       final response = await GroqAIService.instance.generateResponse(
         systemPrompt:
-            'You are Koo, a warm and encouraging habit coach. Generate a brief, personalized morning motivation in 1-2 sentences with emojis.',
+            'You are Wind, a calm, supportive habit guide. Generate a brief, personalized morning motivation in 1-2 sentences with emojis.',
         userPrompt: 'Generate a morning motivation for someone with: $context',
         maxTokens: 60,
         temperature: 0.8,
@@ -271,7 +271,7 @@ class DailyBriefService {
 
       final response = await GroqAIService.instance.generateResponse(
         systemPrompt:
-            'You are Koo, a compassionate habit coach. Generate a brief evening reflection prompt (1-2 sentences) that is encouraging regardless of performance. Use emojis.',
+            'You are Wind, a calm, supportive habit guide. Generate a brief evening reflection prompt (1-2 sentences) that is encouraging regardless of performance. Use emojis.',
         userPrompt: 'Generate an evening reflection for: $context',
         maxTokens: 60,
         temperature: 0.7,

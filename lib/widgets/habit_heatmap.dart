@@ -17,149 +17,206 @@ class HabitHeatmap extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     final days = endDate.difference(startDate).inDays + 1;
 
     // Weekday labels
     const weekdayLabels = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            const Text(
-              'Consistency Map',
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-            ),
-            Row(
-              children: [
-                _LegendItem(
-                    color: theme.colorScheme.surfaceContainerHighest,
-                    label: '0'),
-                const SizedBox(width: 4),
-                _LegendItem(
-                    color: theme.colorScheme.primary.withValues(alpha: 0.4),
-                    label: '1-2'),
-                const SizedBox(width: 4),
-                _LegendItem(color: theme.colorScheme.primary, label: '3+'),
-                const SizedBox(width: 4),
-                const Text('❄️', style: TextStyle(fontSize: 10)),
-                const SizedBox(width: 2),
-                const Text('Frozen',
-                    style: TextStyle(fontSize: 10, color: Colors.grey)),
-              ],
-            ),
-          ],
+    // Define colors for better visibility
+    final emptyColor = isDark
+        ? Colors.white.withValues(alpha: 0.08) // Visible in dark mode
+        : Colors.grey[200]!; // Light grey in light mode
+
+    final lowColor = isDark
+        ? theme.colorScheme.primary.withValues(alpha: 0.4)
+        : theme.colorScheme.primary.withValues(alpha: 0.35);
+
+    final highColor = theme.colorScheme.primary;
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: isDark
+            ? const Color(0xFF1A1A1A) // Slightly lighter than pure black
+            : Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color:
+              isDark ? Colors.white.withValues(alpha: 0.1) : Colors.grey[200]!,
         ),
-        const SizedBox(height: 12),
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Weekday labels column
-            Column(
-              mainAxisAlignment: MainAxisAlignment.start,
-              children: weekdayLabels.map((label) {
-                return Container(
-                  height: 14, // Match the cell size
-                  margin: const EdgeInsets.only(
-                      bottom: 4), // Match crossAxisSpacing
-                  alignment: Alignment.centerLeft,
-                  child: Text(
-                    label,
-                    style: const TextStyle(
-                      fontSize: 11,
-                      color: Colors.grey,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                );
-              }).toList(),
-            ),
-            const SizedBox(width: 8),
-            // Heat map grid
-            Expanded(
-              child: SizedBox(
-                height: 140, // 7 rows * (14 size + 4 margin) approx
-                child: GridView.builder(
-                  scrollDirection: Axis.horizontal,
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 7, // 7 days a week (rows)
-                    mainAxisSpacing: 4,
-                    crossAxisSpacing: 4,
-                    childAspectRatio: 1,
-                  ),
-                  itemCount: days,
-                  itemBuilder: (context, index) {
-                    final date = startDate.add(Duration(days: index));
-                    final dateKey = DateTime(date.year, date.month, date.day);
-
-                    // Check if frozen
-                    final isFrozen = frozenDates.any((d) =>
-                        d.year == date.year &&
-                        d.month == date.month &&
-                        d.day == date.day);
-
-                    // Get intensity
-                    final intensity = datasets[dateKey] ?? 0;
-
-                    return Tooltip(
-                      message:
-                          '${date.day}/${date.month}: $intensity habits${isFrozen ? " (Frozen)" : ""}',
-                      child: Container(
-                        decoration: BoxDecoration(
-                          color: isFrozen
-                              ? Colors.blue.withValues(alpha: 0.2)
-                              : _getColor(theme, intensity),
-                          borderRadius: BorderRadius.circular(4),
-                          border: isFrozen
-                              ? Border.all(
-                                  color: Colors.blue.withValues(alpha: 0.5))
-                              : null,
-                        ),
-                        alignment: Alignment.center,
-                        child: isFrozen
-                            ? const Text('❄️', style: TextStyle(fontSize: 10))
-                            : null,
-                      ),
-                    );
-                  },
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Consistency Map',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                  color: isDark ? Colors.white : Colors.black87,
                 ),
               ),
-            ),
-          ],
-        ),
-      ],
+              // Legend
+              Row(
+                children: [
+                  _LegendItem(color: emptyColor, label: '0', isDark: isDark),
+                  const SizedBox(width: 6),
+                  _LegendItem(color: lowColor, label: '1-2', isDark: isDark),
+                  const SizedBox(width: 6),
+                  _LegendItem(color: highColor, label: '3+', isDark: isDark),
+                  const SizedBox(width: 8),
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: Colors.blue.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text('❄️', style: TextStyle(fontSize: 10)),
+                        SizedBox(width: 2),
+                        Text('Frozen',
+                            style: TextStyle(fontSize: 10, color: Colors.blue)),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+
+          // Grid
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Weekday labels column
+              Column(
+                mainAxisAlignment: MainAxisAlignment.start,
+                children: weekdayLabels.map((label) {
+                  return Container(
+                    height: 14,
+                    margin: const EdgeInsets.only(bottom: 4),
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      label,
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: isDark ? Colors.grey[500] : Colors.grey[600],
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  );
+                }).toList(),
+              ),
+              const SizedBox(width: 8),
+              // Heat map grid
+              Expanded(
+                child: SizedBox(
+                  height: 140,
+                  child: GridView.builder(
+                    scrollDirection: Axis.horizontal,
+                    gridDelegate:
+                        const SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 7,
+                      mainAxisSpacing: 4,
+                      crossAxisSpacing: 4,
+                      childAspectRatio: 1,
+                    ),
+                    itemCount: days,
+                    itemBuilder: (context, index) {
+                      final date = startDate.add(Duration(days: index));
+                      final dateKey = DateTime(date.year, date.month, date.day);
+
+                      // Check if frozen
+                      final isFrozen = frozenDates.any((d) =>
+                          d.year == date.year &&
+                          d.month == date.month &&
+                          d.day == date.day);
+
+                      // Get intensity
+                      final intensity = datasets[dateKey] ?? 0;
+
+                      return Tooltip(
+                        message:
+                            '${date.day}/${date.month}: $intensity habits${isFrozen ? " (Frozen)" : ""}',
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: isFrozen
+                                ? Colors.blue.withValues(alpha: 0.25)
+                                : _getColor(
+                                    intensity, emptyColor, lowColor, highColor),
+                            borderRadius: BorderRadius.circular(4),
+                            border: isFrozen
+                                ? Border.all(
+                                    color: Colors.blue.withValues(alpha: 0.5),
+                                    width: 1,
+                                  )
+                                : null,
+                          ),
+                          alignment: Alignment.center,
+                          child: isFrozen
+                              ? const Text('❄️', style: TextStyle(fontSize: 10))
+                              : null,
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 
-  Color _getColor(ThemeData theme, int intensity) {
-    if (intensity <= 0) return theme.colorScheme.surfaceContainerHighest;
-    if (intensity <= 2) return theme.colorScheme.primary.withValues(alpha: 0.4);
-    return theme.colorScheme.primary;
+  Color _getColor(
+      int intensity, Color emptyColor, Color lowColor, Color highColor) {
+    if (intensity <= 0) return emptyColor;
+    if (intensity <= 2) return lowColor;
+    return highColor;
   }
 }
 
 class _LegendItem extends StatelessWidget {
   final Color color;
   final String label;
+  final bool isDark;
 
-  const _LegendItem({required this.color, required this.label});
+  const _LegendItem({
+    required this.color,
+    required this.label,
+    this.isDark = false,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Row(
       children: [
         Container(
-          width: 10,
-          height: 10,
+          width: 12,
+          height: 12,
           decoration: BoxDecoration(
             color: color,
-            borderRadius: BorderRadius.circular(2),
+            borderRadius: BorderRadius.circular(3),
           ),
         ),
-        const SizedBox(width: 2),
-        Text(label, style: const TextStyle(fontSize: 10, color: Colors.grey)),
+        const SizedBox(width: 4),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 11,
+            color: isDark ? Colors.grey[400] : Colors.grey[600],
+          ),
+        ),
       ],
     );
   }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:provider/provider.dart';
 
 import '../data/habit_data.dart';
@@ -6,6 +7,7 @@ import '../models/habit.dart';
 import '../state/app_state.dart';
 import '../widgets/emoji_picker_widget.dart';
 import '../services/health_service.dart';
+import 'habit_templates_screen.dart';
 
 class AddHabitScreen extends StatefulWidget {
   final Habit? existing;
@@ -20,6 +22,10 @@ class AddHabitScreen extends StatefulWidget {
 }
 
 class _AddHabitScreenState extends State<AddHabitScreen> {
+  // Orange theme colors for Templates button
+  static const _primaryOrange = Color(0xFFFFA94A);
+  static const _secondaryOrange = Color(0xFFFF6B6B);
+
   final ScrollController _scrollController = ScrollController();
   final Map<String, GlobalKey> _categoryKeys = {};
 
@@ -103,6 +109,60 @@ class _AddHabitScreenState extends State<AddHabitScreen> {
           icon: Icon(Icons.arrow_back, color: theme.colorScheme.onSurface),
           onPressed: () => Navigator.of(context).pop(),
         ),
+        actions: [
+          // Shiny Templates Button
+          Padding(
+            padding: const EdgeInsets.only(right: 8),
+            child: GestureDetector(
+              onTap: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => const HabitTemplatesScreen(),
+                  ),
+                );
+              },
+              child: Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [_primaryOrange, _secondaryOrange],
+                  ),
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [
+                    BoxShadow(
+                      color: _primaryOrange.withValues(alpha: 0.4),
+                      blurRadius: 12,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.auto_awesome,
+                            color: Colors.white, size: 16)
+                        .animate(onPlay: (c) => c.repeat(reverse: true))
+                        .shimmer(duration: 1500.ms, color: Colors.white38),
+                    const SizedBox(width: 6),
+                    const Text(
+                      'Templates',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ],
+                ),
+              ).animate(onPlay: (c) => c.repeat(reverse: true)).scale(
+                    begin: const Offset(1, 1),
+                    end: const Offset(1.02, 1.02),
+                    duration: 2.seconds,
+                  ),
+            ),
+          ),
+        ],
       ),
       body: Column(
         children: [

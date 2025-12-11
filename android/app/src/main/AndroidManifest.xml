@@ -91,5 +91,24 @@
             <meta-data android:name="android.appwidget.provider"
                 android:resource="@xml/widget_info_small" />
         </receiver>
+        
+        <!-- Focus Widget (configurable) -->
+        <receiver android:name=".StreakooWidgetFocus" android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data android:name="android.appwidget.provider"
+                android:resource="@xml/widget_info_focus" />
+        </receiver>
+        
+        <!-- Focus Widget Configuration Activity -->
+        <activity 
+            android:name=".FocusWidgetConfigActivity"
+            android:exported="true"
+            android:theme="@style/Theme.AppCompat.DayNight.Dialog">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_CONFIGURE" />
+            </intent-filter>
+        </activity>
     </application>
 </manifest>

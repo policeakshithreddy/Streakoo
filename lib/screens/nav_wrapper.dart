@@ -4,14 +4,25 @@ import 'stats_screen.dart';
 import 'coach_overview_screen.dart';
 
 class NavWrapper extends StatefulWidget {
-  const NavWrapper({super.key});
+  final int initialIndex;
+
+  const NavWrapper({
+    super.key,
+    this.initialIndex = 0,
+  });
 
   @override
   State<NavWrapper> createState() => _NavWrapperState();
 }
 
 class _NavWrapperState extends State<NavWrapper> {
-  int index = 0;
+  late int index;
+
+  @override
+  void initState() {
+    super.initState();
+    index = widget.initialIndex;
+  }
 
   final screens = const [
     HomeScreen(),

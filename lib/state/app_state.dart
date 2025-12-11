@@ -8,12 +8,15 @@ import '../models/user_level.dart';
 import '../models/mood_tracker.dart';
 import '../models/weekly_report.dart';
 import '../services/supabase_service.dart';
-import '../services/health_service.dart';
-import '../models/health_challenge.dart';
-import '../models/milestone.dart';
 import '../services/local_notification_service.dart';
 import '../services/milestone_detector.dart';
 import '../services/home_widget_service.dart';
+import '../models/ai_insight.dart';
+import '../services/health_service.dart';
+import '../models/health_challenge.dart';
+import '../models/milestone.dart';
+import '../services/sync_service.dart';
+import '../widgets/streak_sync_confirmation_dialog.dart';
 
 class AppState extends ChangeNotifier {
   AppState();
@@ -44,6 +47,12 @@ class AppState extends ChangeNotifier {
   final List<WeeklyReport> _weeklyReports = [];
   DateTime? _lastDailyBriefDate;
   DateTime? _lastWeeklyReportDate;
+
+  // AI Caching
+  List<AIInsight> _cachedInsights = [];
+  DateTime? _lastInsightsGenDate;
+  String? _cachedCurrentWeekSummary;
+  DateTime? _lastSummaryGenDate;
 
   // Health Challenge
   HealthChallenge? _activeHealthChallenge;
@@ -115,6 +124,10 @@ class AppState extends ChangeNotifier {
   DateTime? get lastDailyBriefDate => _lastDailyBriefDate;
   DateTime? get lastWeeklyReportDate => _lastWeeklyReportDate;
 
+  // AI Caching Getters
+  List<AIInsight> get cachedInsights => List.unmodifiable(_cachedInsights);
+  String? get cachedCurrentWeekSummary => _cachedCurrentWeekSummary;
+
   // Health Challenge Getter
   HealthChallenge? get activeHealthChallenge => _activeHealthChallenge;
 
@@ -149,6 +162,41 @@ class AppState extends ChangeNotifier {
       // Clear challenge
       await prefs.remove('activeHealthChallenge');
     }
+  }
+
+  /// Completes the current health challenge and cleans up associated data
+  Future<void> completeCurrentHealthChallenge() async {
+    if (_activeHealthChallenge == null) return;
+
+    final challengeId = _activeHealthChallenge!.id;
+
+    // 1. Delete from Cloud
+    try {
+      final supabase = SupabaseService();
+      if (supabase.isAuthenticated) {
+        await supabase.deleteHealthChallenge(challengeId);
+        debugPrint('✅ Cloud challenge deleted: $challengeId');
+      }
+    } catch (e) {
+      debugPrint('⚠️ Failed to delete cloud challenge: $e');
+    }
+
+    // 2. Clear Local Challenge State
+    _activeHealthChallenge = null;
+
+    // 3. Clear Weekly Reports (per user request)
+    _weeklyReports.clear();
+    _lastWeeklyReportDate = null;
+
+    // 4. Update SharedPrefs
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_prefsKeyActiveChallenge);
+    await prefs.remove(_prefsKeyWeeklyReports);
+    await prefs.remove(_prefsKeyLastWeeklyReport);
+
+    // 5. Notify UI
+    notifyListeners();
+    debugPrint('🎉 Challenge completed & data cleaned up');
   }
 
   bool get needsMoodCheckIn {
@@ -382,6 +430,35 @@ class AppState extends ChangeNotifier {
       _savePreferences();
       notifyListeners();
     }
+  }
+
+  // AI Caching Helpers
+  bool get shouldRefreshInsights {
+    if (_cachedInsights.isEmpty) return true;
+    if (_lastInsightsGenDate == null) return true;
+    return DateTime.now().difference(_lastInsightsGenDate!).inHours >=
+        4; // Update every 4 hours
+  }
+
+  bool get shouldRefreshWeeklySummary {
+    if (_cachedCurrentWeekSummary == null) return true;
+    if (_lastSummaryGenDate == null) return true;
+    return DateTime.now().difference(_lastSummaryGenDate!).inHours >=
+        12; // Update every 12 hours
+  }
+
+  Future<void> updateCachedInsights(List<AIInsight> insights) async {
+    _cachedInsights = insights;
+    _lastInsightsGenDate = DateTime.now();
+    await _savePreferences();
+    notifyListeners();
+  }
+
+  Future<void> updateCachedWeeklySummary(String summary) async {
+    _cachedCurrentWeekSummary = summary;
+    _lastSummaryGenDate = DateTime.now();
+    await _savePreferences();
+    notifyListeners();
   }
 
   void _recalculateAllStreaks() {
@@ -1291,6 +1368,59 @@ class AppState extends ChangeNotifier {
       debugPrint('Stack trace: $stackTrace');
       // Don't rethrow - allow the app to continue with whatever data was restored
       // The user can still use the app, they just might not have all their data
+    }
+  }
+
+  /// Handle sync conflicts after login/app open
+  /// Call this from the main app after authentication and loading data
+  /// Pass BuildContext to show dialog if needed
+  Future<void> handleSyncConflicts(BuildContext context) async {
+    try {
+      debugPrint('🔄 Checking for sync conflicts...');
+
+      // Perform sync and get conflict result
+      final conflictResult = await SyncService.instance.syncOnAppOpen(
+        _habits,
+        userLevel,
+      );
+
+      // If no conflicts, we're done
+      if (!conflictResult.hasStreakConflicts) {
+        debugPrint('✅ No streak conflicts detected');
+        return;
+      }
+
+      // Show confirmation dialog in context
+      if (!context.mounted) return;
+
+      final userChoice = await StreakSyncConfirmationDialog.show(
+        context,
+        conflictResult,
+      );
+
+      // User chose to import cloud streaks
+      if (userChoice == true) {
+        debugPrint('✅ User chose to import cloud streaks');
+
+        // Apply cloud streaks to local habits
+        for (final cloudHabit in conflictResult.cloudHabits) {
+          final index = _habits.indexWhere((h) => h.id == cloudHabit.id);
+          if (index != -1) {
+            _habits[index] = _habits[index].copyWith(
+              streak: cloudHabit.streak,
+              completionDates: cloudHabit.completionDates,
+            );
+          }
+        }
+
+        await _savePreferences();
+        notifyListeners();
+        debugPrint('✅ Cloud streaks applied successfully');
+      } else {
+        debugPrint('❌ User chose to keep local streaks');
+      }
+    } catch (e) {
+      debugPrint('❌ Error handling sync conflicts: $e');
     }
   }
 }

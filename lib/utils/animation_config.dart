@@ -27,25 +27,25 @@ class AnimationConfig {
   }
 
   // ========== STANDARD DURATIONS ==========
-  /// Ultra fast (100ms) - for micro-interactions like button press
+  /// Ultra fast (70ms) - for micro-interactions like button press
   Duration get ultraFast =>
-      Duration(milliseconds: (100 * durationMultiplier).round());
+      Duration(milliseconds: (70 * durationMultiplier).round());
 
-  /// Fast (200ms) - for quick transitions
+  /// Fast (140ms) - for quick transitions
   Duration get fast =>
-      Duration(milliseconds: (200 * durationMultiplier).round());
+      Duration(milliseconds: (140 * durationMultiplier).round());
 
-  /// Medium (350ms) - for standard animations
+  /// Medium (250ms) - for standard animations
   Duration get medium =>
+      Duration(milliseconds: (250 * durationMultiplier).round());
+
+  /// Slow (350ms) - for emphasis animations
+  Duration get slow =>
       Duration(milliseconds: (350 * durationMultiplier).round());
 
-  /// Slow (500ms) - for emphasis animations
-  Duration get slow =>
-      Duration(milliseconds: (500 * durationMultiplier).round());
-
-  /// Stagger delay between list items (40ms on normal, 25ms on low-end)
+  /// Stagger delay between list items (30ms on normal, 18ms on low-end)
   Duration get staggerDelay =>
-      Duration(milliseconds: (40 * durationMultiplier).round());
+      Duration(milliseconds: (30 * durationMultiplier).round());
 
   // ========== ANIMATION COMPLEXITY ==========
   /// Whether to use complex effects like blur, shadows, etc.

@@ -114,7 +114,7 @@ ${healthLines.join('\n')}
 
       // Natural, friendly system prompt with personality
       final systemPrompt =
-          '''You are "Koo" ✨ - a warm, encouraging habit coach who genuinely cares about the user's wellbeing. You have access to their COMPLETE habit and health data.
+          '''You are "Wind" 🌬️ - a calm, supportive habit guide who genuinely cares about the user's wellbeing. You have access to their COMPLETE habit and health data.
 
 YOUR PERSONALITY:
 - Warm and friendly like a supportive best friend
@@ -210,7 +210,7 @@ Give them a quick, friendly response using their data. Be specific. Keep it SHOR
     }
 
     // Default friendly response with personality
-    return 'I\'m Koo, your habit buddy! 🤗 What\'s on your mind? Whether you need tips, motivation, or just want to chat about your journey - I\'m here! ✨';
+    return 'I\'m Wind, your habit guide! 🌬️ What\'s on your mind? Whether you need tips, motivation, or just want to chat about your journey - I\'m here! ✨';
   }
 
   String getQuickEncouragement(int streak) {

@@ -35,39 +35,49 @@ class HealthCheckerService {
 
   /// Check all health-tracked habits and auto-complete if goal is met
   Future<void> checkAndCompleteHabits(AppState appState) async {
-    debugPrint('🏥 Checking health-tracked habits...');
+    try {
+      debugPrint('🏥 Checking health-tracked habits...');
 
-    for (final habit in appState.habits) {
-      // Skip if not health tracked or already completed today
-      if (!habit.isHealthTracked || habit.completedToday) {
-        continue;
-      }
+      for (final habit in appState.habits) {
+        // Skip if not health tracked or already completed today
+        if (!habit.isHealthTracked || habit.completedToday) {
+          continue;
+        }
 
-      // Skip if no health metric or goal defined
-      if (habit.healthMetric == null || habit.healthGoalValue == null) {
-        continue;
-      }
+        // Skip if no health metric or goal defined
+        if (habit.healthMetric == null || habit.healthGoalValue == null) {
+          continue;
+        }
 
-      try {
-        // Check if goal is met
-        final isGoalMet = await _healthService.isGoalMet(
-          habit.healthMetric!,
-          habit.healthGoalValue!,
-        );
+        try {
+          // Check if goal is met
+          final currentValue =
+              await _healthService.getCurrentValue(habit.healthMetric!);
+          final targetValue = habit.healthGoalValue!;
+          final isGoalMet = currentValue >= targetValue;
 
-        if (isGoalMet) {
           debugPrint(
-            '✅ Health goal met for "${habit.name}": ${habit.healthGoalValue} ${_getMetricUnit(habit.healthMetric!)}',
+            '❤️ Health Check: "${habit.name}" | Met: ${_getMetricUnit(habit.healthMetric!)} | '
+            'Current: ${currentValue.toStringAsFixed(1)} / Target: ${targetValue.toStringAsFixed(1)} | '
+            'Goal Met: $isGoalMet',
           );
 
-          // Auto-complete the habit
-          appState.completeHabit(habit);
+          if (isGoalMet) {
+            debugPrint(
+              '✅ Health goal met for "${habit.name}": $targetValue ${_getMetricUnit(habit.healthMetric!)}',
+            );
 
-          // Note: The celebration will be triggered in completeHabit
+            // Auto-complete the habit
+            appState.completeHabit(habit);
+
+            // Note: The celebration will be triggered in completeHabit
+          }
+        } catch (e) {
+          debugPrint('Error checking health goal for "${habit.name}": $e');
         }
-      } catch (e) {
-        debugPrint('Error checking health goal for "${habit.name}": $e');
       }
+    } catch (e) {
+      debugPrint('⚠️ Health checker failed: $e');
     }
   }
 

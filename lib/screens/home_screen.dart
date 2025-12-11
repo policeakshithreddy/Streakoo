@@ -26,6 +26,7 @@ import 'add_habit_screen.dart';
 import 'settings_screen.dart';
 import 'auth_screen.dart';
 import '../widgets/freeze_animation_overlay.dart';
+import '../widgets/whats_new_dialog.dart';
 import '../services/health_service.dart';
 import '../services/streak_predictor_service.dart';
 
@@ -49,10 +50,19 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
-    // Initialize notification engine
+    // Initialize notification engine and show What's New dialog
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _initializeNotifications();
+      _showWhatsNewIfNeeded();
     });
+  }
+
+  Future<void> _showWhatsNewIfNeeded() async {
+    // Small delay to let UI settle
+    await Future.delayed(const Duration(milliseconds: 800));
+    if (mounted) {
+      WhatsNewDialog.showIfNeeded(context);
+    }
   }
 
   Future<void> _initializeNotifications() async {
@@ -327,7 +337,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               const Duration(milliseconds: 300));
                         },
                         child: ListView.builder(
-                          physics: const AlwaysScrollableScrollPhysics(),
+                          physics: const ClampingScrollPhysics(),
                           padding: const EdgeInsets.all(16),
                           itemCount: habits.length,
                           itemBuilder: (context, index) {

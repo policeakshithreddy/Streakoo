@@ -9,6 +9,7 @@ import '../utils/slide_route.dart';
 import '../services/health_checker_service.dart';
 import 'journal_screen.dart';
 import 'coach_screen.dart';
+import 'focus_mode_screen.dart';
 
 class HabitDetailScreen extends StatelessWidget {
   final Habit habit;
@@ -133,6 +134,30 @@ class HabitDetailScreen extends StatelessWidget {
             // Action Buttons
             Row(
               children: [
+                // Focus Mode button
+                Container(
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFF667EEA), Color(0xFF764BA2)],
+                    ),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: IconButton(
+                    onPressed: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => FocusModeScreen(
+                            habit: currentHabit,
+                            durationMinutes: 25,
+                          ),
+                        ),
+                      );
+                    },
+                    icon: const Icon(Icons.timer_rounded, color: Colors.white),
+                    tooltip: 'Focus Mode',
+                  ),
+                ),
+                const SizedBox(width: 8),
                 Expanded(
                   child: OutlinedButton.icon(
                     onPressed: () {
@@ -150,7 +175,7 @@ class HabitDetailScreen extends StatelessWidget {
                     label: const Text('Journal'),
                   ),
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(width: 8),
                 Expanded(
                   child: FilledButton.icon(
                     onPressed: () {
@@ -165,7 +190,7 @@ class HabitDetailScreen extends StatelessWidget {
                       ),
                     ),
                     icon: const Icon(Icons.smart_toy_outlined),
-                    label: const Text('AI Coach'),
+                    label: const Text('Wind 🌬️'),
                   ),
                 ),
               ],

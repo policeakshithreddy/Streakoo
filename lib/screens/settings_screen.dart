@@ -10,6 +10,7 @@ import 'auth_screen.dart';
 import 'profile_screen.dart';
 import '../services/logout_service.dart';
 import 'welcome_screen.dart';
+import 'habit_chains_screen.dart';
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
@@ -335,6 +336,31 @@ class SettingsScreen extends StatelessWidget {
 
             const SizedBox(height: 8),
 
+            // Habit Chains Section
+            _buildSectionHeader(context, 'Routines', Icons.link_rounded,
+                    const Color(0xFF667EEA))
+                .animate()
+                .fadeIn(duration: 300.ms, delay: 270.ms)
+                .slideX(begin: -0.1, end: 0),
+            _buildSettingsTile(
+              context: context,
+              icon: Icons.link_rounded,
+              iconColor: const Color(0xFF667EEA),
+              title: 'Habit Chains',
+              subtitle: 'Link habits together in sequences',
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const HabitChainsScreen()),
+                );
+              },
+            )
+                .animate()
+                .fadeIn(duration: 300.ms, delay: 290.ms)
+                .slideX(begin: 0.1, end: 0),
+
+            const SizedBox(height: 8),
+
             // Account Section
             _buildSectionHeader(context, 'Account',
                     Icons.person_outline_rounded, Colors.blueGrey)
@@ -509,7 +535,7 @@ class SettingsScreen extends StatelessWidget {
               Text('Backing up...'),
             ],
           ),
-          backgroundColor: _secondaryTeal,
+          backgroundColor: const Color(0xFF191919),
           behavior: SnackBarBehavior.floating,
           shape:
               RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -532,7 +558,7 @@ class SettingsScreen extends StatelessWidget {
                 Text('Backup successful!'),
               ],
             ),
-            backgroundColor: _secondaryTeal,
+            backgroundColor: const Color(0xFF191919),
             behavior: SnackBarBehavior.floating,
             shape:
                 RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),

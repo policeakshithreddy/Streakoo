@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:home_widget/home_widget.dart';
 
@@ -11,6 +12,7 @@ class HomeWidgetService {
   /// Initialize the widget service - call this on app startup
   static Future<void> initialize() async {
     try {
+      if (kIsWeb || (!Platform.isAndroid && !Platform.isIOS)) return;
       // Set the app group ID for iOS
       await HomeWidget.setAppGroupId(appGroupId);
       debugPrint('HomeWidgetService initialized');
@@ -59,6 +61,8 @@ class HomeWidgetService {
     int sleepScore = 0,
   }) async {
     try {
+      if (kIsWeb || (!Platform.isAndroid && !Platform.isIOS)) return;
+
       // Generate motivational message
       final message = getMotivationalMessage(
         completedHabits: completedHabits,

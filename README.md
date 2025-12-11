@@ -1,6 +1,8 @@
 # Streakoo 🚀
 
-Streakoo is a gamified habit tracker built with Flutter, designed to help users build and maintain positive habits through streaks, levels, and AI-powered coaching.
+**The Ultimate AI-Powered Habit Tracker with Gamification**
+
+Streakoo helps you build life-changing habits through XP, streaks, AI coaching, and global competition. Track your progress, compete with friends, and celebrate your wins with Spotify Wrapped-style yearly reviews!
 
 ## 🏆 Agents Intensive - Capstone Project
 
@@ -8,74 +10,109 @@ This project is submitted for the Google Agents Intensive Capstone Project.
 
 **License**: CC-BY-SA 4.0 (See [LICENSE](LICENSE))
 
-## ✨ Features
+---
 
-### Core Features
-*   **Gamification**: Earn XP, level up, and unlock avatars by completing habits.
-*   **AI Coach**: Personalized health and habit advice powered by **Groq (Llama models)**.
-*   **Real-Time Sync**: "Every single bit" of data is instantly synced to the cloud using **Supabase**.
-*   **Health Integration**: Connects with Google Fit / Health Connect for automatic habit tracking (steps, sleep, etc.).
-*   **Smart Reminders**: Local notifications to keep you on track.
-*   **Offline Support**: Works offline and syncs when back online.
+## ✨ What's New in v2.1.0
+
+### 🎉 Year in Review (Spotify Wrapped Style!)
+- Beautiful animated slides showcasing your entire year
+- Total habits created, completions, streaks, and XP earned
+- Top performing habits and categories
+- Streak evolution timeline
+- Achievement highlights with celebrations
+- **Share to social media** with one tap
+
+### 🏆 Global Leaderboard
+- Compete with users worldwide
+- Weekly and all-time rankings
+- **Privacy controls** - stay private or go public
+- Real-time score updates based on:
+  - Daily completions (10 pts each)
+  - Longest streaks (5 pts per day)
+  - Consistency rate (completion %)
+  - Total XP earned
+
+### 🧠 Smart Habit Insights
+- AI analyzes your completion patterns
+- Identifies struggling habits
+- Sends personalized insights as notifications
+- Trend analysis and predictions
+- Best/worst performing days
+
+### 🔔 Smart Notifications
+- **Predictive streak warnings** at 6 PM
+- Milestone celebrations (7, 30, 100 days)
+- Daily brief every morning
+- Perfect day achievements
+- Focus task reminders
+
+### 🔥 Streak Flames
+- Animated fire visualizations
+- Flame intensity grows with streak length
+- Visual motivation on home screen
+- Celebrate streak milestones
+
+### ☁️ Smart Cross-Device Sync
+- Conflict resolution for streaks
+- User confirmation dialogs
+- Seamless multi-device experience
+- Automatic backup to cloud
+
+---
+
+## 📱 Core Features
+
+### Gamification
+*   **XP System**: Earn points for every habit completion
+*   **Level Up**: Progress through 50+ levels
+*   **Avatars**: Unlock new avatars as you level up
+*   **Achievements**: 10+ badges with rarity tiers
+*   **Streak Tracking**: Build and maintain daily streaks
+
+### AI Coach (Powered by Groq + Llama)
+*   **Personalized Advice**: Health and habit guidance
+*   **Daily Briefs**: Morning motivation and insights
+*   **Weekly Reports**: Pattern analysis and recommendations
+*   **Chat Interface**: Ask anything about your habits
+*   **Smart Suggestions**: Habit recommendations based on your data
 
 ### Health & Wellness
-*   **Health Coach V2**: Personalized health coaching with goal setting, challenges, and progress tracking.
-*   **Activity Rings**: Apple-style activity rings showing steps, distance, calories, and active minutes.
-*   **Health Data Dashboard**: Comprehensive view of heart rate, sleep, steps, and distance metrics.
-*   **Personalized Challenges**: AI-generated health challenges based on your goals and activity level.
-*   **Visual Health Onboarding**: Beautiful intake flow with water intake (litres), sleep hours selector, exercise tracking, and cascade animations.
+*   **Activity Rings**: Apple-style activity visualization
+*   **Health Integration**: Google Fit / Apple Health
+*   **Auto-tracking**: Steps, sleep, calories, heart rate
+*   **Health Challenges**: AI-generated personalized challenges
+*   **Progress Dashboard**: Comprehensive health metrics
 
-### Smart AI Features 🤖
-*   **Predictive Streak Warnings**: ML-style pattern analysis detects at-risk habits and sends 6 PM push notifications.
-*   **Streak Risk Popup**: Dismissible popup on app open showing habits that need attention.
-*   **Weekday Pattern Analysis**: Identifies your weak days (e.g., "Fridays are historically weak").
-*   **Daily Brief**: AI-generated daily insights and motivation based on your habits.
-*   **Weekly Reports**: Comprehensive weekly analysis of your habit patterns.
+### Social & Competition
+*   **Leaderboard**: Global and weekly rankings
+*   **Privacy Controls**: Choose visibility
+*   **Share Achievements**: Social media integration
+*   **Year in Review**: Shareable annual summary
 
-### Engagement & Motivation
-*   **Celebration Animations**: Beautiful confetti effects for habit completions and level-ups.
-*   **Streak Flames**: Animated flame indicators showing your current streak intensity.
-*   **Milestone Celebrations**: Special celebrations for streak milestones (7, 30, 100 days).
-*   **Achievement System**: Rarity tiers and progress indicators for locked achievements.
-
-### Widgets & UI
-*   **Android Home Widgets (Modern Glass Design)**:
-    *   **1x1 Streak**: Compact streak counter with fire emoji
-    *   **2x2 Standard**: Daily goals progress with glass background
-    *   **3x3 Focus Widget**: Configurable widget with choice of:
-        - 🔥 **Habits Mastery** - Completion % with progress ring
-        - 👟 **Step Crusher** - Daily step count
-        - 😴 **Sleep Zen** - Sleep duration & quality
-*   **Focus Task Manager**: Prioritize and manage your most important daily tasks.
-*   **Smooth Animations**: Staggered cascade animations, polished page transitions, and micro-interactions.
-*   **Modern Dark Theme**: Consistent #121212 styling with rounded SnackBars and glass cards.
-
-### Platform Support
-*   **Android**: Full support with Health Connect integration
-*   **iOS**: Full support with Apple Health integration
-*   **macOS**: Desktop support with Google Sign-In
+---
 
 ## 🛠️ Tech Stack
 
-*   **Frontend**: Flutter (Dart)
-*   **Backend**: Supabase (PostgreSQL, Auth, Realtime)
-*   **AI**: Groq API with Llama models
+*   **Frontend**: Flutter 3.x (Dart)
+*   **Backend**: Supabase (PostgreSQL, Auth, Realtime, Storage)
+*   **AI**: Groq API (Llama 3.3 70B & Mixtral 8x7B)
 *   **State Management**: Provider
 *   **Animations**: flutter_animate
+*   **Platform**: Android, iOS, macOS
+
+---
 
 ## 🚀 Getting Started
-
-Follow these instructions to set up the project locally.
 
 ### Prerequisites
 
 *   Flutter SDK (Latest Stable)
-*   Dart SDK
-*   A Supabase Account (Free Tier is fine)
-*   A Groq API Key (Free from [Groq Cloud](https://console.groq.com))
-*   Google OAuth Client IDs for authentication
+*   Dart SDK 3.0+
+*   Supabase Account (Free tier works)
+*   Groq API Key ([Get free key](https://console.groq.com))
+*   Google OAuth Client IDs
 
-### 1. Clone the Repository
+### 1. Clone & Install
 
 ```bash
 git clone <repository-url>
@@ -83,11 +120,34 @@ cd streakoo
 flutter pub get
 ```
 
-### 2. Supabase Setup
+### 2. Environment Setup
 
-1.  Create a new project on [Supabase](https://supabase.com/).
-2.  Go to **Project Settings > API** and copy your `URL` and `anon` Key.
-3.  **Database Schema**: Run the following SQL in the Supabase SQL Editor to set up the required tables:
+**Create your environment file:**
+
+```bash
+cp lib/config/env.example.dart lib/config/env.dart
+```
+
+**Edit `lib/config/env.dart` with your credentials:**
+
+```dart
+class Env {
+  // Supabase (Get from: https://app.supabase.com/project/_/settings/api)
+  static const String supabaseUrl = 'YOUR_SUPABASE_URL';
+  static const String supabaseAnonKey = 'YOUR_SUPABASE_ANON_KEY';
+  
+  // Google OAuth (Get from: https://console.cloud.google.com/)
+  static const String googleWebClientId = 'YOUR_WEB_CLIENT_ID';
+  static const String googleIosClientId = 'YOUR_IOS_CLIENT_ID';
+  
+  // Groq AI (Get from: https://console.groq.com/keys)
+  static const String groqApiKey = 'YOUR_GROQ_API_KEY';
+}
+```
+
+### 3. Supabase Database Setup
+
+Run this SQL in your Supabase SQL Editor:
 
 ```sql
 -- Enable UUID extension
@@ -98,19 +158,18 @@ create table public.user_profiles (
   user_id uuid references auth.users not null primary key,
   username text,
   age int,
-  created_at timestamp with time zone default timezone('utc'::text, now()) not null
+  created_at timestamp with time zone default now() not null
 );
 
--- Habits
+-- Habits Table
 create table public.habits (
   id uuid default uuid_generate_v4() primary key,
   user_id uuid references auth.users not null,
   name text not null,
   description text,
   emoji text,
-  frequency list, -- You might need to adjust based on your exact schema or use JSONB
-  created_at timestamp with time zone default timezone('utc'::text, now()) not null,
-  -- Add other fields as per lib/models/habit.dart
+  frequency text[],
+  created_at timestamp with time zone default now() not null,
   is_focus_task boolean default false,
   focus_task_priority int default 0
 );
@@ -122,72 +181,190 @@ create table public.user_levels (
   current_xp int default 0,
   total_xp int default 0,
   xp_to_next_level int default 100,
-  updated_at timestamp with time zone default timezone('utc'::text, now()) not null
+  updated_at timestamp with time zone default now() not null
 );
 
--- Enable Row Level Security (RLS)
+-- Leaderboard Scores
+create table public.user_scores (
+  user_id uuid references auth.users(id) on delete cascade primary key,
+  username text not null,
+  total_score integer default 0,
+  current_week_score integer default 0,
+  week_start_date date,
+  last_updated timestamp with time zone default now()
+);
+
+-- Enable Row Level Security
 alter table public.user_profiles enable row level security;
 alter table public.habits enable row level security;
 alter table public.user_levels enable row level security;
+alter table public.user_scores enable row level security;
 
--- Create Policies (Simplified for demo)
-create policy "Users can view their own profile" on public.user_profiles for select using (auth.uid() = user_id);
-create policy "Users can update their own profile" on public.user_profiles for update using (auth.uid() = user_id);
-create policy "Users can insert their own profile" on public.user_profiles for insert with check (auth.uid() = user_id);
+-- RLS Policies
+create policy "Users can view own profile" on user_profiles for select using (auth.uid() = user_id);
+create policy "Users can update own profile" on user_profiles for update using (auth.uid() = user_id);
+create policy "Users can insert own profile" on user_profiles for insert with check (auth.uid() = user_id);
 
-create policy "Users can view their own habits" on public.habits for select using (auth.uid() = user_id);
-create policy "Users can insert their own habits" on public.habits for insert with check (auth.uid() = user_id);
-create policy "Users can update their own habits" on public.habits for update using (auth.uid() = user_id);
-create policy "Users can delete their own habits" on public.habits for delete using (auth.uid() = user_id);
+create policy "Users can view own habits" on habits for select using (auth.uid() = user_id);
+create policy "Users can manage own habits" on habits for all using (auth.uid() = user_id);
 
-create policy "Users can view their own level" on public.user_levels for select using (auth.uid() = user_id);
-create policy "Users can insert their own level" on public.user_levels for insert with check (auth.uid() = user_id);
-create policy "Users can update their own level" on public.user_levels for update using (auth.uid() = user_id);
+create policy "Users can view own level" on user_levels for select using (auth.uid() = user_id);
+create policy "Users can manage own level" on user_levels for all using (auth.uid() = user_id);
+
+create policy "Users can read all scores" on user_scores for select using (true);
+create policy "Users can update own score" on user_scores for all using (auth.uid() = user_id);
+
+-- Leaderboard Indexes
+create index idx_user_scores_total on user_scores(total_score desc);
+create index idx_user_scores_weekly on user_scores(current_week_score desc, week_start_date desc);
 ```
 
-4.  **Authentication**: Enable Email/Password and Google Sign-In in **Authentication > Providers**.
-    *   **IMPORTANT**: Enable "Confirm email" in Email provider settings to test the verification flow.
+### 4. Enable Authentication
 
-### 3. Environment Configuration
+In Supabase Dashboard → **Authentication → Providers**:
+- ✅ Enable **Email/Password**
+- ✅ Enable **Google Sign-In** (add your OAuth credentials)
+- ✅ Turn on **Email Confirmation** for production
 
-**IMPORTANT**: This project uses environment variables for security. Follow these steps:
-
-1. Copy the example environment file:
-   ```bash
-   cp lib/config/env.example.dart lib/config/env.dart
-   ```
-
-2. Edit `lib/config/env.dart` and replace the placeholder values:
-   ```dart
-   class Env {
-     static const String supabaseUrl = 'YOUR_SUPABASE_URL';
-     static const String supabaseAnonKey = 'YOUR_SUPABASE_ANON_KEY';
-     static const String googleWebClientId = 'YOUR_GOOGLE_WEB_CLIENT_ID';
-     static const String googleIosClientId = 'YOUR_GOOGLE_IOS_CLIENT_ID';
-     static const String groqApiKey = 'YOUR_GROQ_API_KEY';
-   }
-   ```
-
-3. Get your Groq API key from [Groq Cloud Console](https://console.groq.com/keys)
-
-**Note**: `lib/config/env.dart` is gitignored and will never be committed to version control.
-
-### 4. Run the App
+### 5. Run the App
 
 ```bash
+# Run on connected device/emulator
 flutter run
+
+# Or specify platform
+flutter run -d macos
+flutter run -d ios
+flutter run -d android
 ```
+
+---
 
 ## 📱 How to Use
 
-1.  **Sign Up**: Create an account. You'll need to verify your email (check your spam folder or Supabase logs).
-2.  **Onboarding**: Complete the initial profile setup.
-3.  **Add Habits**: Create new habits, set emojis, and frequencies.
-4.  **Complete Habits**: Mark habits as done to earn XP and maintain streaks.
-5.  **AI Coach**: Chat with the AI Coach for advice (unlocks after completing your first habit!).
-6.  **Widgets**: Add home screen widgets (1x1, 2x2, or 3x3 Focus) to track progress at a glance.
-7.  **Sync**: Your data is automatically saved to the cloud. Try logging in from another device!
+1. **Sign Up**: Create an account with email/Google
+2. **Complete Onboarding**: Set up your profile
+3. **Add Habits**: Create your first habits with emojis
+4. **Daily Tracking**: Mark habits as complete to earn XP
+5. **Build Streaks**: Maintain daily streaks for bonuses
+6. **AI Coach**: Get personalized insights and advice
+7. **Compete**: Join the leaderboard (opt-in)
+8. **Year in Review**: View your annual stats (Stats tab)
+
+---
+
+## 🗺️ Roadmap
+
+### 🚀 Next Release (v2.2.0) - Planned
+
+#### Social Features
+- [ ] Friend system with challenges
+- [ ] Accountability partners
+- [ ] Community feed for achievements
+- [ ] Comment and encourage friends
+- [ ] Share habit templates
+
+#### Gamification Enhancements
+- [ ] Streak freeze tokens (1 per week)
+- [ ] 20+ new achievement badges
+- [ ] Level-based feature unlocks
+- [ ] XP multipliers (weekends, perfect weeks)
+- [ ] Daily login rewards
+
+#### UX Improvements
+- [ ] Celebration animations (confetti, fireworks)
+- [ ] Morning motivation / evening reflection
+- [ ] Habit streaks dashboard with heatmap
+- [ ] Undo feature for accidental completions
+- [ ] Haptic feedback throughout app
+
+### 📅 Future Features
+
+#### Engagement
+- [ ] Daily/weekly challenges system
+- [ ] Referral program with rewards
+- [ ] User-created habit templates marketplace
+- [ ] Progress predictions with ML
+- [ ] Personalized habit recommendations
+
+#### Premium Features (Monetization)
+- [ ] Unlimited streak freezes
+- [ ] Advanced analytics
+- [ ] Custom themes
+- [ ] Priority AI insights
+- [ ] Ad-free experience
+
+#### Platform Expansion
+- [ ] Web app (Progressive Web App)
+- [ ] Apple Watch companion app
+- [ ] Wear OS support
+- [ ] Desktop widgets
+
+---
+
+## 🎯 Feature Highlights
+
+### For Users Who Love Data
+- 📊 Comprehensive analytics dashboard
+- 📈 Trend analysis and predictions
+- 🔥 Streak tracking with visual flames
+- 📅 Habit heatmaps
+- 🎉 Year in Review (Spotify Wrapped style)
+
+### For Competitive Users
+- 🏆 Global leaderboard
+- 🥇 Weekly rankings reset
+- 📊 Live score updates
+- 🎖️ Achievement badges
+- 🤝 Friend challenges (coming soon)
+
+### For Privacy-Conscious Users
+- 🔒 Privacy-first leaderboard (opt-in)
+- 💾 Local-first data storage
+- ☁️ Encrypted cloud sync
+- 🚫 No data selling
+- 👤 Guest mode supported
+
+---
+
+## 🤝 Contributing
+
+This is a capstone project, but suggestions and bug reports are welcome!
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Submit a pull request
+
+---
 
 ## 📄 License
 
-This project is licensed under the **CC-BY-SA 4.0** License - see the [LICENSE](LICENSE) file for details.
+**CC-BY-SA 4.0** - Attribution-ShareAlike 4.0 International
+
+You are free to:
+- ✅ Share and adapt
+- ✅ Commercial use allowed
+
+Under these terms:
+- 📝 Attribution required
+- 🔄 ShareAlike (derivatives under same license)
+
+See [LICENSE](LICENSE) for full details.
+
+---
+
+## 🙏 Acknowledgments
+
+- **Google Agents Intensive** for the capstone opportunity
+- **Supabase** for amazing backend infrastructure
+- **Groq** for lightning-fast AI inference
+- **Flutter** team for the incredible framework
+
+---
+
+## 📧 Contact
+
+Have questions or feedback? Open an issue!
+
+**Built with ❤️ using Flutter & AI**

@@ -13,6 +13,7 @@ class SupabaseService {
   SupabaseService._internal();
 
   final SupabaseClient _client = Supabase.instance.client;
+  SupabaseClient get client => _client;
 
   // Get current user
   User? get currentUser => _client.auth.currentUser;
@@ -349,69 +350,83 @@ class SupabaseService {
     final userId = currentUser!.id;
 
     try {
-      // Delete existing habits for this user with timeout protection
-      await _client
+      // 1. Fetch existing habit IDs from cloud to determine deletions
+      final response = await _client
           .from('habits')
-          .delete()
+          .select('id')
           .eq('user_id', userId)
-          .timeout(const Duration(seconds: 30));
-      debugPrint('✅ Deleted old habits from cloud');
-    } catch (e) {
-      debugPrint('⚠️ Failed to delete old habits during backup: $e');
-      // Continue to insert even if delete fails (best effort)
-    }
+          .timeout(const Duration(seconds: 10));
 
-    // Prepare full data payload
-    final fullData = habits.map((h) {
-      return {
-        'id': h.id,
-        'user_id': userId,
-        'name': h.name,
-        'emoji': h.emoji,
-        'category': h.category,
-        'streak': h.streak,
-        'completion_dates': h.completionDates, // JSONB
+      final cloudIds = (response as List).map((e) => e['id'] as String).toSet();
+      final localIds = habits.map((h) => h.id).toSet();
 
-        // Focus Task
-        'is_focus_task': h.isFocusTask,
-        'focus_task_priority': h.focusTaskPriority,
+      // 2. Identify habits to delete (in cloud but not in local)
+      final idsToDelete = cloudIds.difference(localIds).toList();
 
-        // Gamification
-        'xp_value': h.xpValue,
-        'difficulty': h.difficulty,
+      if (idsToDelete.isNotEmpty) {
+        debugPrint(
+            '🗑️ Deleting ${idsToDelete.length} removed habits from cloud');
+        try {
+          await _client
+              .from('habits')
+              .delete()
+              .filter('id', 'in', idsToDelete)
+              .timeout(const Duration(seconds: 10));
+        } catch (e) {
+          // If delete fails (e.g. FK constraint), log it but continue with upsert
+          debugPrint('⚠️ Iterate delete failed (likely FK constraint): $e');
+        }
+      }
 
-        // Health
-        'is_health_tracked': h.isHealthTracked,
-        'health_metric': h.healthMetric?.index,
-        'health_goal_value': h.healthGoalValue,
+      // 3. Upsert all local habits (Create or Update)
+      if (habits.isNotEmpty) {
+        final fullData = habits.map((h) {
+          return {
+            'id': h.id,
+            'user_id': userId,
+            'name': h.name,
+            'emoji': h.emoji,
+            'category': h.category,
+            'streak': h.streak,
+            'completion_dates': h.completionDates, // JSONB
 
-        // Customization
-        'custom_color': h.customColor,
-        'custom_icon': h.customIcon,
-        'reminder_time': h.reminderTime,
-        'reminder_enabled': h.reminderEnabled,
-        'frequency_days': h.frequencyDays, // JSONB
+            // Focus Task
+            'is_focus_task': h.isFocusTask,
+            'focus_task_priority': h.focusTaskPriority,
 
-        // Challenge
-        'challenge_target_days': h.challengeTargetDays,
-        'challenge_progress': h.challengeProgress,
-        'challenge_completed': h.challengeCompleted,
-      };
-    }).toList();
+            // Gamification
+            'xp_value': h.xpValue,
+            'difficulty': h.difficulty,
 
-    if (fullData.isNotEmpty) {
-      try {
+            // Health
+            'is_health_tracked': h.isHealthTracked,
+            'health_metric': h.healthMetric?.index,
+            'health_goal_value': h.healthGoalValue,
+
+            // Customization
+            'custom_color': h.customColor,
+            'custom_icon': h.customIcon,
+            'reminder_time': h.reminderTime,
+            'reminder_enabled': h.reminderEnabled,
+            'frequency_days': h.frequencyDays, // JSONB
+
+            // Challenge
+            'challenge_target_days': h.challengeTargetDays,
+            'challenge_progress': h.challengeProgress,
+            'challenge_completed': h.challengeCompleted,
+          };
+        }).toList();
+
         await _client
             .from('habits')
-            .insert(fullData)
+            .upsert(fullData)
             .timeout(const Duration(seconds: 30));
-        debugPrint('✅ Backed up ${fullData.length} habits with FULL data');
-      } catch (e) {
-        debugPrint('❌ Backup failed: $e');
-        rethrow;
+
+        debugPrint('✅ Synced ${habits.length} habits to cloud');
       }
-    } else {
-      debugPrint('ℹ️ No habits to backup (empty list)');
+    } catch (e) {
+      debugPrint('❌ Backup sync failed: $e');
+      // Don't rethrow to avoid crashing UI for background sync
     }
   }
 
@@ -436,6 +451,67 @@ class SupabaseService {
     } catch (e) {
       debugPrint('❌ Error fetching habits: $e');
       return [];
+    }
+  }
+
+  /// Fetch habits from cloud WITHOUT streak/completion data (for selective sync)
+  Future<List<Habit>> fetchHabitsWithoutStreaks() async {
+    if (!isAuthenticated) return [];
+
+    final userId = currentUser!.id;
+
+    try {
+      final response = await _client
+          .from('habits')
+          .select('*')
+          .eq('user_id', userId)
+          .timeout(const Duration(seconds: 10));
+
+      final List<Habit> habits = [];
+      for (final row in response as List) {
+        final habit = Habit.fromJson(row);
+        // Override streak and completion data with empty values
+        habits.add(habit.copyWith(
+          streak: 0,
+          completionDates: [],
+        ));
+      }
+
+      debugPrint(
+          '✅ Fetched ${habits.length} habits (without streaks) from cloud');
+      return habits;
+    } catch (e) {
+      debugPrint('❌ Failed to fetch habits without streaks: $e');
+      return [];
+    }
+  }
+
+  /// Sync ONLY streak and completion dates for specified habits
+  Future<void> syncStreaksOnly(List<Habit> habits) async {
+    if (!isAuthenticated) return;
+
+    final userId = currentUser!.id;
+
+    try {
+      if (habits.isEmpty) return;
+
+      // Update only streak and completion_dates fields
+      for (final habit in habits) {
+        await _client
+            .from('habits')
+            .update({
+              'streak': habit.streak,
+              'completion_dates': habit.completionDates,
+            })
+            .eq('id', habit.id)
+            .eq('user_id', userId)
+            .timeout(const Duration(seconds: 10));
+      }
+
+      debugPrint('✅ Synced streaks for ${habits.length} habits');
+    } catch (e) {
+      debugPrint('❌ Failed to sync streaks: $e');
+      rethrow;
     }
   }
 
@@ -622,8 +698,16 @@ class SupabaseService {
 
       debugPrint('✅ Health challenge synced to cloud');
     } catch (e) {
-      debugPrint('❌ Error syncing health challenge: $e');
-      rethrow;
+      // Ignore if table doesn't exist (PGRST205) or other sync errors
+      // This prevents the red banner from showing up for users who don't have this table yet
+      final msg = e.toString();
+      if (msg.contains('PGRST205') || msg.contains('404')) {
+        debugPrint(
+            '⚠️ Health challenges table missing, skipping sync (non-critical)');
+      } else {
+        debugPrint('⚠️ Error syncing health challenges: $e');
+        // Don't rethrow, just log it
+      }
     }
   }
 

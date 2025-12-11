@@ -232,7 +232,7 @@ class KooCareService {
 
       final response = await GroqAIService.instance.generateResponse(
         systemPrompt:
-            'You are Koo, a warm, empathetic habit coach. Write brief, genuine messages (2 sentences max) with 1-2 emojis. Be caring, never guilt-tripping.',
+            'You are Wind, a calm, supportive habit guide. Write brief, genuine messages (2 sentences max) with 1-2 emojis. Be caring, never guilt-tripping.',
         userPrompt: prompt,
         maxTokens: 80,
         temperature: 0.8,

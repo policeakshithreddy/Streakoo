@@ -45,8 +45,8 @@ class _AICoachChatScreenState extends State<AICoachChatScreen> {
     final challenge = appState.activeHealthChallenge;
 
     final welcomeText = challenge != null
-        ? 'Hi! I\'m your AI coach for the ${challenge.title} challenge. How can I help you today?'
-        : 'Hi! I\'m your AI health coach. Ask me anything about fitness, nutrition, or habits!';
+        ? 'Hey! I\'m Wind 🌬️ your guide for the ${challenge.title} challenge. How can I help you today?'
+        : 'Hi! I\'m Wind 🌬️ your habit guide. Ask me anything about fitness, nutrition, or habits!';
 
     _messages.add(ChatMessage(
       text: welcomeText,
@@ -152,9 +152,9 @@ class _AICoachChatScreenState extends State<AICoachChatScreen> {
         title: const Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('AI Coach'),
+            Text('Wind 🌬️'),
             Text(
-              'Powered by Groq AI',
+              'Your habit guide',
               style: TextStyle(fontSize: 12, fontWeight: FontWeight.normal),
             ),
           ],
@@ -259,12 +259,8 @@ class _AICoachChatScreenState extends State<AICoachChatScreen> {
         children: [
           if (!isUser) ...[
             CircleAvatar(
-              backgroundColor: theme.colorScheme.primary.withValues(alpha: 0.2),
-              child: Icon(
-                Icons.auto_awesome,
-                color: theme.colorScheme.primary,
-                size: 20,
-              ),
+              backgroundColor: const Color(0xFF26C6DA).withValues(alpha: 0.2),
+              child: const Text('🌬️', style: TextStyle(fontSize: 16)),
             ).animate().scale(
                 delay: 100.ms, duration: 300.ms, curve: Curves.elasticOut),
             const SizedBox(width: 8),
@@ -316,12 +312,8 @@ class _AICoachChatScreenState extends State<AICoachChatScreen> {
       child: Row(
         children: [
           CircleAvatar(
-            backgroundColor: theme.colorScheme.primary.withValues(alpha: 0.2),
-            child: Icon(
-              Icons.auto_awesome,
-              color: theme.colorScheme.primary,
-              size: 20,
-            ),
+            backgroundColor: const Color(0xFF26C6DA).withValues(alpha: 0.2),
+            child: const Text('🌬️', style: TextStyle(fontSize: 16)),
           ),
           const SizedBox(width: 8),
           Container(

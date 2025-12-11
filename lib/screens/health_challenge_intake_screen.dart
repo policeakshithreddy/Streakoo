@@ -27,6 +27,10 @@ class HealthChallengeIntakeScreen extends StatefulWidget {
 
 class _HealthChallengeIntakeScreenState
     extends State<HealthChallengeIntakeScreen> {
+  // Purple theme colors (matching Wind AI)
+  static const _primaryPurple = Color(0xFF8B5CF6);
+  static const _secondaryPink = Color(0xFFEC4899);
+
   int _currentStep = 0;
   ChallengeType? _selectedType;
   bool _isGenerating = false;
@@ -75,35 +79,68 @@ class _HealthChallengeIntakeScreenState
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
 
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        title: Text(_isGenerating
-            ? 'Creating Plan...'
-            : 'Step ${_currentStep + 1} of 4'),
+        title: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(_isGenerating
+                ? 'Creating Plan...'
+                : 'Step ${_currentStep + 1} of 4'),
+            if (!_isGenerating) ...[
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [_primaryPurple, _secondaryPink],
+                  ),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Text(
+                  'AI',
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+            ],
+          ],
+        ),
         centerTitle: true,
       ),
       body: Stack(
         children: [
-          // Background Gradient
+          // Background Gradient with purple tint
           Container(
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
-                colors: [
-                  theme.colorScheme.primary.withValues(alpha: 0.15),
-                  theme.scaffoldBackgroundColor,
-                  theme.scaffoldBackgroundColor,
-                  theme.colorScheme.secondary.withValues(alpha: 0.15),
-                ],
+                colors: isDark
+                    ? [
+                        _primaryPurple.withValues(alpha: 0.15),
+                        theme.scaffoldBackgroundColor,
+                        theme.scaffoldBackgroundColor,
+                        _secondaryPink.withValues(alpha: 0.1),
+                      ]
+                    : [
+                        _primaryPurple.withValues(alpha: 0.08),
+                        theme.scaffoldBackgroundColor,
+                        theme.scaffoldBackgroundColor,
+                        _secondaryPink.withValues(alpha: 0.05),
+                      ],
               ),
             ),
           ),
-          // Decorative background shapes
+          // Decorative background shapes - purple
           Positioned(
             top: -50,
             right: -50,
@@ -113,7 +150,7 @@ class _HealthChallengeIntakeScreenState
                 width: 200,
                 height: 200,
                 decoration: BoxDecoration(
-                  color: theme.colorScheme.primary.withValues(alpha: 0.1),
+                  color: _primaryPurple.withValues(alpha: 0.2),
                   shape: BoxShape.circle,
                 ),
               ),
@@ -128,7 +165,7 @@ class _HealthChallengeIntakeScreenState
                 width: 200,
                 height: 200,
                 decoration: BoxDecoration(
-                  color: theme.colorScheme.secondary.withValues(alpha: 0.1),
+                  color: _secondaryPink.withValues(alpha: 0.15),
                   shape: BoxShape.circle,
                 ),
               ),
@@ -140,15 +177,38 @@ class _HealthChallengeIntakeScreenState
                 ? _buildLoadingState(theme)
                 : Column(
                     children: [
+                      // Purple gradient progress bar
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 24),
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(4),
-                          child: LinearProgressIndicator(
-                            value: (_currentStep + 1) / 4,
-                            backgroundColor:
-                                theme.colorScheme.surfaceContainerHighest,
-                            minHeight: 6,
+                        child: Container(
+                          height: 6,
+                          decoration: BoxDecoration(
+                            color: isDark
+                                ? Colors.white.withValues(alpha: 0.1)
+                                : Colors.grey[200],
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: LayoutBuilder(
+                            builder: (context, constraints) {
+                              return Stack(
+                                children: [
+                                  AnimatedContainer(
+                                    duration: const Duration(milliseconds: 300),
+                                    width: constraints.maxWidth *
+                                        ((_currentStep + 1) / 4),
+                                    decoration: BoxDecoration(
+                                      gradient: const LinearGradient(
+                                        colors: [
+                                          _primaryPurple,
+                                          _secondaryPink
+                                        ],
+                                      ),
+                                      borderRadius: BorderRadius.circular(4),
+                                    ),
+                                  ),
+                                ],
+                              );
+                            },
                           ),
                         ),
                       ),
@@ -533,7 +593,7 @@ class _HealthChallengeIntakeScreenState
           children: [
             Row(
               children: [
-                Icon(icon, size: 20, color: theme.colorScheme.primary),
+                Icon(icon, size: 20, color: _primaryPurple),
                 const SizedBox(width: 8),
                 Text(
                   label,
@@ -828,11 +888,11 @@ class _HealthChallengeIntakeScreenState
             height: 56,
             decoration: BoxDecoration(
               color: isSelected
-                  ? Colors.cyan.withValues(alpha: 0.2)
+                  ? _primaryPurple.withValues(alpha: 0.2)
                   : theme.colorScheme.surface.withValues(alpha: 0.3),
               borderRadius: BorderRadius.circular(10),
               border: Border.all(
-                color: isSelected ? Colors.cyan : Colors.transparent,
+                color: isSelected ? _primaryPurple : Colors.transparent,
                 width: 2,
               ),
             ),
@@ -842,7 +902,7 @@ class _HealthChallengeIntakeScreenState
                 Icon(
                   Icons.water_drop_rounded,
                   size: 20,
-                  color: isSelected ? Colors.cyan : Colors.grey,
+                  color: isSelected ? _primaryPurple : Colors.grey,
                 ),
                 Text(
                   litres == litres.toInt()
@@ -852,7 +912,7 @@ class _HealthChallengeIntakeScreenState
                     fontSize: 11,
                     fontWeight:
                         isSelected ? FontWeight.bold : FontWeight.normal,
-                    color: isSelected ? Colors.cyan : Colors.grey,
+                    color: isSelected ? _primaryPurple : Colors.grey,
                   ),
                 ),
               ],
@@ -886,11 +946,11 @@ class _HealthChallengeIntakeScreenState
             padding: const EdgeInsets.symmetric(vertical: 12),
             decoration: BoxDecoration(
               color: isSelected
-                  ? Colors.indigo.withValues(alpha: 0.2)
+                  ? _primaryPurple.withValues(alpha: 0.2)
                   : theme.colorScheme.surface.withValues(alpha: 0.3),
               borderRadius: BorderRadius.circular(12),
               border: Border.all(
-                color: isSelected ? Colors.indigo : Colors.transparent,
+                color: isSelected ? _primaryPurple : Colors.transparent,
                 width: 2,
               ),
             ),
@@ -905,7 +965,7 @@ class _HealthChallengeIntakeScreenState
                     fontSize: 14,
                     fontWeight:
                         isSelected ? FontWeight.bold : FontWeight.normal,
-                    color: isSelected ? Colors.indigo : Colors.grey,
+                    color: isSelected ? _primaryPurple : Colors.grey,
                   ),
                 ),
                 Text(
@@ -913,7 +973,7 @@ class _HealthChallengeIntakeScreenState
                   style: TextStyle(
                     fontSize: 9,
                     color: isSelected
-                        ? Colors.indigo
+                        ? _primaryPurple
                         : Colors.grey.withValues(alpha: 0.7),
                   ),
                 ),
@@ -940,12 +1000,11 @@ class _HealthChallengeIntakeScreenState
             height: 40,
             decoration: BoxDecoration(
               color: isSelected
-                  ? theme.colorScheme.primary.withValues(alpha: 0.2)
+                  ? _primaryPurple.withValues(alpha: 0.2)
                   : theme.colorScheme.surface.withValues(alpha: 0.3),
               shape: BoxShape.circle,
               border: Border.all(
-                color:
-                    isSelected ? theme.colorScheme.primary : Colors.transparent,
+                color: isSelected ? _primaryPurple : Colors.transparent,
                 width: 2,
               ),
             ),
@@ -955,7 +1014,7 @@ class _HealthChallengeIntakeScreenState
                 style: TextStyle(
                   fontSize: 14,
                   fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                  color: isSelected ? theme.colorScheme.primary : Colors.grey,
+                  color: isSelected ? _primaryPurple : Colors.grey,
                 ),
               ),
             ),
@@ -979,11 +1038,11 @@ class _HealthChallengeIntakeScreenState
         padding: const EdgeInsets.symmetric(vertical: 16),
         decoration: BoxDecoration(
           color: selected
-              ? theme.colorScheme.primary.withValues(alpha: 0.15)
+              ? _primaryPurple.withValues(alpha: 0.15)
               : theme.colorScheme.surface.withValues(alpha: 0.3),
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: selected ? theme.colorScheme.primary : Colors.transparent,
+            color: selected ? _primaryPurple : Colors.transparent,
             width: 2,
           ),
         ),
@@ -992,7 +1051,7 @@ class _HealthChallengeIntakeScreenState
             Icon(
               icon,
               size: 28,
-              color: selected ? theme.colorScheme.primary : Colors.grey,
+              color: selected ? _primaryPurple : Colors.grey,
             ),
             const SizedBox(height: 8),
             Text(
@@ -1000,7 +1059,7 @@ class _HealthChallengeIntakeScreenState
               style: TextStyle(
                 fontSize: 13,
                 fontWeight: selected ? FontWeight.bold : FontWeight.normal,
-                color: selected ? theme.colorScheme.primary : Colors.grey,
+                color: selected ? _primaryPurple : Colors.grey,
               ),
             ),
           ],
@@ -1014,31 +1073,35 @@ class _HealthChallengeIntakeScreenState
     required bool selected,
     required Function(bool) onSelected,
   }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return GestureDetector(
       onTap: () => onSelected(!selected),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
         decoration: BoxDecoration(
-          color: selected
-              ? Theme.of(context).colorScheme.primary
-              : Theme.of(context).colorScheme.surface.withValues(alpha: 0.0),
-          borderRadius: BorderRadius.circular(20),
+          gradient: selected
+              ? const LinearGradient(
+                  colors: [_primaryPurple, _secondaryPink],
+                )
+              : null,
+          color: selected ? null : Colors.transparent,
+          borderRadius: BorderRadius.circular(24),
           border: Border.all(
             color: selected
                 ? Colors.transparent
-                : Theme.of(context)
-                    .colorScheme
-                    .onSurface
-                    .withValues(alpha: 0.2),
+                : (isDark
+                    ? Colors.white.withValues(alpha: 0.2)
+                    : Colors.grey[300]!),
           ),
         ),
         child: Text(
           label,
           style: TextStyle(
             color: selected
-                ? Theme.of(context).colorScheme.onPrimary
-                : Theme.of(context).colorScheme.onSurface,
+                ? Colors.white
+                : (isDark ? Colors.white70 : Colors.black87),
             fontWeight: selected ? FontWeight.bold : FontWeight.normal,
             fontSize: 13,
           ),
@@ -1699,42 +1762,91 @@ class _HealthChallengeIntakeScreenState
   }
 
   Widget _buildBottomBar(ThemeData theme) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      child: Row(
-        children: [
-          if (_currentStep > 0)
-            Expanded(
-              child: OutlinedButton(
-                onPressed: () => setState(() => _currentStep--),
-                style: OutlinedButton.styleFrom(
-                  minimumSize: const Size(0, 56),
-                  side: BorderSide(
-                    color: theme.colorScheme.onSurface.withValues(alpha: 0.2),
-                  ),
-                ),
-                child: const Text('Back'),
-              ),
-            ),
-          if (_currentStep > 0) const SizedBox(width: 16),
-          Expanded(
-            flex: 2,
-            child: FilledButton(
-              onPressed: _handleNext,
-              style: FilledButton.styleFrom(
-                minimumSize: const Size(0, 56),
-                backgroundColor: theme.colorScheme.primary,
-                elevation: 4,
-                shadowColor: theme.colorScheme.primary.withValues(alpha: 0.4),
-              ),
-              child: Text(
-                _currentStep == 3 ? 'Generate Plan' : 'Next',
-                style:
-                    const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-              ),
+    final isDark = theme.brightness == Brightness.dark;
+
+    return SafeArea(
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: isDark ? const Color(0xFF0D0D0D) : Colors.white,
+          border: Border(
+            top: BorderSide(
+              color: isDark
+                  ? Colors.white.withValues(alpha: 0.05)
+                  : Colors.grey[200]!,
             ),
           ),
-        ],
+        ),
+        child: Row(
+          children: [
+            if (_currentStep > 0)
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: () => setState(() => _currentStep--),
+                  style: OutlinedButton.styleFrom(
+                    minimumSize: const Size(0, 56),
+                    foregroundColor: _primaryPurple,
+                    side: const BorderSide(color: _primaryPurple),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                  ),
+                  child: const Text('Back'),
+                ),
+              ),
+            if (_currentStep > 0) const SizedBox(width: 16),
+            Expanded(
+              flex: 2,
+              child: Container(
+                height: 56,
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [_primaryPurple, _secondaryPink],
+                  ),
+                  borderRadius: BorderRadius.circular(14),
+                  boxShadow: [
+                    BoxShadow(
+                      color: _primaryPurple.withValues(alpha: 0.4),
+                      blurRadius: 16,
+                      offset: const Offset(0, 6),
+                    ),
+                  ],
+                ),
+                child: ElevatedButton(
+                  onPressed: _handleNext,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.transparent,
+                    shadowColor: Colors.transparent,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        _currentStep == 3 ? 'Generate Plan' : 'Next',
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                          color: Colors.white,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Icon(
+                        _currentStep == 3
+                            ? Icons.auto_awesome
+                            : Icons.arrow_forward_rounded,
+                        color: Colors.white,
+                        size: 20,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

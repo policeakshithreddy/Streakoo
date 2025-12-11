@@ -13,6 +13,7 @@ import 'utils/animation_config.dart';
 import 'services/weekly_challenge_service.dart';
 import 'services/koo_care_service.dart';
 import 'services/daily_brief_service.dart';
+import 'utils/haptic_service.dart'; // Added by instruction
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -26,24 +27,59 @@ Future<void> main() async {
   );
   // ==================================
 
+  // Initialize haptic feedback (safe - won't crash if fails)
+  try {
+    await HapticService.instance.initialize();
+  } catch (e) {
+    debugPrint('⚠️ HapticService init failed: $e');
+  }
+
   final appState = AppState();
   await appState.loadPreferences();
-  await LocalNotificationService.init();
+
+  // Initialize notifications (may fail on Android 13+ without permission)
+  try {
+    await LocalNotificationService.init();
+  } catch (e) {
+    debugPrint('⚠️ LocalNotificationService init failed: $e');
+  }
 
   // Initialize animation config (detects device capability)
-  await AnimationConfig.instance.init();
+  try {
+    await AnimationConfig.instance.init();
+  } catch (e) {
+    debugPrint('⚠️ AnimationConfig init failed: $e');
+  }
 
   // Start periodic health data checking (every 15 minutes)
-  HealthCheckerService.instance.startPeriodicCheck(appState);
+  // Wrapped in try-catch - Health Connect may not be available
+  try {
+    HealthCheckerService.instance.startPeriodicCheck(appState);
+  } catch (e) {
+    debugPrint('⚠️ HealthCheckerService init failed: $e');
+  }
 
-  // Initialize Engagement Services
-  await WeeklyChallengeService.instance.initialize();
-  await KooCareService.instance.initialize();
+  // Initialize Engagement Services (wrapped for safety)
+  try {
+    await WeeklyChallengeService.instance.initialize();
+  } catch (e) {
+    debugPrint('⚠️ WeeklyChallengeService init failed: $e');
+  }
 
-  // Schedule Engagement Notifications
-  await DailyBriefService.instance.scheduleDailyNotifications();
-  await WeeklyChallengeService.instance.scheduleMondayNotification();
-  await WeeklyChallengeService.instance.scheduleProgressNotification();
+  try {
+    await KooCareService.instance.initialize();
+  } catch (e) {
+    debugPrint('⚠️ KooCareService init failed: $e');
+  }
+
+  // Schedule Engagement Notifications (may fail without notification permission)
+  try {
+    await DailyBriefService.instance.scheduleDailyNotifications();
+    await WeeklyChallengeService.instance.scheduleMondayNotification();
+    await WeeklyChallengeService.instance.scheduleProgressNotification();
+  } catch (e) {
+    debugPrint('⚠️ Notification scheduling failed: $e');
+  }
 
   runApp(
     ChangeNotifierProvider.value(

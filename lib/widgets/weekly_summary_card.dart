@@ -755,17 +755,15 @@ class _ConsistencyMap extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        // White layout for dark theme as requested
-        color: isDark ? Colors.white : Colors.black.withValues(alpha: 0.03),
+        // Much lighter dark background for better visibility
+        color: isDark
+            ? const Color(0xFF2A2A2A) // Lighter gray instead of 0xFF1E1E1E
+            : Colors.black.withValues(alpha: 0.03),
         borderRadius: BorderRadius.circular(16),
-        boxShadow: isDark
-            ? [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.3),
-                  blurRadius: 8,
-                  offset: const Offset(0, 2),
-                ),
-              ]
+        border: isDark
+            ? Border.all(
+                color:
+                    Colors.white.withValues(alpha: 0.2)) // More visible border
             : null,
       ),
       child: Column(
@@ -778,15 +776,19 @@ class _ConsistencyMap extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
-                  // Dark text on white background for dark theme
-                  color: isDark ? Colors.black87 : Colors.black54,
+                  // Brighter text for dark mode
+                  color: isDark
+                      ? Colors.white.withValues(alpha: 0.9)
+                      : Colors.black54,
                 ),
               ),
               const Spacer(),
               Icon(
                 Icons.grid_view_rounded,
                 size: 14,
-                color: isDark ? Colors.black26 : Colors.black26,
+                color: isDark
+                    ? Colors.white.withValues(alpha: 0.5)
+                    : Colors.black26,
               ),
             ],
           ),
@@ -798,17 +800,25 @@ class _ConsistencyMap extends StatelessWidget {
               final rate = dailyCompletions[weekday] ?? 0.0;
               final isToday = weekday == todayWeekday;
 
-              // Color based on completion rate
+              // Brighter colors for dark mode
               Color color;
               if (rate >= 1.0) {
-                color = const Color(0xFF27AE60); // Green
+                color = isDark
+                    ? const Color(0xFF4CAF50)
+                    : const Color(0xFF27AE60); // Brighter green
               } else if (rate >= 0.5) {
-                color = const Color(0xFFFFA94A); // Orange
+                color = isDark
+                    ? const Color(0xFFFFB74D)
+                    : const Color(0xFFFFA94A); // Brighter orange
               } else if (rate > 0) {
-                color = const Color(0xFFE74C3C); // Red
+                color = isDark
+                    ? const Color(0xFFEF5350)
+                    : const Color(0xFFE74C3C); // Brighter red
               } else {
-                // Empty cells - light gray on white background
-                color = Colors.grey.withValues(alpha: 0.2);
+                // Empty cells - more visible in dark mode
+                color = isDark
+                    ? Colors.white.withValues(alpha: 0.15) // More visible
+                    : Colors.grey.withValues(alpha: 0.2);
               }
 
               return Column(
@@ -817,10 +827,14 @@ class _ConsistencyMap extends StatelessWidget {
                     width: 32,
                     height: 32,
                     decoration: BoxDecoration(
-                      color: color.withValues(alpha: isToday ? 1.0 : 0.8),
+                      color: color.withValues(alpha: isToday ? 1.0 : 0.85),
                       borderRadius: BorderRadius.circular(8),
                       border: isToday
-                          ? Border.all(color: Colors.black, width: 1.5)
+                          ? Border.all(
+                              color: isDark
+                                  ? Colors.white.withValues(alpha: 0.8)
+                                  : Colors.black,
+                              width: 2)
                           : null,
                     ),
                     child: rate > 0
@@ -845,8 +859,10 @@ class _ConsistencyMap extends StatelessWidget {
                     style: TextStyle(
                       fontSize: 10,
                       fontWeight: isToday ? FontWeight.bold : FontWeight.normal,
-                      // Dark text on white background for dark theme
-                      color: isToday ? Colors.black : Colors.black54,
+                      // Light text on dark background for dark theme
+                      color: isToday
+                          ? (isDark ? Colors.white : Colors.black)
+                          : (isDark ? Colors.white54 : Colors.black54),
                     ),
                   ),
                 ],

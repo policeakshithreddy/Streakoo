@@ -76,7 +76,7 @@ class _CoachScreenState extends State<CoachScreen> {
       CoachMessage(
         from: 'coach',
         text:
-            "Hey! I'm Koo ✨\nLet's talk about \"${widget.habit.name}\" – what's on your mind?",
+            "Hey! I'm Wind 🌬️\nLet's talk about \"${widget.habit.name}\" – what's on your mind?",
         quickReplies: const [
           'Tips to improve',
           'Why is this hard?',
@@ -200,7 +200,7 @@ class _CoachScreenState extends State<CoachScreen> {
         backgroundColor:
             isDark ? const Color(0xFF121212) : const Color(0xFFF8F9FA),
         appBar: AppBar(
-          title: Text('Koo – ${widget.habit.name}'),
+          title: Text('Wind – ${widget.habit.name}'),
           centerTitle: true,
         ),
         body: Center(
@@ -242,7 +242,7 @@ class _CoachScreenState extends State<CoachScreen> {
                 ).animate().fadeIn(delay: 150.ms),
                 const SizedBox(height: 16),
                 Text(
-                  'Complete at least one habit to unlock Koo! ✨\n\nOnce you make some progress, I\'ll be here to help you level up.',
+                  'Complete at least one habit to unlock Wind! 🌬️\n\nOnce you make some progress, I\'ll be here to help you level up.',
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: 15,
@@ -302,10 +302,10 @@ class _CoachScreenState extends State<CoachScreen> {
                 ),
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: const Text('✨', style: TextStyle(fontSize: 14)),
+              child: const Text('🌬️', style: TextStyle(fontSize: 14)),
             ),
             const SizedBox(width: 8),
-            Text('Koo – ${widget.habit.name}'),
+            Text('Wind – ${widget.habit.name}'),
           ],
         ),
         centerTitle: true,
@@ -352,7 +352,7 @@ class _CoachScreenState extends State<CoachScreen> {
                     textInputAction: TextInputAction.send,
                     onSubmitted: (_) => _send(),
                     decoration: InputDecoration(
-                      hintText: 'Ask Koo…',
+                      hintText: 'Ask Wind…',
                       filled: true,
                       fillColor: isDark
                           ? Colors.white.withValues(alpha: 0.08)

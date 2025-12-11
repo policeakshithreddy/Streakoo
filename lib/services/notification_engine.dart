@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/timezone.dart' as tz;
 import 'package:timezone/data/latest.dart' as tz;
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/habit.dart';
 import '../config/app_config.dart';
@@ -65,6 +66,12 @@ class NotificationEngine {
   /// Check if notification engine is ready
   bool get isInitialized => _initialized;
 
+  // Rate limiting keys
+  static const _lastFocusScheduleKey = 'last_focus_schedule_date';
+  static const _lastPredictiveScheduleKey = 'last_predictive_schedule_date';
+  // ignore: unused_field - reserved for per-habit rate limiting
+  static const _lastHabitScheduleKey = 'last_habit_schedule_';
+
   Future<void> initialize({bool force = false}) async {
     if (_initialized && !force) return;
 
@@ -106,6 +113,7 @@ class NotificationEngine {
       const settings = InitializationSettings(
         android: androidSettings,
         iOS: iosSettings,
+        macOS: iosSettings,
       );
 
       await _notifications.initialize(
@@ -542,9 +550,19 @@ Be personal, use the habit name, mention streak if relevant, be energetic but no
     );
   }
 
-  // Schedule end-of-day reminders for focus tasks
+  // Schedule end-of-day reminders for focus tasks (RATE LIMITED)
   Future<void> scheduleFocusTaskReminders(List<Habit> habits) async {
     if (!_initialized) await initialize();
+
+    // Check if already scheduled today
+    final prefs = await SharedPreferences.getInstance();
+    final today = DateTime.now().toIso8601String().substring(0, 10);
+    final lastScheduled = prefs.getString(_lastFocusScheduleKey);
+
+    if (lastScheduled == today) {
+      debugPrint('🔕 Focus reminders already scheduled today, skipping');
+      return;
+    }
 
     final focusTasks =
         habits.where((h) => h.isFocusTask && !h.completedToday).toList();
@@ -585,6 +603,9 @@ Be personal, use the habit name, mention streak if relevant, be energetic but no
 
       debugPrint('🔔 Scheduled focus reminder for "${habit.name}" at 9 PM');
     }
+
+    // Mark as scheduled for today
+    await prefs.setString(_lastFocusScheduleKey, today);
   }
 
   // Get pattern for a habit
@@ -593,10 +614,20 @@ Be personal, use the habit name, mention streak if relevant, be energetic but no
   // Clear all patterns (for testing)
   void clearPatterns() => _patterns.clear();
 
-  /// Schedule predictive warnings for at-risk streaks
+  /// Schedule predictive warnings for at-risk streaks (RATE LIMITED)
   /// Uses StreakPredictorService to analyze habits and send proactive notifications
   Future<void> schedulePredictiveWarnings(List<Habit> habits) async {
     if (!_initialized) await initialize();
+
+    // Check if already scheduled today
+    final prefs = await SharedPreferences.getInstance();
+    final today = DateTime.now().toIso8601String().substring(0, 10);
+    final lastScheduled = prefs.getString(_lastPredictiveScheduleKey);
+
+    if (lastScheduled == today) {
+      debugPrint('🔕 Predictive warnings already scheduled today, skipping');
+      return;
+    }
 
     // Import dynamically to avoid circular dependencies
     final predictions = _analyzeHabitsForPrediction(habits);
@@ -650,6 +681,9 @@ Be personal, use the habit name, mention streak if relevant, be energetic but no
 
       debugPrint('🔮 Scheduled predictive warning for "$habitName" at 6 PM');
     }
+
+    // Mark as scheduled for today
+    await prefs.setString(_lastPredictiveScheduleKey, today);
   }
 
   /// Simple habit analysis for predictions (avoids circular import)

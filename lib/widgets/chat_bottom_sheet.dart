@@ -90,7 +90,7 @@ class _ChatBottomSheetState extends State<ChatBottomSheet> {
         text: widget.initialContext ??
             (widget.contextHabit != null
                 ? 'Hey! Let\'s talk about "${widget.contextHabit!.name}" ${widget.contextHabit!.emoji}\nWhat do you want to know?'
-                : 'Hey! I\'m Koo, your Streakoo coach! ✨\nAsk me anything about your habits!'),
+                : 'Hey! I\'m Wind, your habit guide 🌬️\nAsk me anything about your habits!'),
         quickReplies: widget.contextHabit != null
             ? ['Tips to improve', 'Why is this hard?', 'Motivation please!']
             : ['Show my progress', 'Need motivation', 'Habit tips'],
@@ -242,7 +242,7 @@ class _ChatBottomSheetState extends State<ChatBottomSheet> {
             ),
           ),
 
-          // Header with Koo branding
+          // Header with Wind branding
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
             child: Row(
@@ -264,7 +264,7 @@ class _ChatBottomSheetState extends State<ChatBottomSheet> {
                       ),
                     ],
                   ),
-                  child: const Text('✨', style: TextStyle(fontSize: 18)),
+                  child: const Text('🌬️', style: TextStyle(fontSize: 18)),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -272,7 +272,7 @@ class _ChatBottomSheetState extends State<ChatBottomSheet> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Koo',
+                        'Wind',
                         style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
@@ -280,7 +280,7 @@ class _ChatBottomSheetState extends State<ChatBottomSheet> {
                         ),
                       ),
                       Text(
-                        'Your habit coach',
+                        'Your habit guide 🌬️',
                         style: TextStyle(
                           fontSize: 12,
                           color: isDark
@@ -391,7 +391,7 @@ class _ChatBottomSheetState extends State<ChatBottomSheet> {
                       textInputAction: TextInputAction.send,
                       onSubmitted: (_) => _send(),
                       decoration: InputDecoration(
-                        hintText: 'Ask Koo anything...',
+                        hintText: 'Ask Wind anything...',
                         filled: true,
                         fillColor: isDark
                             ? Colors.white.withValues(alpha: 0.05)

@@ -5,6 +5,7 @@ import '../state/app_state.dart';
 import '../services/ai_health_coach_service.dart';
 import '../models/habit.dart';
 import '../services/health_service.dart';
+import 'nav_wrapper.dart';
 
 class HealthIntakeScreen extends StatefulWidget {
   final VoidCallback? onComplete;
@@ -110,8 +111,16 @@ class _HealthIntakeScreenState extends State<HealthIntakeScreen> {
       }
 
       setState(() => _isGenerating = false);
+      setState(() => _isGenerating = false);
       widget.onComplete?.call();
-      Navigator.of(context).pop(true);
+
+      // Redirect to Health Coach tab (Index 2)
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(
+          builder: (context) => const NavWrapper(initialIndex: 2),
+        ),
+        (route) => false,
+      );
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -184,22 +193,24 @@ class _HealthIntakeScreenState extends State<HealthIntakeScreen> {
 
             // Bottom Navigation
             if (!_isGenerating)
-              Padding(
-                padding: const EdgeInsets.all(24),
-                child: FilledButton(
-                  onPressed: _canProceed() ? _nextStep : null,
-                  style: FilledButton.styleFrom(
-                    backgroundColor: const Color(0xFF58CC02),
-                    minimumSize: const Size(double.infinity, 56),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
+              SafeArea(
+                child: Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: FilledButton(
+                    onPressed: _canProceed() ? _nextStep : null,
+                    style: FilledButton.styleFrom(
+                      backgroundColor: const Color(0xFF58CC02),
+                      minimumSize: const Size(double.infinity, 56),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
                     ),
-                  ),
-                  child: Text(
-                    _currentStep == 2 ? 'Generate Plan ✨' : 'Next',
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
+                    child: Text(
+                      _currentStep == 2 ? 'Generate Plan ✨' : 'Next',
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
                 ),
@@ -237,7 +248,10 @@ class _HealthIntakeScreenState extends State<HealthIntakeScreen> {
             'Analyzing your goals and baseline...',
             style: TextStyle(
               fontSize: 16,
-              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+              color: Theme.of(context)
+                  .colorScheme
+                  .onSurface
+                  .withValues(alpha: 0.6),
             ),
           ).animate().fadeIn(delay: 500.ms),
         ],
@@ -384,8 +398,10 @@ class _HealthIntakeScreenState extends State<HealthIntakeScreen> {
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.w500,
-                  color:
-                      Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
+                  color: Theme.of(context)
+                      .colorScheme
+                      .onSurface
+                      .withValues(alpha: 0.7),
                 ),
               ),
             ],
