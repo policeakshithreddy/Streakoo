@@ -151,4 +151,70 @@ class YearInReviewCloudService {
       perfectDays: data['perfect_days'] as int,
     );
   }
+  // ============ WRAPPED 2025 LOGIC ============
+
+  /// Get the date when user first opened Wrapped 2025
+  Future<DateTime?> getWrappedStartDate(int year) async {
+    try {
+      if (!_supabase.isAuthenticated) return null;
+
+      final data = await _supabase.client
+          .from('user_settings')
+          .select('wrapped_${year}_start_date')
+          .eq('user_id', _supabase.currentUser!.id)
+          .maybeSingle();
+
+      if (data == null || data['wrapped_${year}_start_date'] == null) {
+        return null;
+      }
+
+      return DateTime.parse(data['wrapped_${year}_start_date']);
+    } catch (e) {
+      debugPrint('⚠️ Error fetching wrapped start date: $e');
+      return null;
+    }
+  }
+
+  /// Set the start date for Wrapped (first access)
+  Future<void> setWrappedStartDate(int year) async {
+    try {
+      if (!_supabase.isAuthenticated) return;
+
+      // Check if already set
+      final existing = await getWrappedStartDate(year);
+      if (existing != null) return;
+
+      await _supabase.client.from('user_settings').upsert({
+        'user_id': _supabase.currentUser!.id,
+        'wrapped_${year}_start_date': DateTime.now().toIso8601String(),
+      });
+
+      debugPrint('✅ Wrapped start date set for $year');
+    } catch (e) {
+      debugPrint('❌ Error setting wrapped start date: $e');
+      // If table missing, we might need to handle that, but assuming user_settings exists
+    }
+  }
+
+  /// Delete Wrapped data (expiration logic)
+  Future<void> deleteWrappedData(int year) async {
+    try {
+      if (!_supabase.isAuthenticated) return;
+
+      // 1. Delete the actual wrapped stats
+      await deleteYearInReview(year);
+
+      // 2. Clear the start date tracking (optional, or keep it to prevent re-opening)
+      // We'll keep the start date but the data will be gone, effectively "expiring" it
+      // Actually, plan says "delete wrapped data".
+
+      // Let's also remove the start date so if they somehow access it again, it's a fresh state (though expected behavior is "it's gone")
+      // But for "expiration", we want to BLOCK access.
+      // So we keep the start date to know it expired, but delete the data.
+
+      debugPrint('🧹 Wrapped data cleaned up (Expired)');
+    } catch (e) {
+      debugPrint('❌ Error deleting wrapped data: $e');
+    }
+  }
 }

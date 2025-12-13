@@ -419,9 +419,21 @@ Be personal, use the habit name, mention streak if relevant, be energetic but no
           'Challenge: ${habit.challengeProgress}/${habit.challengeTargetDays} days');
     }
 
+    if (habit.habitGoal != null) {
+      buffer.writeln('Goal: ${habit.habitGoal}');
+    }
+
+    if (habit.focusModeDuration != null) {
+      buffer.writeln('Focus Duration: ${habit.focusModeDuration} minutes');
+    }
+
     if (type == NotificationType.focusReminder) {
       buffer.writeln(
           'IMPORTANT: This is a FOCUS TASK. If missed, it will use a streak freeze!');
+      if (habit.focusModeDuration != null) {
+        buffer.writeln(
+            'Mention that it only takes ${habit.focusModeDuration} minutes.');
+      }
       buffer.writeln('Time is running out (End of Day).');
     }
 
@@ -436,6 +448,9 @@ Be personal, use the habit name, mention streak if relevant, be energetic but no
   ) {
     switch (type) {
       case NotificationType.soft:
+        if (habit.habitGoal != null) {
+          return '${habit.emoji} Time for "${habit.name}"! Goal: ${habit.habitGoal} 🔥';
+        }
         return '${habit.emoji} Time for "${habit.name}"! Keep the momentum going 🔥';
 
       case NotificationType.hard:
@@ -456,6 +471,9 @@ Be personal, use the habit name, mention streak if relevant, be energetic but no
         return '📊 Weekly review ready! See how you did this week 🌟';
 
       case NotificationType.focusReminder:
+        if (habit.focusModeDuration != null) {
+          return '⏱️ ${habit.focusModeDuration} min focus needed! Complete "${habit.name}" now to save your streak!';
+        }
         return '❄️ Don\'t freeze! Complete "${habit.name}" to save your streak! ⭐';
     }
   }

@@ -2,7 +2,6 @@ import 'dart:io';
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
@@ -55,12 +54,12 @@ class SocialSharingService {
       const height = 1350.0;
 
       // Background gradient
-      final bgGradient = LinearGradient(
+      const bgGradient = LinearGradient(
         begin: Alignment.topLeft,
         end: Alignment.bottomRight,
         colors: [
-          const Color(0xFF667eea),
-          const Color(0xFF764ba2),
+          Color(0xFF667eea),
+          Color(0xFF764ba2),
         ],
       );
 

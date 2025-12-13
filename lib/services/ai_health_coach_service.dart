@@ -90,6 +90,7 @@ class AIHealthCoachService {
     }
   }
 
+  /// Generate personalized daily health tip
   Future<String> generateDailyTip({
     required String goal,
     required int? steps,
@@ -97,17 +98,17 @@ class AIHealthCoachService {
     required double? distance,
   }) async {
     const systemPrompt = '''
-    You are a supportive health coach. Give a short, motivating daily health tip (max 2 sentences) based on the user's recent activity.
-    If stats are low, be encouraging. If high, be celebratory.
-    ''';
+  You are a supportive health coach. Give a short, motivating daily health tip (max 2 sentences) based on the user's recent activity.
+  Be specific about the data. If stats are low, be encouraging. If high, be celebratory. Focus on actionable advice.
+  ''';
 
     final userPrompt = '''
-    Goal: $goal
-    Yesterday's stats:
-    - Steps: ${steps ?? 'Unknown'}
-    - Sleep: ${sleep?.toStringAsFixed(1) ?? 'Unknown'} hours
-    - Distance: ${distance?.toStringAsFixed(1) ?? 'Unknown'} km
-    ''';
+  Goal: $goal
+  Yesterday's stats:
+  - Steps: ${steps ?? 'Unknown'}
+  - Sleep: ${sleep?.toStringAsFixed(1) ?? 'Unknown'} hours
+  - Distance: ${distance?.toStringAsFixed(1) ?? 'Unknown'} km
+  ''';
 
     try {
       final response = await _aiService.generateResponse(
@@ -118,6 +119,99 @@ class AIHealthCoachService {
       return response?.trim() ?? "Keep moving forward towards your goal!";
     } catch (e) {
       return "Consistency is key to achieving your goals!";
+    }
+  }
+
+  /// Generate smart contextual insight based on patterns
+  Future<String> generateSmartInsight({
+    required List<int> weeklySteps,
+    required List<double> weeklySleep,
+    required int habitsCompleted,
+    required int currentStreak,
+  }) async {
+    // Analyze patterns
+    final avgSteps = weeklySteps.isEmpty
+        ? 0
+        : weeklySteps.reduce((a, b) => a + b) ~/ weeklySteps.length;
+    final avgSleep = weeklySleep.isEmpty
+        ? 0.0
+        : weeklySleep.reduce((a, b) => a + b) / weeklySleep.length;
+
+    // Find best performance day
+    int bestDayIndex = 0;
+    int maxSteps = 0;
+    for (int i = 0; i < weeklySteps.length; i++) {
+      if (weeklySteps[i] > maxSteps) {
+        maxSteps = weeklySteps[i];
+        bestDayIndex = i;
+      }
+    }
+
+    final dayNames = [
+      'Monday',
+      'Tuesday',
+      'Wednesday',
+      'Thursday',
+      'Friday',
+      'Saturday',
+      'Sunday'
+    ];
+    final bestDay = dayNames[bestDayIndex];
+
+    const systemPrompt = '''
+  You are an AI health coach analyzing patterns. Generate ONE specific, actionable insight (max 2 sentences).
+  Focus on correlations, patterns, or achievements. Be encouraging and specific.
+  ''';
+
+    final userPrompt = '''
+  Weekly Analysis:
+  - Average steps: $avgSteps
+  - Average sleep: ${avgSleep.toStringAsFixed(1)} hours
+  - Best performance day: $bestDay with $maxSteps steps
+  - Current streak: $currentStreak days
+  - Habits completed this week: $habitsCompleted
+  
+  Find an interesting pattern or provide specific advice.
+  ''';
+
+    try {
+      final response = await _aiService.generateResponse(
+        systemPrompt: systemPrompt,
+        userPrompt: userPrompt,
+        maxTokens: 120,
+      );
+      return response?.trim() ??
+          "You're most active on $bestDay - try to match that energy every day!";
+    } catch (e) {
+      debugPrint('Error generating smart insight: $e');
+      // Fallback to pattern-based insight
+      if (avgSteps >= 8000) {
+        return "You're averaging $avgSteps steps daily - fantastic consistency! 🎯";
+      } else if (currentStreak >= 5) {
+        return "Your $currentStreak-day streak shows real commitment. Keep it going! 🔥";
+      } else {
+        return "You're most active on $bestDay - try to match that energy every day!";
+      }
+    }
+  }
+
+  /// Generate motivational message based on current performance
+  String generateMotivationalMessage({
+    required double healthScore,
+    required int currentStreak,
+  }) {
+    if (healthScore >= 90) {
+      return "You're in the top tier! Your dedication is inspiring! 🌟";
+    } else if (healthScore >= 75) {
+      return "Great work! You're building powerful wellness habits! 💪";
+    } else if (currentStreak >= 7) {
+      return "A $currentStreak-day streak! You're proving consistency pays off! 🔥";
+    } else if (currentStreak >= 3) {
+      return "Building momentum with a $currentStreak-day streak! Keep going! ⚡";
+    } else if (healthScore >= 60) {
+      return "You're on the right track. Small daily improvements add up! 📈";
+    } else {
+      return "Every journey starts with a single step. Let's make today count! 🚀";
     }
   }
 
@@ -285,6 +379,71 @@ RULES:
           }
         ]
       };
+    }
+  }
+
+  Future<Map<String, String>> generateNutritionAdvice({
+    required double sleep,
+    required int steps,
+    required double healthScore,
+  }) async {
+    const systemPrompt = '''
+    You are an expert nutritionist. Provide a single specific nutrition recommendation based on the user's recent daily stats.
+    
+    CRITICAL INSTRUCTION: If the user has high activity (steps > 8000) or high health score (>80), you MUST generate advice with the title "Boost Recovery".
+    
+    Return ONLY a JSON object with this structure:
+    {
+      "title": "Short title (Use 'Boost Recovery' if active, otherwise generic like 'Energy Boost')",
+      "food": "Specific foods (e.g. Greek yogurt, berries, salmon)",
+      "why": "Brief benefit explanation (max 5 words)"
+    }
+    ''';
+
+    final userPrompt = '''
+    User Stats:
+    - Sleep: ${sleep.toStringAsFixed(1)} hours
+    - Steps: $steps
+    - Health Score: ${healthScore.toStringAsFixed(1)}
+    
+    Generate one specific nutrition tip.
+    ''';
+
+    try {
+      final response = await _aiService.generateResponse(
+        systemPrompt: systemPrompt,
+        userPrompt: userPrompt,
+        maxTokens: 100,
+        temperature: 0.5,
+      );
+
+      if (response == null) throw Exception('No response');
+
+      final jsonStr =
+          response.trim().replaceAll('```json', '').replaceAll('```', '');
+      return Map<String, String>.from(jsonDecode(jsonStr));
+    } catch (e) {
+      debugPrint('Error generating nutrition advice: $e');
+      // Fallback logic
+      if (sleep < 7) {
+        return {
+          "title": "Improve Sleep Quality",
+          "food": "Almonds, cherries, chamomile",
+          "why": "Rich in melatonin & magnesium"
+        };
+      } else if (steps > 10000) {
+        return {
+          "title": "Post-Activity Recovery",
+          "food": "Greek yogurt, berries",
+          "why": "Protein & antioxidants"
+        };
+      } else {
+        return {
+          "title": "Energy Boost",
+          "food": "Bananas, oats, nuts",
+          "why": "Sustained energy release"
+        };
+      }
     }
   }
 }

@@ -4,7 +4,8 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:provider/provider.dart';
 import '../models/health_challenge.dart';
 import '../state/app_state.dart';
-import '../screens/coach_progress_screen.dart';
+
+import '../screens/health_coaching_dashboard.dart';
 import '../screens/health_challenge_details_screen.dart';
 
 class ChallengeProgressWidget extends StatefulWidget {
@@ -39,6 +40,23 @@ class _ChallengeProgressWidgetState extends State<ChallengeProgressWidget>
     super.dispose();
   }
 
+  // Get progress-based gradient colors
+  List<Color> _getProgressGradient(double progress) {
+    // Purple theme colors to match the rest of the health coaching UI
+    const purpleStart = Color(0xFF8B5CF6);
+    const purpleEnd = Color(0xFFC084FC); // Lighter purple
+    const completedStart = Color(0xFF7C3AED); // Deeper purple
+    const completedEnd = Color(0xFFEC4899); // Pink accent
+
+    if (progress >= 1.0) {
+      // 100%: specialized completion gradient
+      return [completedStart, completedEnd];
+    } else {
+      // Standard state: Light purple gradient
+      return [purpleStart, purpleEnd];
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final appState = context.watch<AppState>();
@@ -68,15 +86,14 @@ class _ChallengeProgressWidgetState extends State<ChallengeProgressWidget>
         ? challengeHabits.map((h) => h.streak).reduce((a, b) => a > b ? a : b)
         : 0;
 
+    final progressColors = _getProgressGradient(weekProgress);
+
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [
-            theme.colorScheme.primaryContainer.withValues(alpha: 0.8),
-            theme.colorScheme.primaryContainer.withValues(alpha: 0.4),
-          ],
+          colors: progressColors,
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
@@ -406,7 +423,7 @@ class _ChallengeProgressWidgetState extends State<ChallengeProgressWidget>
               onPressed: () {
                 Navigator.of(context).push(
                   MaterialPageRoute(
-                    builder: (context) => const CoachProgressScreen(),
+                    builder: (context) => const HealthCoachingDashboard(),
                   ),
                 );
               },

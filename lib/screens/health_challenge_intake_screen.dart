@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:provider/provider.dart';
+import 'health_coaching_dashboard.dart';
 import '../models/health_challenge.dart';
 import '../services/ai_health_coach_service.dart';
 import '../services/local_notification_service.dart';
@@ -2050,13 +2051,10 @@ class _HealthChallengeIntakeScreenState
         );
 
         if (!mounted) return;
-        Navigator.of(context).popUntil((route) => route.isFirst);
-
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('🎉 Challenge Started! Check your dashboard.'),
-            backgroundColor: Colors.green,
+        // Navigate to Health Coaching Dashboard
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(
+            builder: (_) => const HealthCoachingDashboard(),
           ),
         );
       } else {

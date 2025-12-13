@@ -58,6 +58,36 @@ class HealthChallenge {
     };
   }
 
+  HealthChallenge copyWith({
+    String? id,
+    ChallengeType? type,
+    String? title,
+    String? description,
+    DateTime? startDate,
+    int? durationWeeks,
+    Map<String, dynamic>? goals,
+    Map<String, dynamic>? aiPlan,
+    List<ChallengeHabit>? recommendedHabits,
+    Map<String, dynamic>? baselineMetrics,
+    List<Map<String, dynamic>>? progressSnapshots,
+    List<Map<String, dynamic>>? surveyResponses,
+  }) {
+    return HealthChallenge(
+      id: id ?? this.id,
+      type: type ?? this.type,
+      title: title ?? this.title,
+      description: description ?? this.description,
+      startDate: startDate ?? this.startDate,
+      durationWeeks: durationWeeks ?? this.durationWeeks,
+      goals: goals ?? this.goals,
+      aiPlan: aiPlan ?? this.aiPlan,
+      recommendedHabits: recommendedHabits ?? this.recommendedHabits,
+      baselineMetrics: baselineMetrics ?? this.baselineMetrics,
+      progressSnapshots: progressSnapshots ?? this.progressSnapshots,
+      surveyResponses: surveyResponses ?? this.surveyResponses,
+    );
+  }
+
   factory HealthChallenge.fromJson(Map<String, dynamic> json) {
     return HealthChallenge(
       id: json['id'],

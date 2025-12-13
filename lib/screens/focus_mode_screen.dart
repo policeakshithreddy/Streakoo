@@ -1,8 +1,13 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+
+import 'dart:io';
+
+import 'package:live_activities/live_activities.dart';
 
 import '../models/habit.dart';
 
@@ -26,16 +31,32 @@ class FocusModeScreen extends StatefulWidget {
 class _FocusModeScreenState extends State<FocusModeScreen>
     with TickerProviderStateMixin {
   late int _remainingSeconds;
+  late int _selectedDuration;
   Timer? _timer;
   bool _isRunning = false;
   bool _isCompleted = false;
+  bool _isPomodoroMode = false;
+  int _pomodoroRound = 0;
+
+  final _liveActivities = LiveActivities();
+  String? _activityId;
+  int _lastActivityUpdate = 0;
+
   late AnimationController _pulseController;
   late AnimationController _breathController;
+  late AnimationController _particleController;
+  late AnimationController _glowController;
 
   @override
   void initState() {
     super.initState();
-    _remainingSeconds = widget.durationMinutes * 60;
+    _selectedDuration = widget.durationMinutes;
+    _remainingSeconds = _selectedDuration * 60;
+
+    // Initialize Live Activities
+    if (Platform.isIOS) {
+      _liveActivities.init(appGroupId: 'group.com.streakoo.app');
+    }
 
     _pulseController = AnimationController(
       vsync: this,
@@ -46,13 +67,26 @@ class _FocusModeScreenState extends State<FocusModeScreen>
       vsync: this,
       duration: const Duration(seconds: 4),
     )..repeat(reverse: true);
+
+    _particleController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 20),
+    )..repeat();
+
+    _glowController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1500),
+    )..repeat(reverse: true);
   }
 
   @override
   void dispose() {
+    _endLiveActivity();
     _timer?.cancel();
     _pulseController.dispose();
     _breathController.dispose();
+    _particleController.dispose();
+    _glowController.dispose();
     super.dispose();
   }
 
@@ -60,9 +94,17 @@ class _FocusModeScreenState extends State<FocusModeScreen>
     HapticFeedback.mediumImpact();
     setState(() => _isRunning = true);
 
+    _createLiveActivity();
+
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (_remainingSeconds > 0) {
         setState(() => _remainingSeconds--);
+        _updateLiveActivity();
+
+        // Halfway point notification
+        if (_remainingSeconds == (_selectedDuration * 60) ~/ 2) {
+          HapticFeedback.mediumImpact();
+        }
       } else {
         _completeSession();
       }
@@ -73,16 +115,43 @@ class _FocusModeScreenState extends State<FocusModeScreen>
     HapticFeedback.lightImpact();
     _timer?.cancel();
     setState(() => _isRunning = false);
+    _updateLiveActivity(force: true);
   }
 
   void _completeSession() {
     HapticFeedback.heavyImpact();
+    _endLiveActivity();
     _timer?.cancel();
     setState(() {
       _isRunning = false;
       _isCompleted = true;
+
+      if (_isPomodoroMode) {
+        _pomodoroRound++;
+      }
     });
     widget.onComplete?.call();
+  }
+
+  void _setDuration(int minutes) {
+    if (!_isRunning) {
+      HapticFeedback.selectionClick();
+      setState(() {
+        _selectedDuration = minutes;
+        _remainingSeconds = minutes * 60;
+      });
+    }
+  }
+
+  void _togglePomodoroMode() {
+    HapticFeedback.selectionClick();
+    setState(() {
+      _isPomodoroMode = !_isPomodoroMode;
+      if (_isPomodoroMode) {
+        _selectedDuration = 25;
+        _remainingSeconds = 25 * 60;
+      }
+    });
   }
 
   String get _formattedTime {
@@ -92,8 +161,20 @@ class _FocusModeScreenState extends State<FocusModeScreen>
   }
 
   double get _progress {
-    final total = widget.durationMinutes * 60;
+    final total = _selectedDuration * 60;
     return 1 - (_remainingSeconds / total);
+  }
+
+  Color get _primaryGradientColor {
+    if (_isCompleted) return const Color(0xFF4CAF50);
+    if (_progress < 0.5) return const Color(0xFF667EEA);
+    return const Color(0xFFFF6B9D);
+  }
+
+  Color get _secondaryGradientColor {
+    if (_isCompleted) return const Color(0xFF66BB6A);
+    if (_progress < 0.5) return const Color(0xFF764BA2);
+    return const Color(0xFFFFC371);
   }
 
   @override
@@ -103,64 +184,73 @@ class _FocusModeScreenState extends State<FocusModeScreen>
       body: SafeArea(
         child: Stack(
           children: [
-            // Animated background
+            // Animated background with particles
             _buildAnimatedBackground(),
+            _buildParticles(),
 
             // Main content
             Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Spacer(flex: 2),
+              child: SingleChildScrollView(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const SizedBox(height: 60),
 
-                  // Habit emoji
-                  Text(
-                    widget.habit.emoji,
-                    style: const TextStyle(fontSize: 60),
-                  ).animate().fadeIn().scale(
-                        delay: 200.ms,
-                        duration: 600.ms,
-                        curve: Curves.elasticOut,
+                      // Habit emoji with glow
+                      _buildHabitEmoji(),
+
+                      const SizedBox(height: 16),
+
+                      // Habit name
+                      Text(
+                        widget.habit.name,
+                        style: const TextStyle(
+                          fontSize: 28,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                          letterSpacing: -0.5,
+                        ),
+                        textAlign: TextAlign.center,
+                      ).animate().fadeIn(delay: 300.ms),
+
+                      const SizedBox(height: 8),
+
+                      Text(
+                        _isPomodoroMode
+                            ? 'Pomodoro Round ${_pomodoroRound + 1}'
+                            : 'Focus Time',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Colors.white.withValues(alpha: 0.6),
+                          letterSpacing: 2,
+                          fontWeight: FontWeight.w500,
+                        ),
                       ),
 
-                  const SizedBox(height: 16),
+                      const SizedBox(height: 48),
 
-                  // Habit name
-                  Text(
-                    widget.habit.name,
-                    style: const TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                    ),
-                  ).animate().fadeIn(delay: 300.ms),
+                      // Premium Timer Circle with gradient
+                      _buildPremiumTimerCircle(),
 
-                  const SizedBox(height: 8),
+                      const SizedBox(height: 48),
 
-                  Text(
-                    'Focus Time',
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Colors.white.withValues(alpha: 0.6),
-                      letterSpacing: 2,
-                    ),
+                      // Duration Presets (when not running)
+                      if (!_isRunning && !_isCompleted) _buildDurationPresets(),
+
+                      const SizedBox(height: 24),
+
+                      // Controls
+                      if (_isCompleted)
+                        _buildCompletedState()
+                      else
+                        _buildControls(),
+
+                      const SizedBox(height: 40),
+                    ],
                   ),
-
-                  const Spacer(),
-
-                  // Timer Circle
-                  _buildTimerCircle(),
-
-                  const Spacer(),
-
-                  // Controls
-                  if (_isCompleted)
-                    _buildCompletedState()
-                  else
-                    _buildControls(),
-
-                  const Spacer(flex: 2),
-                ],
+                ),
               ),
             ),
 
@@ -170,13 +260,86 @@ class _FocusModeScreenState extends State<FocusModeScreen>
               right: 16,
               child: IconButton(
                 onPressed: () => _showExitConfirmation(),
-                icon: const Icon(Icons.close, color: Colors.white54),
+                icon: const Icon(Icons.close, color: Colors.white54, size: 28),
               ),
+            ),
+
+            // Pomodoro mode toggle
+            Positioned(
+              top: 16,
+              left: 16,
+              child: _buildPomodoroToggle(),
             ),
           ],
         ),
       ),
     );
+  }
+
+  // LIVE ACTIVITIES INTEGRATION
+
+  Future<void> _createLiveActivity() async {
+    if (!Platform.isIOS) return;
+
+    // Don't create if already exists
+    if (_activityId != null) {
+      _updateLiveActivity(force: true);
+      return;
+    }
+
+    final activityId = 'focus_mode_${DateTime.now().millisecondsSinceEpoch}';
+
+    try {
+      await _liveActivities.createActivity(
+        activityId,
+        {
+          'habitName': widget.habit.name,
+          'habitEmoji': widget.habit.emoji,
+          'remainingSeconds': _remainingSeconds,
+          'totalDurationSeconds': _selectedDuration * 60,
+          'progress': 1 - (_remainingSeconds / (_selectedDuration * 60)),
+          'isPaused': false,
+        },
+      );
+      setState(() => _activityId = activityId);
+    } catch (e) {
+      debugPrint('Error creating live activity: $e');
+    }
+  }
+
+  Future<void> _updateLiveActivity({bool force = false}) async {
+    if (!Platform.isIOS || _activityId == null) return;
+
+    // Throttle updates to every 5 seconds unless forced (e.g. pause/resume)
+    final now = DateTime.now().millisecondsSinceEpoch;
+    if (!force && now - _lastActivityUpdate < 5000) return;
+
+    _lastActivityUpdate = now;
+
+    try {
+      await _liveActivities.updateActivity(
+        _activityId!,
+        {
+          'remainingSeconds': _remainingSeconds,
+          'totalDurationSeconds': _selectedDuration * 60,
+          'progress': 1 - (_remainingSeconds / (_selectedDuration * 60)),
+          'isPaused': !_isRunning,
+        },
+      );
+    } catch (e) {
+      debugPrint('Error updating live activity: $e');
+    }
+  }
+
+  Future<void> _endLiveActivity() async {
+    if (!Platform.isIOS || _activityId == null) return;
+
+    try {
+      await _liveActivities.endActivity(_activityId!);
+      setState(() => _activityId = null);
+    } catch (e) {
+      debugPrint('Error ending live activity: $e');
+    }
   }
 
   Widget _buildAnimatedBackground() {
@@ -200,42 +363,99 @@ class _FocusModeScreenState extends State<FocusModeScreen>
     );
   }
 
-  Widget _buildTimerCircle() {
+  Widget _buildParticles() {
     return AnimatedBuilder(
-      animation: _pulseController,
+      animation: _particleController,
+      builder: (context, child) {
+        return CustomPaint(
+          painter: _ParticlePainter(_particleController.value),
+          child: Container(),
+        );
+      },
+    );
+  }
+
+  Widget _buildHabitEmoji() {
+    return AnimatedBuilder(
+      animation: _glowController,
+      builder: (context, child) {
+        return Container(
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            boxShadow: [
+              BoxShadow(
+                color: _primaryGradientColor.withValues(
+                    alpha: 0.3 + (_glowController.value * 0.2)),
+                blurRadius: 40 + (_glowController.value * 20),
+                spreadRadius: 5,
+              ),
+            ],
+          ),
+          child: Text(
+            widget.habit.emoji,
+            style: const TextStyle(fontSize: 80),
+          ),
+        );
+      },
+    ).animate().fadeIn().scale(
+          delay: 200.ms,
+          duration: 600.ms,
+          curve: Curves.elasticOut,
+        );
+  }
+
+  Widget _buildPremiumTimerCircle() {
+    return AnimatedBuilder(
+      animation: Listenable.merge([_pulseController, _glowController]),
       builder: (context, child) {
         final scale = _isRunning ? 1.0 + (_pulseController.value * 0.02) : 1.0;
+        final glowIntensity = 0.4 + (_glowController.value * 0.3);
 
         return Transform.scale(
           scale: scale,
-          child: SizedBox(
-            width: 280,
-            height: 280,
+          child: Container(
+            width: 300,
+            height: 300,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: _primaryGradientColor.withValues(alpha: glowIntensity),
+                  blurRadius: 60,
+                  spreadRadius: 10,
+                ),
+              ],
+            ),
             child: Stack(
               alignment: Alignment.center,
               children: [
-                // Background circle
+                // Background circle with gradient
                 Container(
-                  width: 280,
-                  height: 280,
+                  width: 300,
+                  height: 300,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: Colors.white.withValues(alpha: 0.05),
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        Colors.white.withValues(alpha: 0.05),
+                        Colors.white.withValues(alpha: 0.02),
+                      ],
+                    ),
                   ),
                 ),
 
-                // Progress arc
+                // Premium gradient progress arc
                 SizedBox(
-                  width: 260,
-                  height: 260,
-                  child: CircularProgressIndicator(
-                    value: _progress,
-                    strokeWidth: 8,
-                    backgroundColor: Colors.white.withValues(alpha: 0.1),
-                    valueColor: AlwaysStoppedAnimation<Color>(
-                      _isCompleted
-                          ? const Color(0xFF4CAF50)
-                          : const Color(0xFF667EEA),
+                  width: 280,
+                  height: 280,
+                  child: CustomPaint(
+                    painter: _GradientArcPainter(
+                      progress: _progress,
+                      primaryColor: _primaryGradientColor,
+                      secondaryColor: _secondaryGradientColor,
                     ),
                   ),
                 ),
@@ -247,18 +467,20 @@ class _FocusModeScreenState extends State<FocusModeScreen>
                     Text(
                       _isCompleted ? '✓' : _formattedTime,
                       style: TextStyle(
-                        fontSize: _isCompleted ? 80 : 56,
-                        fontWeight: FontWeight.w300,
+                        fontSize: _isCompleted ? 90 : 64,
+                        fontWeight: FontWeight.w200,
                         color: Colors.white,
                         fontFeatures: const [FontFeature.tabularFigures()],
                       ),
                     ),
+                    if (!_isCompleted) const SizedBox(height: 8),
                     if (!_isCompleted)
                       Text(
-                        _isRunning ? 'Stay focused' : 'Ready?',
+                        _isRunning ? 'Stay focused' : 'Ready to begin?',
                         style: TextStyle(
                           fontSize: 14,
                           color: Colors.white.withValues(alpha: 0.6),
+                          fontWeight: FontWeight.w500,
                         ),
                       ),
                   ],
@@ -271,94 +493,129 @@ class _FocusModeScreenState extends State<FocusModeScreen>
     );
   }
 
-  Widget _buildControls() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
+  Widget _buildDurationPresets() {
+    final presets = [
+      {'minutes': 5, 'label': '5m'},
+      {'minutes': 15, 'label': '15m'},
+      {'minutes': 25, 'label': '25m'},
+      {'minutes': 45, 'label': '45m'},
+    ];
+
+    return Column(
       children: [
-        // Duration adjustment buttons (when paused)
-        if (!_isRunning) ...[
-          _buildDurationButton(-5, '-5m'),
-          const SizedBox(width: 16),
-        ],
-
-        // Play/Pause button
-        GestureDetector(
-          onTap: _isRunning ? _pauseTimer : _startTimer,
-          child: Container(
-            width: 80,
-            height: 80,
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  const Color(0xFF667EEA),
-                  const Color(0xFF764BA2),
-                ],
-              ),
-              shape: BoxShape.circle,
-              boxShadow: [
-                BoxShadow(
-                  color: const Color(0xFF667EEA).withValues(alpha: 0.4),
-                  blurRadius: 20,
-                  offset: const Offset(0, 8),
-                ),
-              ],
-            ),
-            child: Icon(
-              _isRunning ? Icons.pause_rounded : Icons.play_arrow_rounded,
-              color: Colors.white,
-              size: 40,
-            ),
+        Text(
+          'Quick Presets',
+          style: TextStyle(
+            fontSize: 12,
+            color: Colors.white.withValues(alpha: 0.5),
+            letterSpacing: 1.5,
+            fontWeight: FontWeight.w600,
           ),
-        )
-            .animate()
-            .scale(delay: 400.ms, duration: 400.ms, curve: Curves.elasticOut),
+        ),
+        const SizedBox(height: 16),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: presets.map((preset) {
+            final minutes = preset['minutes'] as int;
+            final label = preset['label'] as String;
+            final isSelected = _selectedDuration == minutes;
 
-        if (!_isRunning) ...[
-          const SizedBox(width: 16),
-          _buildDurationButton(5, '+5m'),
-        ],
+            return Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 6),
+              child: GestureDetector(
+                onTap: () => _setDuration(minutes),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                  decoration: BoxDecoration(
+                    gradient: isSelected
+                        ? LinearGradient(
+                            colors: [
+                              _primaryGradientColor,
+                              _secondaryGradientColor
+                            ],
+                          )
+                        : null,
+                    color:
+                        isSelected ? null : Colors.white.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                      color: isSelected
+                          ? Colors.transparent
+                          : Colors.white.withValues(alpha: 0.2),
+                    ),
+                  ),
+                  child: Text(
+                    label,
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight:
+                          isSelected ? FontWeight.bold : FontWeight.w500,
+                      fontSize: 14,
+                    ),
+                  ),
+                ),
+              ),
+            );
+          }).toList(),
+        ),
       ],
-    );
+    ).animate().fadeIn(delay: 400.ms).slideY(begin: 0.2);
   }
 
-  Widget _buildDurationButton(int minutes, String label) {
+  Widget _buildControls() {
     return GestureDetector(
-      onTap: () {
-        HapticFeedback.selectionClick();
-        setState(() {
-          _remainingSeconds =
-              (_remainingSeconds + (minutes * 60)).clamp(60, 120 * 60);
-        });
-      },
+      onTap: _isRunning ? _pauseTimer : _startTimer,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        width: 90,
+        height: 90,
         decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.1),
-          borderRadius: BorderRadius.circular(20),
-        ),
-        child: Text(
-          label,
-          style: const TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [_primaryGradientColor, _secondaryGradientColor],
           ),
+          shape: BoxShape.circle,
+          boxShadow: [
+            BoxShadow(
+              color: _primaryGradientColor.withValues(alpha: 0.5),
+              blurRadius: 25,
+              offset: const Offset(0, 10),
+            ),
+          ],
+        ),
+        child: Icon(
+          _isRunning ? Icons.pause_rounded : Icons.play_arrow_rounded,
+          color: Colors.white,
+          size: 45,
         ),
       ),
-    );
+    )
+        .animate()
+        .scale(delay: 500.ms, duration: 400.ms, curve: Curves.elasticOut);
   }
 
   Widget _buildCompletedState() {
     return Column(
       children: [
         const Text(
-          '🎉 Great Focus Session!',
+          '🎉 Excellent Focus!',
           style: TextStyle(
-            fontSize: 24,
+            fontSize: 28,
             fontWeight: FontWeight.bold,
             color: Colors.white,
           ),
         ).animate().fadeIn().scale(),
-        const SizedBox(height: 24),
+        const SizedBox(height: 16),
+        Text(
+          'You completed $_selectedDuration minutes',
+          style: TextStyle(
+            fontSize: 14,
+            color: Colors.white.withValues(alpha: 0.7),
+          ),
+        ),
+        const SizedBox(height: 32),
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -367,7 +624,7 @@ class _FocusModeScreenState extends State<FocusModeScreen>
               Icons.refresh_rounded,
               () {
                 setState(() {
-                  _remainingSeconds = widget.durationMinutes * 60;
+                  _remainingSeconds = _selectedDuration * 60;
                   _isCompleted = false;
                 });
               },
@@ -397,7 +654,7 @@ class _FocusModeScreenState extends State<FocusModeScreen>
         onTap();
       },
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+        padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 16),
         decoration: BoxDecoration(
           gradient: isPrimary
               ? const LinearGradient(
@@ -406,6 +663,11 @@ class _FocusModeScreenState extends State<FocusModeScreen>
               : null,
           color: isPrimary ? null : Colors.white.withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(25),
+          border: Border.all(
+            color: isPrimary
+                ? Colors.transparent
+                : Colors.white.withValues(alpha: 0.2),
+          ),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
@@ -417,6 +679,47 @@ class _FocusModeScreenState extends State<FocusModeScreen>
               style: const TextStyle(
                 color: Colors.white,
                 fontWeight: FontWeight.bold,
+                fontSize: 15,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPomodoroToggle() {
+    return GestureDetector(
+      onTap: _isRunning ? null : _togglePomodoroMode,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        decoration: BoxDecoration(
+          color: _isPomodoroMode
+              ? const Color(0xFFFF6B6B).withValues(alpha: 0.2)
+              : Colors.white.withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: _isPomodoroMode
+                ? const Color(0xFFFF6B6B).withValues(alpha: 0.5)
+                : Colors.white.withValues(alpha: 0.2),
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.timer,
+              size: 16,
+              color: _isPomodoroMode ? const Color(0xFFFF6B6B) : Colors.white70,
+            ),
+            const SizedBox(width: 6),
+            Text(
+              'Pomodoro',
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+                color:
+                    _isPomodoroMode ? const Color(0xFFFF6B6B) : Colors.white70,
               ),
             ),
           ],
@@ -426,7 +729,7 @@ class _FocusModeScreenState extends State<FocusModeScreen>
   }
 
   void _showExitConfirmation() {
-    if (!_isRunning && _remainingSeconds == widget.durationMinutes * 60) {
+    if (!_isRunning && _remainingSeconds == _selectedDuration * 60) {
       Navigator.pop(context);
       return;
     }
@@ -434,12 +737,19 @@ class _FocusModeScreenState extends State<FocusModeScreen>
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Exit Focus Mode?'),
-        content: const Text('Your progress will be lost.'),
+        backgroundColor: const Color(0xFF1A1A2E),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text('Exit Focus Mode?',
+            style: TextStyle(color: Colors.white)),
+        content: const Text(
+          'Your progress will be lost.',
+          style: TextStyle(color: Colors.white70),
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Stay'),
+            child:
+                const Text('Stay', style: TextStyle(color: Color(0xFF667EEA))),
           ),
           TextButton(
             onPressed: () {
@@ -451,6 +761,101 @@ class _FocusModeScreenState extends State<FocusModeScreen>
         ],
       ),
     );
+  }
+}
+
+// Custom painter for gradient arc
+class _GradientArcPainter extends CustomPainter {
+  final double progress;
+  final Color primaryColor;
+  final Color secondaryColor;
+
+  _GradientArcPainter({
+    required this.progress,
+    required this.primaryColor,
+    required this.secondaryColor,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = Offset(size.width / 2, size.height / 2);
+    final radius = size.width / 2;
+    final rect = Rect.fromCircle(center: center, radius: radius);
+
+    // Background arc
+    final bgPaint = Paint()
+      ..color = Colors.white.withValues(alpha: 0.1)
+      ..strokeWidth = 12
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round;
+
+    canvas.drawArc(
+      rect,
+      -math.pi / 2,
+      2 * math.pi,
+      false,
+      bgPaint,
+    );
+
+    // Gradient progress arc
+    if (progress > 0) {
+      final gradient = SweepGradient(
+        startAngle: -math.pi / 2,
+        endAngle: -math.pi / 2 + (2 * math.pi * progress),
+        colors: [primaryColor, secondaryColor, primaryColor],
+        stops: const [0.0, 0.5, 1.0],
+      );
+
+      final progressPaint = Paint()
+        ..shader = gradient.createShader(rect)
+        ..strokeWidth = 12
+        ..style = PaintingStyle.stroke
+        ..strokeCap = StrokeCap.round;
+
+      canvas.drawArc(
+        rect,
+        -math.pi / 2,
+        2 * math.pi * progress,
+        false,
+        progressPaint,
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(_GradientArcPainter oldDelegate) {
+    return oldDelegate.progress != progress ||
+        oldDelegate.primaryColor != primaryColor ||
+        oldDelegate.secondaryColor != secondaryColor;
+  }
+}
+
+// Custom painter for particle effect
+class _ParticlePainter extends CustomPainter {
+  final double animationValue;
+
+  _ParticlePainter(this.animationValue);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = Colors.white.withValues(alpha: 0.3)
+      ..style = PaintingStyle.fill;
+
+    // Draw floating particles
+    for (int i = 0; i < 30; i++) {
+      final x = (size.width * (i * 0.1 + animationValue * 0.3)) % size.width;
+      final y = (size.height * (i * 0.07 + animationValue * 0.2)) % size.height;
+      final radius = 1.0 + (i % 3);
+
+      paint.color = Colors.white.withValues(alpha: 0.1 + (i % 5) * 0.05);
+      canvas.drawCircle(Offset(x, y), radius, paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(_ParticlePainter oldDelegate) {
+    return oldDelegate.animationValue != animationValue;
   }
 }
 
@@ -483,20 +888,29 @@ class FocusModeButton extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
-          color: const Color(0xFF667EEA).withValues(alpha: 0.15),
+          gradient: const LinearGradient(
+            colors: [Color(0xFF667EEA), Color(0xFF764BA2)],
+          ),
           borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFF667EEA).withValues(alpha: 0.3),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
         ),
         child: const Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.timer_rounded, size: 16, color: Color(0xFF667EEA)),
+            Icon(Icons.timer_rounded, size: 16, color: Colors.white),
             SizedBox(width: 6),
             Text(
               'Focus',
               style: TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.bold,
-                color: Color(0xFF667EEA),
+                color: Colors.white,
               ),
             ),
           ],

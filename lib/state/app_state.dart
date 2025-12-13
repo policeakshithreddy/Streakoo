@@ -11,6 +11,7 @@ import '../services/supabase_service.dart';
 import '../services/local_notification_service.dart';
 import '../services/milestone_detector.dart';
 import '../services/home_widget_service.dart';
+import '../services/ai_health_coach_service.dart';
 import '../models/ai_insight.dart';
 import '../services/health_service.dart';
 import '../models/health_challenge.dart';
@@ -329,6 +330,11 @@ class AppState extends ChangeNotifier {
     // Perform daily cloud backup if needed (non-blocking)
     checkAndPerformDailyBackup().catchError((e) {
       debugPrint('Auto-backup error: $e');
+    });
+
+    // Check and update daily AI insight for active challenge
+    checkAndUpdateDailyInsight().catchError((e) {
+      debugPrint('Auto-insight update error: $e');
     });
 
     // Load Weekly Reports
@@ -1188,6 +1194,62 @@ class AppState extends ChangeNotifier {
       debugPrint('✅ Daily auto-backup completed');
     } catch (e) {
       debugPrint('❌ Daily auto-backup failed: $e');
+    }
+  }
+
+  /// Check and update daily AI insight for active challenge
+  Future<void> checkAndUpdateDailyInsight() async {
+    if (_activeHealthChallenge == null) return;
+
+    final today = _getTodayKey();
+    final lastInsightDate = _activeHealthChallenge!.aiPlan['lastInsightDate'];
+
+    // If we already generated an insight today, skip
+    if (lastInsightDate == today) return;
+
+    debugPrint('🧠 generating daily AI insight...');
+
+    try {
+      final healthService = HealthService.instance;
+      final aiService = AIHealthCoachService.instance;
+
+      List<int> weeklySteps = [];
+      List<double> weeklySleep = [];
+
+      // Fetch last 7 days metrics
+      final now = DateTime.now();
+      for (int i = 0; i < 7; i++) {
+        final date = now.subtract(Duration(days: 6 - i));
+        weeklySteps.add(await healthService.getStepCount(date));
+        weeklySleep.add(await healthService.getSleepHours(date));
+      }
+
+      final habitsCompleted = _habits.where((h) => h.completedToday).length;
+      final currentStreak = _habits.isEmpty
+          ? 0
+          : _habits.map((h) => h.streak).reduce((a, b) => a > b ? a : b);
+
+      final newInsight = await aiService.generateSmartInsight(
+        weeklySteps: weeklySteps,
+        weeklySleep: weeklySleep,
+        habitsCompleted: habitsCompleted,
+        currentStreak: currentStreak,
+      );
+
+      // Update challenge with new insight
+      // Clone the plan map to be safe
+      final updatedPlan =
+          Map<String, dynamic>.from(_activeHealthChallenge!.aiPlan);
+      updatedPlan['aiExplanation'] = newInsight;
+      updatedPlan['lastInsightDate'] = today; // Mark as updated for today
+
+      final updatedChallenge =
+          _activeHealthChallenge!.copyWith(aiPlan: updatedPlan);
+
+      await setActiveHealthChallenge(updatedChallenge);
+      debugPrint('✅ Daily AI insight updated: $newInsight');
+    } catch (e) {
+      debugPrint('❌ Error updating daily AI insight: $e');
     }
   }
 

@@ -1,4 +1,3 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
@@ -9,7 +8,7 @@ class WhatsNewDialog extends StatelessWidget {
   const WhatsNewDialog({super.key});
 
   // Current app version for tracking shown updates
-  static const String currentVersion = '2.1.0';
+  static const String currentVersion = '2.2.0';
   static const String _prefsKey = 'whats_new_version_shown';
 
   // App theme colors (Orange)
@@ -118,7 +117,7 @@ class WhatsNewDialog extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 4),
-                  Text(
+                  const Text(
                     'Version $currentVersion',
                     style: TextStyle(
                       fontSize: 13,
@@ -138,44 +137,44 @@ class WhatsNewDialog extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     _buildFeatureItem(
-                      '🎉',
-                      'Year in Review',
-                      'Spotify Wrapped-style annual summary! See your 2025 stats with beautiful animated slides and share your achievements.',
+                      '🤖',
+                      'AI Habit Coach',
+                      'Meet your new personal assistant! Chat with AI to set perfect goals and get tailored advice.',
                       isDark,
                       0,
                     ),
                     _buildFeatureItem(
-                      '🏆',
-                      'Global Leaderboard',
-                      'Compete worldwide! Climb the ranks, earn badges, and see how you stack up. Privacy controls included - stay private or go public.',
+                      '🌬️',
+                      'Wind Insights',
+                      'Deep health analysis powered by Wind AI. Understand your patterns like never before.',
                       isDark,
                       1,
                     ),
                     _buildFeatureItem(
-                      '🧠',
-                      'Smart Habit Insights',
-                      'AI analyzes your patterns and sends personalized insights. Get streak warnings, trend analysis, and motivation when you need it.',
+                      '🧘',
+                      'Focus Mode',
+                      'Boost productivity with the nested Focus Timer. Perfect for deep work and meditation.',
                       isDark,
                       2,
                     ),
                     _buildFeatureItem(
-                      '🔔',
-                      'Smart Notifications',
-                      'Never lose a streak! Get predictive warnings, personalized reminders, and celebration notifications for milestones.',
+                      '📋',
+                      'Habit Templates',
+                      'Jumpstart your journey with curated templates for health, productivity, and mindfulness.',
                       isDark,
                       3,
                     ),
                     _buildFeatureItem(
-                      '🔥',
-                      'Streak Flames',
-                      'Watch your streaks come alive with animated flame visualizations. The higher your streak, the bigger the fire!',
+                      '📊',
+                      'Weekly Summary',
+                      'Track your progress with the redesigned, premium weekly report card.',
                       isDark,
                       4,
                     ),
                     _buildFeatureItem(
-                      '☁️',
-                      'Smart Sync',
-                      'Seamless cross-device sync with conflict resolution. Your habits follow you everywhere with automatic backup.',
+                      '🎉',
+                      'Year in Review',
+                      'See your 2025 stats with beautiful animated slides and share your achievements.',
                       isDark,
                       5,
                     ),

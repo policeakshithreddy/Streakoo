@@ -40,6 +40,12 @@ class Habit {
   List<int> frequencyDays; // 1=Mon, 7=Sun
   bool reminderEnabled;
 
+  // Habit Goal (text-based goal description)
+  String? habitGoal; // e.g., "Run 5km in 25 minutes", "3 sets of 10 reps"
+
+  // Focus Mode Duration (for timed activities like yoga, meditation)
+  int? focusModeDuration; // Duration in minutes for focus mode timer
+
   Habit({
     required this.id,
     required this.name,
@@ -64,6 +70,8 @@ class Habit {
     this.isHealthTracked = false,
     this.healthMetric,
     this.healthGoalValue,
+    this.habitGoal,
+    this.focusModeDuration,
   })  : completionDates = completionDates ?? [],
         frequencyDays = frequencyDays ?? [1, 2, 3, 4, 5, 6, 7];
 
@@ -101,6 +109,8 @@ class Habit {
           ? HealthMetricType.values[json['healthMetric'] as int]
           : null,
       healthGoalValue: json['healthGoalValue'] as double?,
+      habitGoal: json['habitGoal'] as String?,
+      focusModeDuration: json['focusModeDuration'] as int?,
     );
   }
 
@@ -127,6 +137,8 @@ class Habit {
     bool? isHealthTracked,
     HealthMetricType? healthMetric,
     double? healthGoalValue,
+    String? habitGoal,
+    int? focusModeDuration,
   }) {
     return Habit(
       id: id,
@@ -152,6 +164,8 @@ class Habit {
       isHealthTracked: isHealthTracked ?? this.isHealthTracked,
       healthMetric: healthMetric ?? this.healthMetric,
       healthGoalValue: healthGoalValue ?? this.healthGoalValue,
+      habitGoal: habitGoal ?? this.habitGoal,
+      focusModeDuration: focusModeDuration ?? this.focusModeDuration,
     );
   }
 
@@ -178,6 +192,8 @@ class Habit {
       'isHealthTracked': isHealthTracked,
       'healthMetric': healthMetric?.index,
       'healthGoalValue': healthGoalValue,
+      'habitGoal': habitGoal,
+      'focusModeDuration': focusModeDuration,
     };
 
     // Include transient/runtime fields only for local storage, not for database

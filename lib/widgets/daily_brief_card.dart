@@ -1,11 +1,19 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 
 import '../state/app_state.dart';
 
-class DailyBriefCard extends StatelessWidget {
+class DailyBriefCard extends StatefulWidget {
   const DailyBriefCard({super.key});
+
+  @override
+  State<DailyBriefCard> createState() => _DailyBriefCardState();
+}
+
+class _DailyBriefCardState extends State<DailyBriefCard> {
+  bool _isExpanded = false;
 
   @override
   Widget build(BuildContext context) {
@@ -29,6 +37,11 @@ class DailyBriefCard extends StatelessWidget {
 
     // Motivational quote
     final quote = _getMotivationalQuote(completedToday, totalToday);
+
+    // Habits to display
+    final habitsToShow =
+        _isExpanded ? todayHabits : todayHabits.take(3).toList();
+    final remainingCount = todayHabits.length - 3;
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -97,7 +110,8 @@ class DailyBriefCard extends StatelessWidget {
             style: TextStyle(
               fontSize: 15,
               fontWeight: FontWeight.w600,
-              color: isDark ? Colors.white.withValues(alpha: 0.8) : Colors.black87,
+              color:
+                  isDark ? Colors.white.withValues(alpha: 0.8) : Colors.black87,
             ),
           ),
           const SizedBox(height: 12),
@@ -126,7 +140,7 @@ class DailyBriefCard extends StatelessWidget {
           ),
           const SizedBox(height: 16),
 
-          // Habit list
+          // Habit list with animation
           if (todayHabits.isEmpty)
             Text(
               'No habits scheduled for today 🎉',
@@ -138,55 +152,107 @@ class DailyBriefCard extends StatelessWidget {
               ),
             )
           else
-            ...todayHabits.take(3).map((habit) => Padding(
-                  padding: const EdgeInsets.only(bottom: 8),
-                  child: Row(
-                    children: [
-                      Icon(
-                        habit.completedToday
-                            ? Icons.check_circle
-                            : Icons.radio_button_unchecked,
-                        size: 20,
-                        color: habit.completedToday
-                            ? const Color(0xFF27AE60)
-                            : (isDark
-                                ? Colors.white.withValues(alpha: 0.4)
-                                : Colors.black.withValues(alpha: 0.3)),
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: Text(
-                          habit.name,
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: isDark
-                                ? Colors.white.withValues(alpha: 0.9)
-                                : Colors.black87,
-                            decoration: habit.completedToday
-                                ? TextDecoration.lineThrough
-                                : null,
+            AnimatedSize(
+              duration: const Duration(milliseconds: 300),
+              curve: Curves.easeInOutCubic,
+              alignment: Alignment.topCenter,
+              child: Column(
+                children: habitsToShow
+                    .map((habit) => Padding(
+                          padding: const EdgeInsets.only(bottom: 8),
+                          child: Row(
+                            children: [
+                              Icon(
+                                habit.completedToday
+                                    ? Icons.check_circle
+                                    : Icons.radio_button_unchecked,
+                                size: 20,
+                                color: habit.completedToday
+                                    ? const Color(0xFF27AE60)
+                                    : (isDark
+                                        ? Colors.white.withValues(alpha: 0.4)
+                                        : Colors.black.withValues(alpha: 0.3)),
+                              ),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Text(
+                                  habit.name,
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    color: isDark
+                                        ? Colors.white.withValues(alpha: 0.9)
+                                        : Colors.black87,
+                                    decoration: habit.completedToday
+                                        ? TextDecoration.lineThrough
+                                        : null,
+                                  ),
+                                ),
+                              ),
+                              Text(
+                                habit.emoji,
+                                style: const TextStyle(fontSize: 16),
+                              ),
+                            ],
                           ),
+                        ))
+                    .toList(),
+              ),
+            ),
+
+          // Show more/less button
+          if (todayHabits.length > 3)
+            GestureDetector(
+              onTap: () {
+                HapticFeedback.selectionClick();
+                setState(() {
+                  _isExpanded = !_isExpanded;
+                });
+              },
+              child: Padding(
+                padding: const EdgeInsets.only(top: 8),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFFA94A).withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                          color: const Color(0xFFFFA94A).withValues(alpha: 0.3),
                         ),
                       ),
-                      if (habit.completedToday)
-                        Text(
-                          '${habit.emoji} ',
-                          style: const TextStyle(fontSize: 16),
-                        ),
-                    ],
-                  ),
-                )),
-
-          if (todayHabits.length > 3)
-            Padding(
-              padding: const EdgeInsets.only(top: 4),
-              child: Text(
-                '+${todayHabits.length - 3} more',
-                style: TextStyle(
-                  fontSize: 13,
-                  color: isDark
-                      ? Colors.white.withValues(alpha: 0.5)
-                      : Colors.black.withValues(alpha: 0.4),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            _isExpanded ? 'Show less' : '+$remainingCount more',
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              color: isDark
+                                  ? const Color(0xFFFFB366)
+                                  : const Color(0xFFE08A30),
+                            ),
+                          ),
+                          const SizedBox(width: 4),
+                          AnimatedRotation(
+                            turns: _isExpanded ? 0.5 : 0,
+                            duration: const Duration(milliseconds: 200),
+                            child: Icon(
+                              Icons.keyboard_arrow_down,
+                              size: 18,
+                              color: isDark
+                                  ? const Color(0xFFFFB366)
+                                  : const Color(0xFFE08A30),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),

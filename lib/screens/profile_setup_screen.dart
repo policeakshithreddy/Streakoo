@@ -78,8 +78,8 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
         user?.email?.split('@')[0] ??
         'User';
 
-    return WillPopScope(
-      onWillPop: () async => false, // Prevent back button
+    return PopScope(
+      canPop: false, // Prevent back button
       child: Scaffold(
         appBar: AppBar(
           title: const Text('Complete Your Profile'),

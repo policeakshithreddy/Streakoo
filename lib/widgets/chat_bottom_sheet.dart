@@ -136,6 +136,8 @@ class _ChatBottomSheetState extends State<ChatBottomSheet> {
 
     await Future.delayed(const Duration(milliseconds: 250));
 
+    if (!mounted) return;
+
     try {
       final appState = context.read<AppState>();
 

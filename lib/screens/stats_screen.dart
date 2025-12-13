@@ -556,9 +556,9 @@ class _OverviewTab extends StatelessWidget {
                       end: Alignment.bottomRight,
                       colors: isDark
                           ? [
-                              const Color(0xFF6366F1).withOpacity(0.8),
-                              const Color(0xFF8B5CF6).withOpacity(0.8),
-                              const Color(0xFFEC4899).withOpacity(0.8),
+                              const Color(0xFF6366F1).withValues(alpha: 0.8),
+                              const Color(0xFF8B5CF6).withValues(alpha: 0.8),
+                              const Color(0xFFEC4899).withValues(alpha: 0.8),
                             ]
                           : [
                               const Color(0xFF6366F1),
@@ -607,7 +607,7 @@ class _OverviewTab extends StatelessWidget {
                               'See your year in review',
                               style: TextStyle(
                                 fontSize: 14,
-                                color: Colors.white.withOpacity(0.9),
+                                color: Colors.white.withValues(alpha: 0.9),
                               ),
                             ),
                           ],
@@ -867,17 +867,14 @@ class _HealthDashboardTabState extends State<_HealthDashboardTab> {
       final calories = await _healthService.getCalories(date);
       _weeklyCalories[i] = calories;
 
-      // Sleep (mock logic or real if available)
-      // For now, we'll use a placeholder or previous logic if available
-      // Assuming getSleep is not yet implemented per-day in HealthService for this specific loop
-      // We will keep existing logic or default to 0 if not available
-    }
+      // Sleep - fetch real data from health service
+      final sleep = await _healthService.getSleepHours(date);
+      _weeklySleep[i] = _healthService.isValidSleepHours(sleep) ? sleep : 0.0;
 
-    // Simulate sleep data for demo (since we don't have full history API connected in this snippet)
-    // In a real app, you'd fetch this from HealthService
-    for (int i = 0; i < 7; i++) {
-      _weeklySleep[i] = 6.5 + (i % 3) * 0.5; // Mock variation
-      _weeklyDistance[i] = _weeklySteps[i] * 0.0007; // Approx km
+      // Distance - fetch real data from health service
+      final distance = await _healthService.getDistance(date);
+      _weeklyDistance[i] =
+          _healthService.isValidDistance(distance) ? distance : 0.0;
     }
 
     if (mounted) {
@@ -894,6 +891,7 @@ class _HealthDashboardTabState extends State<_HealthDashboardTab> {
         setState(() => _weeklySummary = summary);
       }
     } catch (e) {
+      debugPrint('Error generating weekly health summary: $e');
       // Error generating summary
       if (mounted) setState(() => _isLoading = false);
     }
@@ -1065,6 +1063,9 @@ class _HealthDashboardTabState extends State<_HealthDashboardTab> {
               allHabitsProgress: allHabitsProgress,
               stepsCount: displaySteps,
               stepsGoal: stepsGoal,
+              sleepHours: _weeklySleep[displayIndex],
+              distanceKm: _weeklyDistance[displayIndex],
+              heartRateBpm: null, // TODO: Fetch heart rate data
               currentStepsAvg: currentStepsAvg,
               previousStepsAvg: prevStepsAvg,
               currentSleepAvg: currentSleepAvg,
@@ -1087,12 +1088,12 @@ class _HealthDashboardTabState extends State<_HealthDashboardTab> {
             // AI Summary Card
             if (_weeklySummary != null) ...[
               Card(
-                color: Theme.of(context).brightness == Brightness.dark
-                    ? const Color(0xFF191919)
-                    : Theme.of(context)
-                        .colorScheme
-                        .primaryContainer
-                        .withValues(alpha: 0.1),
+                color: const Color(0xFF191919),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  side: const BorderSide(
+                      color: Color(0xFFFFA94A), width: 1.5), // Orange border
+                ),
                 child: Padding(
                   padding: const EdgeInsets.all(16),
                   child: Column(
@@ -1101,13 +1102,13 @@ class _HealthDashboardTabState extends State<_HealthDashboardTab> {
                       Row(
                         children: [
                           Icon(Icons.auto_awesome,
-                              color: Theme.of(context).colorScheme.primary),
+                              color: const Color(0xFFFFA94A)), // Orange icon
                           const SizedBox(width: 8),
                           Text(
                             'Wind Insights 🌬️',
                             style: TextStyle(
                               fontWeight: FontWeight.bold,
-                              color: Theme.of(context).colorScheme.primary,
+                              color: const Color(0xFFFFA94A), // Orange text
                             ),
                           ),
                         ],
@@ -1218,47 +1219,64 @@ class _HealthDashboardTabState extends State<_HealthDashboardTab> {
             .clamp(0.0, 100.0);
     final healthScore = ((stepsScore + sleepScore) / 2).round();
 
-    // Get calories and distance
-    final calories =
-        _weeklyCalories.isNotEmpty ? _weeklyCalories.last.round() : 0;
+    // Get sleep hours and distance
+    final sleepHours = _weeklySleep.isNotEmpty ? _weeklySleep.last : 0.0;
     final distance = _weeklyDistance.isNotEmpty ? _weeklyDistance.last : 0.0;
 
-    return Row(
+    return Column(
       children: [
-        // Health Score Card
-        Expanded(
-          child: _HealthMetricCard(
-            icon: Icons.favorite_rounded,
-            iconColor: _getHealthScoreColor(healthScore),
-            title: 'Health Score',
-            value: '$healthScore',
-            unit: '/100',
-            isDark: isDark,
-          ),
+        // First Row: Health Score & Sleep
+        Row(
+          children: [
+            Expanded(
+              child: _HealthMetricCard(
+                icon: Icons.favorite_rounded,
+                iconColor: _getHealthScoreColor(healthScore),
+                title: 'Health Score',
+                value: '$healthScore',
+                unit: '/100',
+                isDark: isDark,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _HealthMetricCard(
+                icon: Icons.bedtime_rounded,
+                iconColor: const Color(0xFFFFC107),
+                title: 'Sleep',
+                value: sleepHours.toStringAsFixed(1),
+                unit: 'hrs',
+                isDark: isDark,
+              ),
+            ),
+          ],
         ),
-        const SizedBox(width: 12),
-        // Calories Card
-        Expanded(
-          child: _HealthMetricCard(
-            icon: Icons.local_fire_department_rounded,
-            iconColor: const Color(0xFFFF9800),
-            title: 'Calories',
-            value: '$calories',
-            unit: 'kcal',
-            isDark: isDark,
-          ),
-        ),
-        const SizedBox(width: 12),
-        // Distance Card
-        Expanded(
-          child: _HealthMetricCard(
-            icon: Icons.directions_walk_rounded,
-            iconColor: const Color(0xFF4CAF50),
-            title: 'Distance',
-            value: distance.toStringAsFixed(1),
-            unit: 'km',
-            isDark: isDark,
-          ),
+        const SizedBox(height: 12),
+        // Second Row: Steps & Distance
+        Row(
+          children: [
+            Expanded(
+              child: _HealthMetricCard(
+                icon: Icons.directions_walk_rounded,
+                iconColor: const Color(0xFF2196F3),
+                title: 'Steps',
+                value: '$steps',
+                unit: 'steps',
+                isDark: isDark,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _HealthMetricCard(
+                icon: Icons.location_on_rounded,
+                iconColor: const Color(0xFFE91E63),
+                title: 'Distance',
+                value: distance.toStringAsFixed(1),
+                unit: 'km',
+                isDark: isDark,
+              ),
+            ),
+          ],
         ),
       ],
     );

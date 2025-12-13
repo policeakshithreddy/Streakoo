@@ -1,6 +1,24 @@
 import WidgetKit
 import SwiftUI
+import ActivityKit
 
+// MARK: - Live Activity Attributes
+// NOTE: Must be named LiveActivitiesAppAttributes for the plugin to work
+struct LiveActivitiesAppAttributes: ActivityAttributes {
+    public struct ContentState: Codable, Hashable {
+        // Dynamic state updated during the activity
+        var remainingSeconds: Int
+        var totalDurationSeconds: Int
+        var progress: Double
+        var isPaused: Bool
+    }
+
+    // Static data that doesn't change
+    var habitName: String
+    var habitEmoji: String
+}
+
+// MARK: - Existing Widget Entry & Provider
 struct StreakooWidgetEntry: TimelineEntry {
     let date: Date
     let completedHabits: Int
@@ -284,7 +302,138 @@ struct StreakooWidgetLarge: Widget {
     }
 }
 
-// MARK: - Color Extension
+// MARK: - Live Activity Widget
+@available(iOS 16.1, *)
+struct FocusModeActivityWidget: Widget {
+    var body: some WidgetConfiguration {
+        ActivityConfiguration(for: LiveActivitiesAppAttributes.self) { context in
+            // Lock Screen Banner UI
+            ZStack {
+                Color(hex: "1A1B2E")
+                
+                HStack {
+                    // Left: Habit Info
+                    VStack(alignment: .leading) {
+                        HStack {
+                            Text(context.attributes.habitEmoji)
+                            Text(context.attributes.habitName)
+                                .font(.headline)
+                                .foregroundColor(.white)
+                        }
+                        Text(context.state.isPaused ? "Paused" : "Focusing...")
+                            .font(.subheadline)
+                            .foregroundColor(.gray)
+                    }
+                    
+                    Spacer()
+                    
+                    // Right: Timer and Progress
+                    VStack(alignment: .trailing) {
+                        Text(formatTime(seconds: context.state.remainingSeconds))
+                            .font(.system(size: 32, weight: .bold, design: .monospaced))
+                            .foregroundColor(.white)
+                        
+                        // Progress Bar
+                        GeometryReader { geo in
+                            ZStack(alignment: .leading) {
+                                Capsule()
+                                    .fill(Color.white.opacity(0.2))
+                                    .frame(height: 6)
+                                Capsule()
+                                    .fill(context.state.isPaused ? Color.orange : Color(hex: "667EEA"))
+                                    .frame(width: geo.size.width * context.state.progress, height: 6)
+                            }
+                        }
+                        .frame(width: 80, height: 6)
+                    }
+                }
+                .padding()
+            }
+        } dynamicIsland: { context in
+            DynamicIsland {
+                // Expanded UI
+                DynamicIslandExpandedRegion(.leading) {
+                    HStack {
+                        Text(context.attributes.habitEmoji)
+                        Text(context.attributes.habitName)
+                            .font(.headline)
+                            .foregroundColor(.white)
+                    }
+                    .padding(.leading)
+                }
+                DynamicIslandExpandedRegion(.trailing) {
+                    Text(formatTime(seconds: context.state.remainingSeconds))
+                        .font(.system(size: 24, weight: .bold, design: .monospaced))
+                        .foregroundColor(context.state.isPaused ? .orange : Color(hex: "667EEA"))
+                        .padding(.trailing)
+                }
+                DynamicIslandExpandedRegion(.bottom) {
+                    // Progress Bar
+                    VStack {
+                         GeometryReader { geo in
+                            ZStack(alignment: .leading) {
+                                Capsule()
+                                    .fill(Color.white.opacity(0.2))
+                                    .frame(height: 8)
+                                Capsule()
+                                    .fill(LinearGradient(
+                                        colors: [Color(hex: "667EEA"), Color(hex: "764BA2")],
+                                        startPoint: .leading,
+                                        endPoint: .trailing
+                                    ))
+                                    .frame(width: geo.size.width * context.state.progress, height: 8)
+                            }
+                        }
+                        .frame(height: 8)
+                        
+                        Text(context.state.isPaused ? "Session Paused" : "Stay Focused")
+                            .font(.caption)
+                            .foregroundColor(.gray)
+                            .padding(.top, 4)
+                    }
+                    .padding(.horizontal)
+                }
+            } compactLeading: {
+                HStack(spacing: 4) {
+                    Text(context.attributes.habitEmoji)
+                    Text(formatTime(seconds: context.state.remainingSeconds))
+                        .font(.system(size: 14, weight: .semibold, design: .monospaced))
+                        .foregroundColor(context.state.isPaused ? .orange : .white)
+                }
+            } compactTrailing: {
+                CircularProgressView(progress: context.state.progress, color: context.state.isPaused ? .orange : Color(hex: "667EEA"))
+                    .frame(width: 20, height: 20)
+            } minimal: {
+                Text(context.attributes.habitEmoji)
+            }
+        }
+    }
+    
+    func formatTime(seconds: Int) -> String {
+        let min = seconds / 60
+        let sec = seconds % 60
+        return String(format: "%02d:%02d", min, sec)
+    }
+}
+
+// Helper for Circular Progress in Compact View
+struct CircularProgressView: View {
+    var progress: Double
+    var color: Color
+    
+    var body: some View {
+        ZStack {
+            Circle()
+                .stroke(Color.white.opacity(0.2), lineWidth: 2)
+            Circle()
+                .trim(from: 0, to: progress)
+                .stroke(color, style: StrokeStyle(lineWidth: 2, lineCap: .round))
+                .rotationEffect(.degrees(-90))
+        }
+    }
+}
+
+// MARK: - Color Extension (Existing)
 extension Color {
     init(hex: String) {
         let hex = hex.trimmingCharacters(in: CharacterSet.alphanumerics.inverted)
@@ -317,5 +466,9 @@ struct StreakooWidgetBundle: WidgetBundle {
     var body: some Widget {
         StreakooWidget()
         StreakooWidgetLarge()
+        
+        if #available(iOS 16.1, *) {
+            FocusModeActivityWidget()
+        }
     }
 }

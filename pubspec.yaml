@@ -38,6 +38,7 @@ dependencies:
   # 📱 Social sharing
   share_plus: ^10.1.4
   path_provider: ^2.1.5
+  live_activities: ^2.4.3
 
 dev_dependencies:
   flutter_test:

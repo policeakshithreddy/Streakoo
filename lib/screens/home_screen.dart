@@ -5,7 +5,6 @@ import 'package:provider/provider.dart';
 import '../models/habit.dart';
 import '../models/celebration_config.dart';
 import '../models/streak_milestone.dart';
-import '../models/level_reward.dart';
 import '../state/app_state.dart';
 import '../services/celebration_engine.dart';
 import '../services/sync_service.dart';
@@ -13,7 +12,6 @@ import '../widgets/habit_card.dart';
 import '../widgets/celebration_overlay.dart';
 import '../widgets/milestone_celebration_overlay.dart';
 import '../widgets/achievement_banner.dart';
-import '../widgets/spectacular_level_up.dart';
 import '../widgets/guest_status_banner.dart';
 import '../services/notification_engine.dart';
 import '../widgets/level_badge.dart';
@@ -152,8 +150,7 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  Future<void> _handleComplete(
-      BuildContext context, AppState appState, Habit habit) async {
+  Future<void> _handleComplete(AppState appState, Habit habit) async {
     // Check state before completion
     final wasAllDoneBefore = appState.wasAllCompletedBeforeThis(habit);
     final oldLevel = appState.userLevel.level;
@@ -174,30 +171,42 @@ class _HomeScreenState extends State<HomeScreen> {
     // Priority 1: Check for level up (highest priority)
     if (newLevel > oldLevel) {
       final title = appState.userLevel.titleName;
-      final rewards = LevelReward.getRewardsForLevel(newLevel);
+
       CelebrationEngine.instance.celebrateLevelUp(newLevel, title);
 
       // Show spectacular level-up screen immediately
       await Future.delayed(const Duration(milliseconds: 300));
       if (!mounted) return;
-      await Navigator.of(context).push(
-        PageRouteBuilder(
-          opaque: false,
-          barrierColor: Colors.black87,
-          pageBuilder: (context, animation, secondaryAnimation) =>
-              SpectacularLevelUpScreen(
-            newLevel: newLevel,
-            title: title,
-            userLevel: appState.userLevel,
-            rewards: rewards,
-            onComplete: () {},
+      // Show level up dialog
+      if (!mounted) return;
+      await showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Level Up! 🚀'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'Congratulations! You reached Level $newLevel!',
+                textAlign: TextAlign.center,
+                style: const TextStyle(fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 16),
+              LevelBadge(
+                userLevel: appState.userLevel,
+                showProgress: false,
+                size: 100,
+              ),
+              const SizedBox(height: 16),
+              Text('Title: $title'),
+            ],
           ),
-          transitionsBuilder: (context, animation, secondaryAnimation, child) {
-            return FadeTransition(
-              opacity: animation,
-              child: child,
-            );
-          },
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Awesome!'),
+            ),
+          ],
         ),
       );
     }
@@ -321,6 +330,9 @@ class _HomeScreenState extends State<HomeScreen> {
                     // Daily progress header
                     _buildDailyProgressHeader(appState,
                         Theme.of(context).brightness == Brightness.dark),
+                    // Health summary - removed for cleaner UI
+                    // _buildHealthSummary(
+                    //     Theme.of(context).brightness == Brightness.dark),
                     // Streak warnings section
                     _buildStreakWarnings(appState),
                     // Habits list
@@ -496,7 +508,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                           } else {
                                             // Regular habit - complete normally
                                             await _handleComplete(
-                                                context, appState, habit);
+                                                appState, habit);
                                           }
                                         }
                                       } else {
@@ -1002,6 +1014,10 @@ class _HomeScreenState extends State<HomeScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
+                            // Removed health summary for cleaner UI
+                            // _buildHealthSummary(
+                            //   isDark,
+                            // ),
                             Text(
                               'Streaks Need Attention!',
                               style: theme.textTheme.titleMedium?.copyWith(
@@ -1107,4 +1123,64 @@ class _HomeScreenState extends State<HomeScreen> {
         return Colors.green;
     }
   }
+
+  // /// Build health summary widget - REMOVED for cleaner UI
+  // Widget _buildHealthSummary(bool isDark) {
+  //   // Only show if we have any health data
+  //   if (_todaySleepHours == 0.0 && _todaySteps == 0 && _todayDistance == 0.0) {
+  //     return const SizedBox.shrink();
+  //   }
+  //
+  //   return Container(
+  //     margin: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+  //     padding: const EdgeInsets.all(12),
+  //     decoration: BoxDecoration(
+  //       color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+  //       borderRadius: BorderRadius.circular(16),
+  //       border: Border.all(
+  //         color: _secondaryTeal.withValues(alpha: 0.2),
+  //       ),
+  //     ),
+  //     child: Row(
+  //       mainAxisAlignment: MainAxisAlignment.spaceAround,
+  //       children: [
+  //         _buildHealthMetric(
+  //           icon: '😴',
+  //           label: 'Sleep',
+  //           value: _todaySleepHours.toStringAsFixed(1),
+  //           unit: 'hrs',
+  //           isDark: isDark,
+  //         ),
+  //         Container(
+  //           width: 1,
+  //           height: 40,
+  //           color: isDark
+  //               ? Colors.white.withValues(alpha: 0.1)
+  //               : Colors.black.withValues(alpha: 0.1),
+  //         ),
+  //         _buildHealthMetric(
+  //           icon: '🚶',
+  //           label: 'Steps',
+  //           value: _todaySteps.toString(),
+  //           unit: '',
+  //           isDark: isDark,
+  //         ),
+  //         Container(
+  //           width: 1,
+  //           height: 40,
+  //           color: isDark
+  //               ? Colors.white.withValues(alpha: 0.1)
+  //               : Colors.black.withValues(alpha: 0.1),
+  //         ),
+  //         _buildHealthMetric(
+  //           icon: '📍',
+  //           label: 'Distance',
+  //           value: _todayDistance.toStringAsFixed(1),
+  //           unit: 'km',
+  //           isDark: isDark,
+  //         ),
+  //       ],
+  //     ),
+  //   ).animate().fadeIn(duration: 300.ms).slideY(begin: -0.1, end: 0);
+  // }
 }

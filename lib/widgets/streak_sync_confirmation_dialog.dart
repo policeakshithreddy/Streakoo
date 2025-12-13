@@ -44,13 +44,13 @@ class StreakSyncConfirmationDialog extends StatelessWidget {
             // Gradient Header
             Container(
               padding: const EdgeInsets.all(24),
-              decoration: BoxDecoration(
+              decoration: const BoxDecoration(
                 gradient: LinearGradient(
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                   colors: [_aiPurple, _aiPink],
                 ),
-                borderRadius: const BorderRadius.vertical(
+                borderRadius: BorderRadius.vertical(
                   top: Radius.circular(24),
                 ),
               ),
@@ -105,11 +105,11 @@ class StreakSyncConfirmationDialog extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Row(
+                        const Row(
                           children: [
                             Icon(Icons.info_outline,
                                 size: 18, color: _aiPurple),
-                            const SizedBox(width: 8),
+                            SizedBox(width: 8),
                             Text(
                               'Streak Differences:',
                               style: TextStyle(
@@ -156,7 +156,7 @@ class StreakSyncConfirmationDialog extends StatelessWidget {
                                   ),
                                   child: Text(
                                     'Cloud: ${diff.cloudStreak}',
-                                    style: TextStyle(
+                                    style: const TextStyle(
                                       fontSize: 12,
                                       fontWeight: FontWeight.w600,
                                       color: _aiPurple,
@@ -181,7 +181,7 @@ class StreakSyncConfirmationDialog extends StatelessWidget {
                                   ),
                                   child: Text(
                                     'Local: ${diff.localStreak}',
-                                    style: TextStyle(
+                                    style: const TextStyle(
                                       fontSize: 12,
                                       fontWeight: FontWeight.w600,
                                       color: _aiPink,
@@ -191,7 +191,7 @@ class StreakSyncConfirmationDialog extends StatelessWidget {
                               ],
                             ),
                           );
-                        }).toList(),
+                        }),
                         if (differences.length > 3)
                           Padding(
                             padding: const EdgeInsets.only(top: 4),
@@ -242,7 +242,7 @@ class StreakSyncConfirmationDialog extends StatelessWidget {
                       ),
                       child: Ink(
                         decoration: BoxDecoration(
-                          gradient: LinearGradient(
+                          gradient: const LinearGradient(
                             colors: [_aiPurple, _aiPink],
                           ),
                           borderRadius: BorderRadius.circular(16),
@@ -278,7 +278,7 @@ class StreakSyncConfirmationDialog extends StatelessWidget {
                           borderRadius: BorderRadius.circular(16),
                         ),
                       ),
-                      child: Text(
+                      child: const Text(
                         'No, Keep Local Streaks',
                         style: TextStyle(
                           fontSize: 16,

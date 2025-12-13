@@ -370,7 +370,7 @@ class _IceParticlesPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final random = math.Random(42); // Fixed seed for consistent particles
-    final particleCount = 30;
+    const particleCount = 30;
 
     for (int i = 0; i < particleCount; i++) {
       final angle = (i / particleCount) * 2 * math.pi;

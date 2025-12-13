@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 
 import '../models/habit_template.dart';
 import '../state/app_state.dart';
+import '../widgets/template_confirmation_page.dart';
 
 /// Screen to browse and add habit template packs
 class HabitTemplatesScreen extends StatefulWidget {
@@ -18,7 +19,6 @@ class HabitTemplatesScreen extends StatefulWidget {
 class _HabitTemplatesScreenState extends State<HabitTemplatesScreen> {
   // Orange theme colors
   static const _primaryOrange = Color(0xFFFFA94A);
-  static const _secondaryOrange = Color(0xFFFF6B6B);
 
   String? _selectedPackId;
 
@@ -94,37 +94,7 @@ class _HabitTemplatesScreenState extends State<HabitTemplatesScreen> {
                           textAlign: TextAlign.center,
                         ),
                       ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 5,
-                        ),
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: [_primaryOrange, _secondaryOrange],
-                          ),
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        child: const Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(Icons.auto_awesome,
-                                color: Colors.white, size: 12),
-                            SizedBox(width: 4),
-                            Text(
-                              'Quick Start',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 11,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ],
-                        ),
-                      )
-                          .animate(onPlay: (c) => c.repeat(reverse: true))
-                          .shimmer(duration: 2.seconds, color: Colors.white30),
-                      const SizedBox(width: 8),
+                      const SizedBox(width: 48), // Balance for back button
                     ],
                   ),
                 ),
@@ -198,11 +168,60 @@ class _HabitTemplatesScreenState extends State<HabitTemplatesScreen> {
   void _addPack(HabitTemplatePack pack) async {
     HapticFeedback.mediumImpact();
 
+    // Show confirmation page with all habits and AI-generated goals
+    final result = await TemplateConfirmationPage.show(
+      context: context,
+      pack: pack,
+    );
+
+    // User cancelled
+    if (result == null || !result.confirmed) {
+      return;
+    }
+
+    if (!mounted) return;
+
     final appState = context.read<AppState>();
     int addedCount = 0;
+    int healthGoalsSet = 0;
+    int remindersSet = 0;
 
     for (final template in pack.habits) {
+      // Check if this habit was included (not skipped)
+      if (!result.habitData.containsKey(template.id)) {
+        continue; // Habit was skipped
+      }
+
       final habit = template.toHabit();
+      final confirmData = result.habitData[template.id]!;
+
+      // Apply goal text
+      if (confirmData.goal != null) {
+        habit.habitGoal = confirmData.goal;
+      }
+
+      // Apply health goal values
+      if (confirmData.healthGoalValue != null &&
+          confirmData.healthMetric != null) {
+        habit.healthGoalValue = confirmData.healthGoalValue;
+        habit.healthMetric = confirmData.healthMetric;
+        habit.isHealthTracked = true;
+        healthGoalsSet++;
+      }
+
+      // Apply reminder
+      if (confirmData.reminderTime != null) {
+        habit.reminderTime =
+            confirmData.reminderTime; // Already in HH:MM format
+        habit.reminderEnabled = true;
+        remindersSet++;
+      }
+
+      // Apply focus mode duration
+      if (confirmData.focusModeDuration != null) {
+        habit.focusModeDuration = confirmData.focusModeDuration;
+      }
+
       // Check if habit with same name already exists
       final exists = appState.habits.any(
         (h) => h.name.toLowerCase() == habit.name.toLowerCase(),
@@ -216,19 +235,37 @@ class _HabitTemplatesScreenState extends State<HabitTemplatesScreen> {
 
     if (!mounted) return;
 
+    // Show success with smart summary
+    final successParts = <String>[];
+    successParts.add('$addedCount habits');
+    if (healthGoalsSet > 0) {
+      successParts.add('$healthGoalsSet health goals');
+    }
+    if (remindersSet > 0) {
+      successParts.add('$remindersSet reminders');
+    }
+    final focusModesSet = addedCount > 0
+        ? result.habitData.values
+            .where((data) => data.focusModeDuration != null)
+            .length
+        : 0;
+    if (focusModesSet > 0) {
+      successParts.add('$focusModesSet focus timers');
+    }
+
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Row(
           children: [
-            Icon(
-              addedCount > 0 ? Icons.check_circle : Icons.info_outline,
+            const Icon(
+              Icons.auto_awesome,
               color: Colors.white,
             ),
             const SizedBox(width: 12),
             Expanded(
               child: Text(
                 addedCount > 0
-                    ? 'Added $addedCount habits from ${pack.name}!'
+                    ? '✨ Added ${successParts.join(', ')} from ${pack.name}!'
                     : 'All habits from this pack already exist',
               ),
             ),
@@ -237,6 +274,7 @@ class _HabitTemplatesScreenState extends State<HabitTemplatesScreen> {
         backgroundColor: addedCount > 0 ? _primaryOrange : Colors.grey,
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        duration: const Duration(seconds: 4),
       ),
     );
 

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../models/habit.dart';
 import '../services/health_checker_service.dart';
+import '../screens/focus_mode_screen.dart';
 
 class HabitCard extends StatelessWidget {
   final Habit habit;
@@ -141,9 +142,34 @@ class HabitCard extends StatelessWidget {
                         );
                       },
                     )
+                  else if (habit.focusModeDuration != null && !isCompleted)
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        if (habit.habitGoal != null) ...[
+                          Text(
+                            habit.habitGoal!,
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: Theme.of(context).brightness ==
+                                      Brightness.light
+                                  ? Colors.grey.shade600
+                                  : Colors.grey.shade400,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                        ],
+                        FocusModeButton(
+                          habit: habit,
+                          defaultDuration: habit.focusModeDuration!,
+                        ),
+                      ],
+                    )
                   else
                     Text(
-                      isCompleted ? 'Completed today 🎉' : 'Not done yet',
+                      isCompleted
+                          ? 'Completed today 🎉'
+                          : (habit.habitGoal ?? 'Not done yet'),
                       style: TextStyle(
                         fontSize: 13,
                         color: Theme.of(context).brightness == Brightness.light

@@ -101,7 +101,8 @@ class _AiAnalyzingScreenState extends State<AiAnalyzingScreen>
           suggestions: suggestions,
           challengeTargetDays: widget.challengeTargetDays,
         ),
-        transitionDuration: const Duration(milliseconds: 400),
+        transitionDuration: const Duration(milliseconds: 150),
+        reverseTransitionDuration: const Duration(milliseconds: 150),
         transitionsBuilder: (context, animation, secondaryAnimation, child) {
           return FadeTransition(
             opacity: animation,
@@ -271,8 +272,8 @@ class _AiAnalyzingScreenState extends State<AiAnalyzingScreen>
                         height: 20,
                         child: CircularProgressIndicator(
                           strokeWidth: 2,
-                          valueColor: AlwaysStoppedAnimation<Color>(
-                              _primaryOrange),
+                          valueColor:
+                              AlwaysStoppedAnimation<Color>(_primaryOrange),
                         ),
                       )
                     : Icon(

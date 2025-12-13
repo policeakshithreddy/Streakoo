@@ -21,15 +21,15 @@ class WeeklySummaryCard extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E1E1E) : const Color(0xFFF8F9FA),
+        color: isDark ? const Color(0xFF191919) : const Color(0xFFF8F9FA),
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
           color: isCurrentWeek
-              ? const Color(0xFFFFA94A).withValues(alpha: 0.4)
+              ? const Color(0xFFFFA94A) // Solid Orange
               : (isDark
                   ? Colors.white.withValues(alpha: 0.1)
                   : Colors.black.withValues(alpha: 0.08)),
-          width: isCurrentWeek ? 2 : 1,
+          width: isCurrentWeek ? 1.5 : 1,
         ),
         boxShadow: [
           BoxShadow(
@@ -311,7 +311,7 @@ class WeeklySummaryCard extends StatelessWidget {
                 padding: const EdgeInsets.symmetric(vertical: 14),
                 decoration: BoxDecoration(
                   color: isDark
-                      ? Colors.white.withValues(alpha: 0.05)
+                      ? const Color(0xFF191919)
                       : Colors.black.withValues(alpha: 0.03),
                   borderRadius: const BorderRadius.only(
                     bottomLeft: Radius.circular(20),
@@ -446,20 +446,20 @@ class _HealthStatsSection extends StatelessWidget {
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
-            const Color(0xFF4A90E2).withValues(alpha: isDark ? 0.15 : 0.1),
-            const Color(0xFF50C9FF).withValues(alpha: isDark ? 0.1 : 0.05),
+            const Color(0xFFFFA94A).withValues(alpha: isDark ? 0.15 : 0.1),
+            const Color(0xFFFFD180).withValues(alpha: isDark ? 0.1 : 0.05),
           ],
         ),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: const Color(0xFF4A90E2).withValues(alpha: 0.2),
+          color: const Color(0xFFFFA94A).withValues(alpha: 0.2),
         ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            '💙 Health This Week',
+            '🧡 Health This Week',
             style: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w600,

@@ -106,7 +106,8 @@ class _WelcomeScreenState extends State<WelcomeScreen>
       PageRouteBuilder(
         pageBuilder: (context, animation, secondaryAnimation) =>
             const AuthScreen(),
-        transitionDuration: const Duration(milliseconds: 400),
+        transitionDuration: const Duration(milliseconds: 150),
+        reverseTransitionDuration: const Duration(milliseconds: 150),
         transitionsBuilder: (context, animation, secondaryAnimation, child) {
           return FadeTransition(
             opacity: animation,

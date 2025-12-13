@@ -77,7 +77,12 @@ class HealthService {
 
     final types = [
       HealthDataType.STEPS,
+      HealthDataType.SLEEP_SESSION,
+      HealthDataType.SLEEP_IN_BED,
       HealthDataType.SLEEP_ASLEEP,
+      HealthDataType.SLEEP_LIGHT,
+      HealthDataType.SLEEP_DEEP,
+      HealthDataType.SLEEP_REM,
       HealthDataType.DISTANCE_DELTA,
       HealthDataType.ACTIVE_ENERGY_BURNED,
     ];
@@ -101,7 +106,12 @@ class HealthService {
 
     final types = [
       HealthDataType.STEPS,
+      HealthDataType.SLEEP_SESSION,
+      HealthDataType.SLEEP_IN_BED,
       HealthDataType.SLEEP_ASLEEP,
+      HealthDataType.SLEEP_LIGHT,
+      HealthDataType.SLEEP_DEEP,
+      HealthDataType.SLEEP_REM,
       HealthDataType.DISTANCE_DELTA,
       HealthDataType.ACTIVE_ENERGY_BURNED,
       HealthDataType.HEART_RATE,
@@ -157,23 +167,54 @@ class HealthService {
     }
 
     try {
-      final startOfDay = DateTime(date.year, date.month, date.day, 0, 0);
-      final endOfDay = startOfDay.add(const Duration(days: 1));
+      // For sleep, we need to look at the previous night's data
+      // Sleep from date-1 evening to date morning
+      final sleepStart = DateTime(date.year, date.month, date.day - 1, 18, 0);
+      final sleepEnd = DateTime(date.year, date.month, date.day, 12, 0);
 
-      final healthData = await _health.getHealthDataFromTypes(
-        types: [HealthDataType.SLEEP_ASLEEP],
-        startTime: startOfDay,
-        endTime: endOfDay,
-      );
+      // Try multiple sleep data types for better compatibility
+      final sleepTypes = [
+        HealthDataType.SLEEP_SESSION,
+        HealthDataType.SLEEP_IN_BED,
+        HealthDataType.SLEEP_ASLEEP,
+        HealthDataType.SLEEP_LIGHT,
+        HealthDataType.SLEEP_DEEP,
+        HealthDataType.SLEEP_REM,
+      ];
 
       double totalMinutes = 0;
-      for (var data in healthData) {
-        if (data.value is NumericHealthValue) {
-          totalMinutes += (data.value as NumericHealthValue).numericValue;
+      Set<String> processedIntervals = {};
+
+      for (final sleepType in sleepTypes) {
+        try {
+          final healthData = await _health.getHealthDataFromTypes(
+            types: [sleepType],
+            startTime: sleepStart,
+            endTime: sleepEnd,
+          );
+
+          for (var data in healthData) {
+            // Create a unique key for this time interval to avoid double counting
+            final intervalKey =
+                '${data.dateFrom.millisecondsSinceEpoch}-${data.dateTo.millisecondsSinceEpoch}';
+
+            if (!processedIntervals.contains(intervalKey)) {
+              if (data.value is NumericHealthValue) {
+                totalMinutes += (data.value as NumericHealthValue).numericValue;
+                processedIntervals.add(intervalKey);
+              }
+            }
+          }
+        } catch (e) {
+          // Some sleep types might not be available on all devices
+          debugPrint('Sleep type $sleepType not available: $e');
         }
       }
 
-      return totalMinutes / 60.0; // Convert to hours
+      final hours = totalMinutes / 60.0;
+      debugPrint(
+          'Sleep hours calculated: $hours from ${processedIntervals.length} intervals');
+      return hours;
     } catch (e) {
       debugPrint('Error fetching sleep data: $e');
       return 0.0;
@@ -267,6 +308,38 @@ class HealthService {
   Future<bool> isGoalMet(HealthMetricType metric, double targetValue) async {
     final currentValue = await getCurrentValue(metric);
     return currentValue >= targetValue;
+  }
+
+  // ========== DATA VALIDATION METHODS ==========
+
+  /// Validate sleep hours are within reasonable range (0-24 hours)
+  bool isValidSleepHours(double? hours) {
+    if (hours == null) return false;
+    return hours >= 0 && hours <= 24;
+  }
+
+  /// Validate step count is within reasonable range (0-100,000)
+  bool isValidStepCount(int? steps) {
+    if (steps == null) return false;
+    return steps >= 0 && steps <= 100000;
+  }
+
+  /// Validate distance is within reasonable range (0-100 km per day)
+  bool isValidDistance(double? km) {
+    if (km == null) return false;
+    return km >= 0 && km <= 100;
+  }
+
+  /// Validate calories are within reasonable range (0-10,000 per day)
+  bool isValidCalories(double? calories) {
+    if (calories == null) return false;
+    return calories >= 0 && calories <= 10000;
+  }
+
+  /// Validate heart rate is within reasonable range (30-220 bpm)
+  bool isValidHeartRate(int? bpm) {
+    if (bpm == null) return false;
+    return bpm >= 30 && bpm <= 220;
   }
 
   // ========== QUICK ACCESS METHODS FOR AI COACH ==========

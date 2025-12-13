@@ -143,7 +143,7 @@ class _CoachOverviewScreenState extends State<CoachOverviewScreen> {
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         backgroundColor: Theme.of(context).cardColor,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: const Column(
@@ -170,7 +170,7 @@ class _CoachOverviewScreenState extends State<CoachOverviewScreen> {
         actions: [
           FilledButton(
             onPressed: () async {
-              Navigator.of(context).pop();
+              Navigator.of(dialogContext).pop();
               await context.read<AppState>().completeCurrentHealthChallenge();
               if (mounted) {
                 _loadData(); // Reload to reflect changes
@@ -284,12 +284,16 @@ class _CoachOverviewScreenState extends State<CoachOverviewScreen> {
                             ),
                           ),
                           const SizedBox(height: 8),
-                          ..._insights.map((insight) => InsightCard(
-                                insight: insight,
-                                onTap: () {
-                                  _openChat(
-                                      initialMessage: insight.description);
-                                },
+                          ..._insights.map((insight) => Padding(
+                                padding: const EdgeInsets.only(
+                                    bottom: 12, left: 16, right: 16),
+                                child: InsightCard(
+                                  insight: insight,
+                                  onTap: () {
+                                    _openChat(
+                                        initialMessage: insight.description);
+                                  },
+                                ),
                               )),
                         ],
 
@@ -336,21 +340,19 @@ class _CoachOverviewScreenState extends State<CoachOverviewScreen> {
                 ],
               ),
             ),
-      floatingActionButton: !_isGuest()
-          ? FloatingActionButton.extended(
-              onPressed: () => _openChat(),
-              backgroundColor: const Color(0xFF191919),
-              foregroundColor: Colors.white,
-              elevation: 6,
-              icon: const Icon(Icons.chat_bubble_outline),
-              label: const Text(
-                'Chat',
-                style: TextStyle(
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            )
-          : null,
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () => _openChat(),
+        backgroundColor: const Color(0xFF191919),
+        foregroundColor: Colors.white,
+        elevation: 6,
+        icon: const Icon(Icons.chat_bubble_outline),
+        label: const Text(
+          'Chat',
+          style: TextStyle(
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ),
     );
   }
 
@@ -396,7 +398,7 @@ class _CoachOverviewScreenState extends State<CoachOverviewScreen> {
           Positioned.fill(
             child: Container(
               decoration: BoxDecoration(
-                color: theme.scaffoldBackgroundColor.withOpacity(0.5),
+                color: theme.scaffoldBackgroundColor.withValues(alpha: 0.5),
                 borderRadius: BorderRadius.circular(16),
               ),
               child: Column(
@@ -460,7 +462,7 @@ class _CoachOverviewScreenState extends State<CoachOverviewScreen> {
       builder: (context) => Container(
         height: MediaQuery.of(context).size.height * 0.85,
         decoration: BoxDecoration(
-          color: isDark ? const Color(0xFF1A1A2E) : Colors.white,
+          color: isDark ? const Color(0xFF191919) : Colors.white,
           borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
         ),
         child: Column(
@@ -483,7 +485,7 @@ class _CoachOverviewScreenState extends State<CoachOverviewScreen> {
               margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
-                gradient: LinearGradient(
+                gradient: const LinearGradient(
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                   colors: [
@@ -561,7 +563,7 @@ class _CoachOverviewScreenState extends State<CoachOverviewScreen> {
                     Row(
                       children: [
                         Expanded(
-                          child: _StatCard(
+                          child: _buildStatCard(
                             icon: Icons.check_circle_outline,
                             label: 'Completed',
                             value: '${report.totalCompletions}',
@@ -572,7 +574,7 @@ class _CoachOverviewScreenState extends State<CoachOverviewScreen> {
                         ),
                         const SizedBox(width: 12),
                         Expanded(
-                          child: _StatCard(
+                          child: _buildStatCard(
                             icon: Icons.star_outline,
                             label: 'Best Day',
                             value: report.bestDay ?? '-',
@@ -587,7 +589,7 @@ class _CoachOverviewScreenState extends State<CoachOverviewScreen> {
                       Row(
                         children: [
                           Expanded(
-                            child: _StatCard(
+                            child: _buildStatCard(
                               icon: Icons.local_fire_department_outlined,
                               label: 'Longest Streak',
                               value: '${report.longestStreakThisWeek}',
@@ -598,7 +600,7 @@ class _CoachOverviewScreenState extends State<CoachOverviewScreen> {
                           ),
                           const SizedBox(width: 12),
                           Expanded(
-                            child: _StatCard(
+                            child: _buildStatCard(
                               icon: Icons.trending_up,
                               label: 'vs Last Week',
                               value: report.previousWeekRate != null
@@ -703,7 +705,7 @@ class _CoachOverviewScreenState extends State<CoachOverviewScreen> {
   }
 
   // Stat Card Widget for Weekly Report
-  Widget _StatCard({
+  Widget _buildStatCard({
     required IconData icon,
     required String label,
     required String value,
@@ -767,6 +769,25 @@ class _CoachOverviewScreenState extends State<CoachOverviewScreen> {
   static const _aiPink = Color(0xFFEC4899);
   static const _primaryOrange = Color(0xFFFFA94A);
   static const _secondaryOrange = Color(0xFFFF8C42);
+
+  // Minimum tasks required before showing AI insights
+  static const int _minTasksForInsights = 2;
+
+  /// Get count of tasks completed today
+  int _getTodayCompletedTasks() {
+    final appState = context.read<AppState>();
+    final today = DateTime.now();
+    final todayStr =
+        '${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}';
+
+    int completedToday = 0;
+    for (final habit in appState.habits) {
+      if (habit.completionDates.contains(todayStr)) {
+        completedToday++;
+      }
+    }
+    return completedToday;
+  }
 
   Widget _buildDailyFocus(BuildContext context, bool isDark) {
     final appState = context.read<AppState>();
@@ -1025,6 +1046,11 @@ class _CoachOverviewScreenState extends State<CoachOverviewScreen> {
   }
 
   Widget _buildSmartPatternInsight(BuildContext context, bool isDark) {
+    // Check task completion requirement
+    final completedTasks = _getTodayCompletedTasks();
+    final hasEnoughTasks = completedTasks >= _minTasksForInsights;
+    final tasksRemaining = _minTasksForInsights - completedTasks;
+
     // Find the weekday with lowest completion rate
     final appState = context.read<AppState>();
     if (appState.habits.isEmpty) return const SizedBox.shrink();
@@ -1077,10 +1103,12 @@ class _CoachOverviewScreenState extends State<CoachOverviewScreen> {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: isDark
-            ? Colors.white.withValues(alpha: 0.05)
-            : Colors.black.withValues(alpha: 0.03),
-        borderRadius: BorderRadius.circular(20),
+        color: const Color(0xFF191919),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(
+          color: const Color(0xFFFFA94A), // Orange
+          width: 1.5,
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1098,25 +1126,44 @@ class _CoachOverviewScreenState extends State<CoachOverviewScreen> {
             ],
           ),
           const SizedBox(height: 12),
-          Text(
-            worstRate > 0.8
-                ? 'You are incredibly consistent across all days!'
-                : 'Warning: $worstDayName seems to be your kryptonite.',
-            style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-                color: isDark ? Colors.white : Colors.black87),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            worstRate > 0.8
-                ? 'Keep up the amazing work.'
-                : 'You miss ${(100 - worstRate * 100).round()}% of habits on ${worstDayName}s. Plan ahead!',
-            style: TextStyle(
-                fontSize: 14,
-                color: isDark ? Colors.grey[400] : Colors.grey[600],
-                height: 1.4),
-          ),
+          if (hasEnoughTasks) ...[
+            Text(
+              worstRate > 0.8
+                  ? 'You are incredibly consistent across all days!'
+                  : 'Warning: $worstDayName seems to be your kryptonite.',
+              style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: isDark ? Colors.white : Colors.black87),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              worstRate > 0.8
+                  ? 'Keep up the amazing work.'
+                  : 'You miss ${(100 - worstRate * 100).round()}% of habits on ${worstDayName}s. Plan ahead!',
+              style: TextStyle(
+                  fontSize: 14,
+                  color: isDark ? Colors.grey[400] : Colors.grey[600],
+                  height: 1.4),
+            ),
+          ] else ...[
+            Text(
+              '🔒 Complete $tasksRemaining more ${tasksRemaining == 1 ? 'task' : 'tasks'} to unlock',
+              style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: isDark ? Colors.white70 : Colors.black54),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              'AI will analyze your patterns once you complete daily habits',
+              style: TextStyle(
+                  fontSize: 14,
+                  color: isDark ? Colors.grey[500] : Colors.grey[600],
+                  fontStyle: FontStyle.italic,
+                  height: 1.4),
+            ),
+          ],
         ],
       ),
     ).animate().fadeIn(delay: 300.ms);
@@ -1165,13 +1212,13 @@ class _CoachOverviewScreenState extends State<CoachOverviewScreen> {
               Icon(Icons.calendar_today,
                   size: 50,
                   color: const Color(0xFF3B82F6).withValues(alpha: 0.5)),
-              Positioned(
+              const Positioned(
                 top: 16,
                 child: Text('30',
                     style: TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.bold,
-                        color: const Color(0xFF3B82F6))),
+                        color: Color(0xFF3B82F6))),
               ),
             ],
           ),
@@ -1296,10 +1343,6 @@ class _CoachOverviewScreenState extends State<CoachOverviewScreen> {
                       ),
                     ],
                   ),
-                ),
-                Icon(
-                  Icons.chevron_right_rounded,
-                  color: isDark ? Colors.grey[400] : Colors.grey[600],
                 ),
               ],
             ),

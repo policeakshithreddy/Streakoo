@@ -51,6 +51,45 @@ class GroqAIService {
     }
   }
 
+  // Generate chat response with history
+  Future<String?> generateChatResponse({
+    required List<Map<String, String>> messages,
+    double? temperature,
+    int? maxTokens,
+  }) async {
+    if (!AppConfig.isApiConfigured) {
+      debugPrint('⚠️ Groq API key not configured. Using fallback responses.');
+      return "I can't connect to the AI right now, but I'm here to help! Try setting a specific goal or time.";
+    }
+
+    try {
+      final response = await http.post(
+        Uri.parse(AppConfig.groqApiUrl),
+        headers: {
+          'Authorization': 'Bearer ${AppConfig.groqApiKey}',
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode({
+          'model': AppConfig.groqModel,
+          'messages': messages,
+          'temperature': temperature ?? 0.7,
+          'max_tokens': maxTokens ?? AppConfig.maxTokens,
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        return data['choices'][0]['message']['content'] as String;
+      } else {
+        debugPrint('Groq API Error: ${response.statusCode} - ${response.body}');
+        return "I'm having trouble thinking right now. Please try again later.";
+      }
+    } catch (e) {
+      debugPrint('Error calling Groq API: $e');
+      return "Connection error. Please check your internet.";
+    }
+  }
+
   // Generate habit suggestions based on user's goals and mood
   Future<List<String>> generateHabitSuggestions({
     required String userGoals,
@@ -207,5 +246,73 @@ Write a celebratory story.''';
 
     return response ??
         'You\'ve become unstoppable! $daysCompleted days of discipline is no small thing. Each day you chose to show up, you became stronger. Keep the flame alive! 🔥';
+  }
+
+  // Generate AI-powered habit goal suggestion
+  Future<String?> generateHabitGoalSuggestion({
+    required String habitName,
+    required String category,
+    String? existingDescription,
+  }) async {
+    const systemPrompt =
+        '''You are an expert fitness and habit coach. Generate a specific, actionable goal for the given habit. The goal should be:
+- Measurable and achievable
+- Specific to the habit type
+- Motivating but realistic
+- Concise (max 15 words)
+
+Return ONLY the goal text, nothing else.''';
+
+    final userPrompt = '''Habit: $habitName
+Category: $category
+${existingDescription != null ? 'Description: $existingDescription' : ''}
+
+Generate a specific goal for this habit.''';
+
+    final response = await generateResponse(
+      systemPrompt: systemPrompt,
+      userPrompt: userPrompt,
+      maxTokens: 50,
+      temperature: 0.7,
+    );
+
+    if (response != null) {
+      return response.trim();
+    }
+
+    // Fallback suggestions based on habit name
+    return _getFallbackGoalSuggestion(habitName, category);
+  }
+
+  // Fallback goal suggestions when AI is unavailable
+  String _getFallbackGoalSuggestion(String habitName, String category) {
+    final nameLower = habitName.toLowerCase();
+
+    if (nameLower.contains('run')) {
+      return 'Complete a 3km run in under 25 minutes';
+    } else if (nameLower.contains('exercise') ||
+        nameLower.contains('workout')) {
+      return 'Complete 30 minutes of focused exercise';
+    } else if (nameLower.contains('strength') || nameLower.contains('weight')) {
+      return 'Complete 3 sets of 10 reps for each exercise';
+    } else if (nameLower.contains('yoga')) {
+      return 'Complete a 20-minute yoga flow session';
+    } else if (nameLower.contains('swim')) {
+      return 'Swim 20 laps or 500 meters';
+    } else if (nameLower.contains('cycl') || nameLower.contains('bike')) {
+      return 'Cycle 10km or ride for 30 minutes';
+    } else if (nameLower.contains('walk') || nameLower.contains('step')) {
+      return 'Walk 10,000 steps throughout the day';
+    } else if (nameLower.contains('plank')) {
+      return 'Hold plank position for 2 minutes total';
+    } else if (nameLower.contains('stretch')) {
+      return 'Complete 10 minutes of full-body stretching';
+    } else if (category == 'Sports') {
+      return 'Complete your workout with full effort and focus';
+    } else if (category == 'Health') {
+      return 'Maintain consistency and track your progress';
+    }
+
+    return 'Complete this habit mindfully and consistently';
   }
 }

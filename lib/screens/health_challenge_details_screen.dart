@@ -146,7 +146,7 @@ class HealthChallengeDetailsScreen extends StatelessWidget {
                               ),
                               child: Text(
                                 '${challenge.durationWeeks} Weeks',
-                                style: TextStyle(
+                                style: const TextStyle(
                                   fontSize: 12,
                                   fontWeight: FontWeight.w600,
                                   color: _primaryPurple,
@@ -163,7 +163,7 @@ class HealthChallengeDetailsScreen extends StatelessWidget {
                               ),
                               child: Text(
                                 _formatType(challenge.type),
-                                style: TextStyle(
+                                style: const TextStyle(
                                   fontSize: 12,
                                   fontWeight: FontWeight.w600,
                                   color: _secondaryPink,
@@ -284,7 +284,7 @@ class HealthChallengeDetailsScreen extends StatelessWidget {
         const SizedBox(width: 10),
         Text(
           title,
-          style: TextStyle(
+          style: const TextStyle(
             fontSize: 13,
             fontWeight: FontWeight.bold,
             color: _primaryPurple,

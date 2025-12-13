@@ -9,6 +9,11 @@ class ActivityRingsWidget extends StatefulWidget {
   final int stepsCount;
   final int stepsGoal;
 
+  // Real-time health data
+  final double sleepHours;
+  final double distanceKm;
+  final int? heartRateBpm;
+
   // Data for embedded trends
   final int currentStepsAvg;
   final int previousStepsAvg;
@@ -22,6 +27,9 @@ class ActivityRingsWidget extends StatefulWidget {
     required this.allHabitsProgress,
     required this.stepsCount,
     required this.stepsGoal,
+    this.sleepHours = 0.0,
+    this.distanceKm = 0.0,
+    this.heartRateBpm,
     required this.currentStepsAvg,
     required this.previousStepsAvg,
     required this.currentSleepAvg,
@@ -120,9 +128,9 @@ class _ActivityRingsWidgetState extends State<ActivityRingsWidget>
                         context,
                         emoji: '📍',
                         label: 'Distance',
-                        value: '0.0',
+                        value: widget.distanceKm.toStringAsFixed(1),
                         unit: 'km',
-                        progress: 0.0,
+                        progress: (widget.distanceKm / 10.0).clamp(0.0, 1.0),
                         color: const Color(0xFF66BB6A),
                       ),
 
@@ -143,10 +151,23 @@ class _ActivityRingsWidgetState extends State<ActivityRingsWidget>
                           context,
                           emoji: '💓',
                           label: 'Heart Rate',
-                          value: '--',
+                          value: widget.heartRateBpm?.toString() ?? '--',
                           unit: 'bpm',
-                          progress: 0.0,
+                          progress: widget.heartRateBpm != null
+                              ? ((widget.heartRateBpm! - 50) / 120)
+                                  .clamp(0.0, 1.0)
+                              : 0.0,
                           color: const Color(0xFFEF5350),
+                        ),
+                        const SizedBox(height: 12),
+                        _buildMetricRow(
+                          context,
+                          emoji: '😴',
+                          label: 'Sleep',
+                          value: widget.sleepHours.toStringAsFixed(1),
+                          unit: 'hours',
+                          progress: (widget.sleepHours / 8.0).clamp(0.0, 1.0),
+                          color: const Color(0xFF9C27B0),
                         ),
                       ],
                     ],

@@ -128,10 +128,10 @@ class DailyChallengeCard extends StatelessWidget {
                       // Progress
                       Text(
                         '${challenge.currentProgress}/${challenge.targetValue}',
-                        style: TextStyle(
+                        style: const TextStyle(
                           fontSize: DesignTokens.fontSizeXS,
                           fontWeight: FontWeight.w600,
-                          color: const Color(0xFFFFA94A),
+                          color: Color(0xFFFFA94A),
                         ),
                       ),
 

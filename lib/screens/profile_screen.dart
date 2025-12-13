@@ -322,7 +322,7 @@ class ProfileScreen extends StatelessWidget {
             ),
             child: Text(
               userLevel.titleName,
-              style: TextStyle(
+              style: const TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w600,
                 color: _primaryOrange,
@@ -660,7 +660,7 @@ class ProfileScreen extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    gradient: LinearGradient(
+                    gradient: const LinearGradient(
                       colors: [_primaryOrange, _secondaryOrange],
                     ),
                     borderRadius: BorderRadius.circular(12),
@@ -705,7 +705,7 @@ class ProfileScreen extends StatelessWidget {
                     color: _primaryOrange.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(10),
                   ),
-                  child: Icon(
+                  child: const Icon(
                     Icons.chevron_right_rounded,
                     color: _primaryOrange,
                     size: 20,
@@ -770,7 +770,7 @@ class ProfileScreen extends StatelessWidget {
                 const SizedBox(height: 8),
                 Text(
                   '+${achievements.length - 4} more',
-                  style: TextStyle(
+                  style: const TextStyle(
                     fontSize: 12,
                     color: _primaryOrange,
                     fontWeight: FontWeight.w600,
@@ -895,7 +895,7 @@ class ProfileScreen extends StatelessWidget {
                     Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        gradient: LinearGradient(
+                        gradient: const LinearGradient(
                           colors: [_primaryOrange, _secondaryOrange],
                         ),
                         borderRadius: BorderRadius.circular(14),
@@ -917,7 +917,7 @@ class ProfileScreen extends StatelessWidget {
                         ),
                         Text(
                           '${achievements.length}/${allBadges.length} unlocked',
-                          style: TextStyle(
+                          style: const TextStyle(
                             fontSize: 13,
                             color: _primaryOrange,
                             fontWeight: FontWeight.w600,

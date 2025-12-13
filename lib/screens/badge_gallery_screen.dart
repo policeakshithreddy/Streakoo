@@ -28,10 +28,10 @@ class BadgeGalleryScreen extends StatelessWidget {
               padding: const EdgeInsets.only(right: DesignTokens.space4),
               child: Text(
                 '${achievements.length}/${allAchievements.length}',
-                style: TextStyle(
+                style: const TextStyle(
                   fontSize: DesignTokens.fontSizeLG,
                   fontWeight: DesignTokens.fontWeightBold,
-                  color: const Color(0xFFFFA94A),
+                  color: Color(0xFFFFA94A),
                 ),
               ),
             ),
@@ -101,8 +101,8 @@ class _BadgeCard extends StatelessWidget {
               gradient: isUnlocked ? _getRarityGradient() : null,
               color: !isUnlocked
                   ? (isDark
-                      ? Colors.white.withOpacity(0.1)
-                      : Colors.black.withOpacity(0.05))
+                      ? Colors.white.withValues(alpha: 0.1)
+                      : Colors.black.withValues(alpha: 0.05))
                   : null,
               shape: BoxShape.circle,
             ),

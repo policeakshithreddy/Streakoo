@@ -206,4 +206,35 @@ class YearInReviewService {
     }
     return now.year;
   }
+
+  /// Check if user has enough data for Wrapped (at least 2 weeks)
+  bool hasEnoughDataForWrapped(List<Habit> habits) {
+    if (habits.isEmpty) return false;
+
+    DateTime? earliestDate;
+
+    for (final habit in habits) {
+      if (habit.completionDates.isEmpty) continue;
+
+      // Parse dates and find earliest
+      for (final dateStr in habit.completionDates) {
+        try {
+          final date = DateTime.parse(dateStr);
+          if (earliestDate == null || date.isBefore(earliestDate)) {
+            earliestDate = date;
+          }
+        } catch (e) {
+          // Ignore invalid dates
+        }
+      }
+    }
+
+    if (earliestDate == null) return false;
+
+    final now = DateTime.now();
+    final difference = now.difference(earliestDate).inDays;
+
+    // Require at least 14 days (2 weeks) of data history
+    return difference >= 14;
+  }
 }

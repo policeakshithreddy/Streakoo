@@ -104,10 +104,10 @@ class HabitInsightsService {
     String message;
     if (weekdayRate > weekendRate) {
       message =
-          'You complete "${habit.name}" ${percentDiff}% more on weekdays! Consider weekend reminders.';
+          'You complete "${habit.name}" $percentDiff% more on weekdays! Consider weekend reminders.';
     } else {
       message =
-          'You complete "${habit.name}" ${percentDiff}% more on weekends! Weekdays need more focus.';
+          'You complete "${habit.name}" $percentDiff% more on weekends! Weekdays need more focus.';
     }
 
     return HabitInsight(
@@ -215,8 +215,9 @@ class HabitInsightsService {
             100)
         .round();
 
-    if (percentChange.abs() < 20)
+    if (percentChange.abs() < 20) {
       return null; // Only report significant changes
+    }
 
     if (percentChange > 0) {
       return HabitInsight(

@@ -9,6 +9,8 @@ class HabitTemplate {
   final String description;
   final List<String> defaultReminders;
   final List<int> frequencyDays; // 1=Mon, 7=Sun
+  final String? suggestedGoal; // AI-suggested goal for the habit
+  final double? defaultHealthGoalValue; // Default numeric goal value
 
   const HabitTemplate({
     required this.id,
@@ -18,6 +20,8 @@ class HabitTemplate {
     required this.description,
     this.defaultReminders = const ['09:00'],
     this.frequencyDays = const [1, 2, 3, 4, 5, 6, 7], // daily by default
+    this.suggestedGoal,
+    this.defaultHealthGoalValue,
   });
 
   Habit toHabit() {
@@ -27,6 +31,8 @@ class HabitTemplate {
       emoji: emoji,
       category: category,
       frequencyDays: frequencyDays,
+      habitGoal: suggestedGoal,
+      healthGoalValue: defaultHealthGoalValue,
     );
   }
 }
@@ -98,6 +104,7 @@ class HabitTemplates {
         category: 'Health',
         description: '5-10 minute stretch routine',
         defaultReminders: ['06:30'],
+        suggestedGoal: '10 minute full-body morning stretch',
       ),
       HabitTemplate(
         id: 'healthy_breakfast',
@@ -129,6 +136,8 @@ class HabitTemplates {
         category: 'Sports',
         description: 'Any form of exercise for 30 minutes',
         defaultReminders: ['07:00'],
+        suggestedGoal: 'Complete 30 minutes of cardio or strength training',
+        defaultHealthGoalValue: 30,
       ),
       HabitTemplate(
         id: 'steps_10k',
@@ -136,6 +145,9 @@ class HabitTemplates {
         emoji: '👣',
         category: 'Health',
         description: 'Walk 10,000 steps daily',
+        suggestedGoal:
+            'Reach 10,000 steps through walking and daily activities',
+        defaultHealthGoalValue: 10000,
       ),
       HabitTemplate(
         id: 'strength_training',
@@ -145,6 +157,7 @@ class HabitTemplates {
         description: 'Bodyweight or weight training',
         defaultReminders: ['18:00'],
         frequencyDays: [1, 3, 5], // Mon, Wed, Fri
+        suggestedGoal: 'Complete 3 sets of 10 reps for major muscle groups',
       ),
       HabitTemplate(
         id: 'stretching',
@@ -153,6 +166,7 @@ class HabitTemplates {
         category: 'Health',
         description: 'Cool down with stretching',
         defaultReminders: ['18:45'],
+        suggestedGoal: '10 minutes of full-body stretching routine',
       ),
     ],
   );
@@ -176,6 +190,7 @@ class HabitTemplates {
         category: 'Mindfulness',
         description: '10 minutes of meditation',
         defaultReminders: ['07:00', '21:00'],
+        suggestedGoal: '10 minute mindfulness meditation',
       ),
       HabitTemplate(
         id: 'gratitude_journal',
@@ -306,14 +321,6 @@ class HabitTemplates {
       'Improved mood',
     ],
     habits: [
-      HabitTemplate(
-        id: 'no_screens',
-        name: 'No Screens Before Bed',
-        emoji: '📵',
-        category: 'Health',
-        description: 'No screens 1 hour before sleep',
-        defaultReminders: ['21:00'],
-      ),
       HabitTemplate(
         id: 'sleep_routine',
         name: 'Bedtime Routine',

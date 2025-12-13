@@ -207,9 +207,11 @@ class HealthValidationService {
     // Age contribution (0-15 points)
     if (age > 65) {
       score += 15;
-    } else if (age > 50)
+    } else if (age > 50) {
       score += 10;
-    else if (age < 18) score += 10;
+    } else if (age < 18) {
+      score += 10;
+    }
 
     // Medical conditions (0-25 points)
     score += medicalConditions.where((c) => c != 'None').length * 8;

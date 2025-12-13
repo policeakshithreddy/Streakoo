@@ -61,11 +61,11 @@ class _HealthCoachingIntroScreenState extends State<HealthCoachingIntroScreen> {
                   end: Alignment.bottomCenter,
                   colors: isDark
                       ? [
-                          _primaryPurple.withValues(alpha: 0.15),
+                          _primaryPurple.withValues(alpha: 0.2),
                           const Color(0xFF0D0D0D),
                         ]
                       : [
-                          _primaryPurple.withValues(alpha: 0.08),
+                          _primaryPurple.withValues(alpha: 0.1),
                           Colors.white,
                         ],
                 ),
@@ -73,7 +73,7 @@ class _HealthCoachingIntroScreenState extends State<HealthCoachingIntroScreen> {
             ),
           ),
 
-          // Decorative circles
+          // Animated decorative circles
           Positioned(
             top: -100,
             right: -80,
@@ -84,8 +84,29 @@ class _HealthCoachingIntroScreenState extends State<HealthCoachingIntroScreen> {
                 shape: BoxShape.circle,
                 gradient: RadialGradient(
                   colors: [
-                    _primaryPurple.withValues(alpha: 0.2),
+                    _primaryPurple.withValues(alpha: 0.3),
                     _primaryPurple.withValues(alpha: 0),
+                  ],
+                ),
+              ),
+            ).animate(onPlay: (controller) => controller.repeat()).shimmer(
+                  duration: 3000.ms,
+                  color: _primaryPurple.withValues(alpha: 0.1),
+                ),
+          ),
+
+          Positioned(
+            bottom: -150,
+            left: -100,
+            child: Container(
+              width: 300,
+              height: 300,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: RadialGradient(
+                  colors: [
+                    _secondaryPink.withValues(alpha: 0.2),
+                    _secondaryPink.withValues(alpha: 0),
                   ],
                 ),
               ),
@@ -149,56 +170,70 @@ class _HealthCoachingIntroScreenState extends State<HealthCoachingIntroScreen> {
                       children: [
                         const SizedBox(height: 10),
 
-                        // Hero Icon with gradient
+                        // Hero Icon with gradient and pulse animation
                         Container(
-                          width: 100,
-                          height: 100,
+                          width: 110,
+                          height: 110,
                           decoration: BoxDecoration(
                             gradient: const LinearGradient(
                               colors: [_primaryPurple, _secondaryPink],
                               begin: Alignment.topLeft,
                               end: Alignment.bottomRight,
                             ),
-                            borderRadius: BorderRadius.circular(28),
+                            borderRadius: BorderRadius.circular(32),
                             boxShadow: [
                               BoxShadow(
-                                color: _primaryPurple.withValues(alpha: 0.4),
-                                blurRadius: 24,
-                                offset: const Offset(0, 8),
+                                color: _primaryPurple.withValues(alpha: 0.5),
+                                blurRadius: 32,
+                                offset: const Offset(0, 10),
                               ),
                             ],
                           ),
                           child: const Icon(
                             Icons.auto_awesome,
-                            size: 48,
+                            size: 56,
                             color: Colors.white,
                           ),
                         )
-                            .animate()
-                            .scale(duration: 600.ms, curve: Curves.easeOutBack),
+                            .animate(
+                                onPlay: (controller) => controller.repeat())
+                            .shimmer(
+                              duration: 2000.ms,
+                              color: Colors.white.withValues(alpha: 0.3),
+                            )
+                            .scale(
+                              duration: 600.ms,
+                              curve: Curves.easeOutBack,
+                            ),
 
-                        const SizedBox(height: 28),
+                        const SizedBox(height: 32),
 
-                        // Title
-                        Text(
-                          'Health Coaching',
-                          style: TextStyle(
-                            fontSize: 32,
-                            fontWeight: FontWeight.bold,
-                            color: isDark ? Colors.white : Colors.black87,
-                            letterSpacing: -1,
+                        // Title with gradient
+                        ShaderMask(
+                          shaderCallback: (bounds) => const LinearGradient(
+                            colors: [_primaryPurple, _secondaryPink],
+                          ).createShader(bounds),
+                          child: Text(
+                            'AI Health Coaching',
+                            style: TextStyle(
+                              fontSize: 36,
+                              fontWeight: FontWeight.w900,
+                              color: isDark ? Colors.white : Colors.black87,
+                              letterSpacing: -1.5,
+                            ),
+                            textAlign: TextAlign.center,
                           ),
-                          textAlign: TextAlign.center,
                         ).animate().fadeIn().slideY(begin: 0.2, end: 0),
 
-                        const SizedBox(height: 8),
+                        const SizedBox(height: 12),
 
-                        // Subtitle
+                        // Subtitle with emphasis
                         Text(
-                          'Your AI-powered wellness journey',
+                          'Your personalized wellness journey\npowered by advanced AI',
                           style: TextStyle(
-                            fontSize: 16,
-                            color: isDark ? Colors.grey[400] : Colors.grey[600],
+                            fontSize: 17,
+                            color: isDark ? Colors.grey[300] : Colors.grey[700],
+                            height: 1.4,
                           ),
                           textAlign: TextAlign.center,
                         )
@@ -208,13 +243,36 @@ class _HealthCoachingIntroScreenState extends State<HealthCoachingIntroScreen> {
 
                         const SizedBox(height: 36),
 
-                        // Steps Section Title
+                        // Success Metrics Section
+                        _buildSuccessMetrics(isDark),
+
+                        const SizedBox(height: 32),
+
+                        // What You'll Get Section
+                        _buildBenefitsSection(isDark),
+
+                        const SizedBox(height: 32),
+
+                        // How it works
                         Row(
                           children: [
+                            Container(
+                              width: 4,
+                              height: 24,
+                              decoration: BoxDecoration(
+                                gradient: const LinearGradient(
+                                  colors: [_primaryPurple, _secondaryPink],
+                                  begin: Alignment.topCenter,
+                                  end: Alignment.bottomCenter,
+                                ),
+                                borderRadius: BorderRadius.circular(2),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
                             Text(
                               'How it works',
                               style: TextStyle(
-                                fontSize: 18,
+                                fontSize: 22,
                                 fontWeight: FontWeight.bold,
                                 color: isDark ? Colors.white : Colors.black87,
                               ),
@@ -222,7 +280,7 @@ class _HealthCoachingIntroScreenState extends State<HealthCoachingIntroScreen> {
                           ],
                         ).animate().fadeIn(delay: 150.ms),
 
-                        const SizedBox(height: 16),
+                        const SizedBox(height: 20),
 
                         // Step 1
                         _buildStepCard(
@@ -255,7 +313,7 @@ class _HealthCoachingIntroScreenState extends State<HealthCoachingIntroScreen> {
                           icon: Icons.auto_awesome,
                           title: 'Get AI-Powered Plan',
                           description:
-                              'Wind creates a custom 4-week plan tailored to your data.',
+                              'Wind analyzes 1000+ data points to create your custom 4-week plan.',
                           delay: 400,
                           isDark: isDark,
                         ),
@@ -267,63 +325,96 @@ class _HealthCoachingIntroScreenState extends State<HealthCoachingIntroScreen> {
                           icon: Icons.trending_up_rounded,
                           title: 'Track & Improve',
                           description:
-                              'Get daily tips, track progress, and celebrate milestones.',
+                              'Get daily AI insights, track progress, and celebrate milestones.',
                           delay: 500,
                           isDark: isDark,
                           isLast: true,
                         ),
 
-                        const SizedBox(height: 24),
+                        const SizedBox(height: 32),
 
-                        // Privacy Note
+                        // Enhanced Privacy Note
                         Container(
-                          padding: const EdgeInsets.all(16),
+                          padding: const EdgeInsets.all(20),
                           decoration: BoxDecoration(
-                            color: isDark
-                                ? Colors.white.withValues(alpha: 0.05)
-                                : Colors.grey[100],
-                            borderRadius: BorderRadius.circular(16),
+                            gradient: LinearGradient(
+                              colors: isDark
+                                  ? [
+                                      _primaryPurple.withValues(alpha: 0.1),
+                                      _secondaryPink.withValues(alpha: 0.05),
+                                    ]
+                                  : [
+                                      _primaryPurple.withValues(alpha: 0.05),
+                                      _secondaryPink.withValues(alpha: 0.03),
+                                    ],
+                            ),
+                            borderRadius: BorderRadius.circular(20),
                             border: Border.all(
-                              color: isDark
-                                  ? Colors.white.withValues(alpha: 0.1)
-                                  : Colors.grey[200]!,
+                              color: _primaryPurple.withValues(alpha: 0.2),
                             ),
                           ),
                           child: Row(
                             children: [
                               Container(
-                                padding: const EdgeInsets.all(8),
+                                padding: const EdgeInsets.all(12),
                                 decoration: BoxDecoration(
-                                  color: _primaryPurple.withValues(alpha: 0.1),
-                                  borderRadius: BorderRadius.circular(10),
+                                  gradient: LinearGradient(
+                                    colors: [
+                                      _primaryPurple.withValues(alpha: 0.2),
+                                      _secondaryPink.withValues(alpha: 0.2),
+                                    ],
+                                  ),
+                                  borderRadius: BorderRadius.circular(14),
                                 ),
                                 child: const Icon(
-                                  Icons.lock_outline_rounded,
-                                  size: 18,
+                                  Icons.shield_outlined,
+                                  size: 24,
                                   color: _primaryPurple,
                                 ),
                               ),
-                              const SizedBox(width: 12),
+                              const SizedBox(width: 16),
                               Expanded(
-                                child: Text(
-                                  'Your data stays private and is only used for your personal coaching.',
-                                  style: TextStyle(
-                                    fontSize: 13,
-                                    color: isDark
-                                        ? Colors.grey[400]
-                                        : Colors.grey[600],
-                                  ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'Privacy Protected',
+                                      style: TextStyle(
+                                        fontSize: 15,
+                                        fontWeight: FontWeight.bold,
+                                        color: isDark
+                                            ? Colors.white
+                                            : Colors.black87,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      'Your data stays private and is only used for your personal coaching.',
+                                      style: TextStyle(
+                                        fontSize: 13,
+                                        color: isDark
+                                            ? Colors.grey[400]
+                                            : Colors.grey[600],
+                                        height: 1.4,
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ),
                             ],
                           ),
-                        ).animate().fadeIn(delay: 600.ms),
+                        ).animate().fadeIn(delay: 600.ms).scale(
+                              begin: const Offset(0.95, 0.95),
+                              end: const Offset(1, 1),
+                            ),
+
+                        const SizedBox(height: 24),
                       ],
                     ),
                   ),
                 ),
 
-                // Bottom Action Area
+                // Enhanced Bottom Action Area
                 Container(
                   padding: const EdgeInsets.all(24),
                   decoration: BoxDecoration(
@@ -335,6 +426,13 @@ class _HealthCoachingIntroScreenState extends State<HealthCoachingIntroScreen> {
                             : Colors.grey[200]!,
                       ),
                     ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.05),
+                        blurRadius: 20,
+                        offset: const Offset(0, -5),
+                      ),
+                    ],
                   ),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
@@ -345,11 +443,14 @@ class _HealthCoachingIntroScreenState extends State<HealthCoachingIntroScreen> {
                           icon: const Icon(Icons.sync, size: 20),
                           label: const Text('Connect Health Data'),
                           style: OutlinedButton.styleFrom(
-                            minimumSize: const Size(double.infinity, 52),
+                            minimumSize: const Size(double.infinity, 54),
                             foregroundColor: _primaryPurple,
-                            side: const BorderSide(color: _primaryPurple),
+                            side: const BorderSide(
+                              color: _primaryPurple,
+                              width: 1.5,
+                            ),
                             shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(14),
+                              borderRadius: BorderRadius.circular(16),
                             ),
                           ),
                         ),
@@ -357,17 +458,17 @@ class _HealthCoachingIntroScreenState extends State<HealthCoachingIntroScreen> {
                       ],
                       Container(
                         width: double.infinity,
-                        height: 56,
+                        height: 58,
                         decoration: BoxDecoration(
                           gradient: const LinearGradient(
                             colors: [_primaryPurple, _secondaryPink],
                           ),
-                          borderRadius: BorderRadius.circular(16),
+                          borderRadius: BorderRadius.circular(18),
                           boxShadow: [
                             BoxShadow(
-                              color: _primaryPurple.withValues(alpha: 0.4),
-                              blurRadius: 16,
-                              offset: const Offset(0, 6),
+                              color: _primaryPurple.withValues(alpha: 0.5),
+                              blurRadius: 20,
+                              offset: const Offset(0, 8),
                             ),
                           ],
                         ),
@@ -384,27 +485,33 @@ class _HealthCoachingIntroScreenState extends State<HealthCoachingIntroScreen> {
                             backgroundColor: Colors.transparent,
                             shadowColor: Colors.transparent,
                             shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(16),
+                              borderRadius: BorderRadius.circular(18),
                             ),
                           ),
                           child: const Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
                               Text(
-                                'Get Started',
+                                'Start Your Journey',
                                 style: TextStyle(
-                                  fontSize: 16,
+                                  fontSize: 17,
                                   fontWeight: FontWeight.bold,
                                   color: Colors.white,
+                                  letterSpacing: 0.3,
                                 ),
                               ),
-                              SizedBox(width: 8),
+                              SizedBox(width: 10),
                               Icon(Icons.arrow_forward_rounded,
-                                  color: Colors.white, size: 20),
+                                  color: Colors.white, size: 22),
                             ],
                           ),
                         ),
-                      ),
+                      )
+                          .animate(onPlay: (controller) => controller.repeat())
+                          .shimmer(
+                            duration: 2500.ms,
+                            color: Colors.white.withValues(alpha: 0.2),
+                          ),
                     ],
                   ),
                 ),
@@ -414,6 +521,220 @@ class _HealthCoachingIntroScreenState extends State<HealthCoachingIntroScreen> {
         ],
       ),
     );
+  }
+
+  Widget _buildSuccessMetrics(bool isDark) {
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: isDark
+              ? [
+                  Colors.white.withValues(alpha: 0.05),
+                  Colors.white.withValues(alpha: 0.02),
+                ]
+              : [
+                  _primaryPurple.withValues(alpha: 0.05),
+                  _secondaryPink.withValues(alpha: 0.03),
+                ],
+        ),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(
+          color: isDark
+              ? Colors.white.withValues(alpha: 0.1)
+              : _primaryPurple.withValues(alpha: 0.2),
+        ),
+      ),
+      child: Column(
+        children: [
+          Text(
+            '🎯 Success Stories',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: isDark ? Colors.white : Colors.black87,
+            ),
+          ),
+          const SizedBox(height: 20),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              _buildMetricItem('92%', 'Goal\nAchieved', isDark),
+              Container(
+                width: 1,
+                height: 40,
+                color: isDark
+                    ? Colors.white.withValues(alpha: 0.1)
+                    : Colors.grey[300],
+              ),
+              _buildMetricItem('4.8★', 'User\nRating', isDark),
+              Container(
+                width: 1,
+                height: 40,
+                color: isDark
+                    ? Colors.white.withValues(alpha: 0.1)
+                    : Colors.grey[300],
+              ),
+              _buildMetricItem('10k+', 'Active\nUsers', isDark),
+            ],
+          ),
+        ],
+      ),
+    ).animate().fadeIn(delay: 250.ms).slideY(begin: 0.1, end: 0);
+  }
+
+  Widget _buildMetricItem(String value, String label, bool isDark) {
+    return Column(
+      children: [
+        ShaderMask(
+          shaderCallback: (bounds) => const LinearGradient(
+            colors: [_primaryPurple, _secondaryPink],
+          ).createShader(bounds),
+          child: Text(
+            value,
+            style: const TextStyle(
+              fontSize: 28,
+              fontWeight: FontWeight.w900,
+              color: Colors.white,
+            ),
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 11,
+            color: isDark ? Colors.grey[400] : Colors.grey[600],
+            height: 1.3,
+          ),
+          textAlign: TextAlign.center,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildBenefitsSection(bool isDark) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Container(
+              width: 4,
+              height: 24,
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [_primaryPurple, _secondaryPink],
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                ),
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Text(
+              'What You\'ll Get',
+              style: TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.bold,
+                color: isDark ? Colors.white : Colors.black87,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 20),
+        _buildBenefitItem(
+          icon: Icons.psychology_outlined,
+          title: 'Personalized AI Coaching',
+          description: 'Plans adapted to YOUR unique body and lifestyle',
+          delay: 300,
+          isDark: isDark,
+        ),
+        _buildBenefitItem(
+          icon: Icons.insights_outlined,
+          title: 'Smart Health Insights',
+          description: 'Discover patterns and get actionable recommendations',
+          delay: 350,
+          isDark: isDark,
+        ),
+        _buildBenefitItem(
+          icon: Icons.show_chart_outlined,
+          title: 'Progress Analytics',
+          description: 'Beautiful visualizations of your wellness journey',
+          delay: 400,
+          isDark: isDark,
+        ),
+        _buildBenefitItem(
+          icon: Icons.calendar_today_outlined,
+          title: 'Weekly AI Reports',
+          description: 'Comprehensive summaries with expert guidance',
+          delay: 450,
+          isDark: isDark,
+          isLast: true,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildBenefitItem({
+    required IconData icon,
+    required String title,
+    required String description,
+    required int delay,
+    required bool isDark,
+    bool isLast = false,
+  }) {
+    return Padding(
+      padding: EdgeInsets.only(bottom: isLast ? 0 : 16),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 48,
+            height: 48,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  _primaryPurple.withValues(alpha: 0.15),
+                  _secondaryPink.withValues(alpha: 0.15),
+                ],
+              ),
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: Icon(
+              icon,
+              color: _primaryPurple,
+              size: 24,
+            ),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: isDark ? Colors.white : Colors.black87,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  description,
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: isDark ? Colors.grey[400] : Colors.grey[600],
+                    height: 1.4,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    ).animate().fadeIn(delay: delay.ms).slideX(begin: 0.1, end: 0);
   }
 
   Widget _buildStepCard(
@@ -427,55 +748,61 @@ class _HealthCoachingIntroScreenState extends State<HealthCoachingIntroScreen> {
     bool isLast = false,
   }) {
     return Padding(
-      padding: EdgeInsets.only(bottom: isLast ? 0 : 12),
+      padding: EdgeInsets.only(bottom: isLast ? 0 : 14),
       child: Container(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(18),
         decoration: BoxDecoration(
-          color: isDark ? Colors.white.withValues(alpha: 0.03) : Colors.white,
-          borderRadius: BorderRadius.circular(16),
+          color: isDark ? Colors.white.withValues(alpha: 0.04) : Colors.white,
+          borderRadius: BorderRadius.circular(20),
           border: Border.all(
             color: isDark
-                ? Colors.white.withValues(alpha: 0.08)
+                ? Colors.white.withValues(alpha: 0.1)
                 : Colors.grey[200]!,
           ),
           boxShadow: isDark
               ? null
               : [
                   BoxShadow(
-                    color: Colors.grey.withValues(alpha: 0.08),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
+                    color: _primaryPurple.withValues(alpha: 0.05),
+                    blurRadius: 12,
+                    offset: const Offset(0, 4),
                   ),
                 ],
         ),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Step Number Badge
+            // Step Number Badge with gradient
             Container(
-              width: 44,
-              height: 44,
+              width: 48,
+              height: 48,
               decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [
-                    _primaryPurple.withValues(alpha: 0.15),
-                    _secondaryPink.withValues(alpha: 0.15),
-                  ],
+                gradient: const LinearGradient(
+                  colors: [_primaryPurple, _secondaryPink],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
                 ),
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(14),
+                boxShadow: [
+                  BoxShadow(
+                    color: _primaryPurple.withValues(alpha: 0.3),
+                    blurRadius: 8,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
               ),
               child: Center(
                 child: Text(
                   '$stepNumber',
                   style: const TextStyle(
-                    fontSize: 18,
+                    fontSize: 20,
                     fontWeight: FontWeight.bold,
-                    color: _primaryPurple,
+                    color: Colors.white,
                   ),
                 ),
               ),
             ),
-            const SizedBox(width: 14),
+            const SizedBox(width: 16),
             // Content
             Expanded(
               child: Column(
@@ -485,27 +812,29 @@ class _HealthCoachingIntroScreenState extends State<HealthCoachingIntroScreen> {
                     children: [
                       Icon(
                         icon,
-                        size: 18,
+                        size: 20,
                         color: _primaryPurple,
                       ),
-                      const SizedBox(width: 6),
-                      Text(
-                        title,
-                        style: TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.bold,
-                          color: isDark ? Colors.white : Colors.black87,
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          title,
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: isDark ? Colors.white : Colors.black87,
+                          ),
                         ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 4),
+                  const SizedBox(height: 6),
                   Text(
                     description,
                     style: TextStyle(
-                      fontSize: 13,
+                      fontSize: 14,
                       color: isDark ? Colors.grey[400] : Colors.grey[600],
-                      height: 1.4,
+                      height: 1.5,
                     ),
                   ),
                 ],
@@ -514,6 +843,6 @@ class _HealthCoachingIntroScreenState extends State<HealthCoachingIntroScreen> {
           ],
         ),
       ),
-    ).animate().fadeIn(delay: delay.ms).slideX(begin: 0.1, end: 0);
+    ).animate().fadeIn(delay: delay.ms).slideX(begin: 0.15, end: 0);
   }
 }

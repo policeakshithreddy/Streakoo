@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 /// Simple, subtle slide transition.
-Route<T> SlideRoute<T>(Widget page) {
+Route<T> slideRoute<T>(Widget page) {
   return PageRouteBuilder<T>(
     pageBuilder: (_, __, ___) => page,
     transitionDuration: const Duration(milliseconds: 180),
@@ -37,4 +37,4 @@ Route<T> SlideRoute<T>(Widget page) {
 }
 
 /// Alias some older code might still use.
-Route<T> slideFromRight<T>(Widget page) => SlideRoute<T>(page);
+Route<T> slideFromRight<T>(Widget page) => slideRoute<T>(page);

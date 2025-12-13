@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:provider/provider.dart';
+import '../state/app_state.dart';
 import '../models/year_in_review.dart';
+import '../services/year_in_review_service.dart'; // Local service for eligibility
 import '../services/year_in_review_cloud_service.dart';
+import '../services/supabase_service.dart';
 
 class YearInReviewScreen extends StatefulWidget {
   final int year;
@@ -23,6 +27,11 @@ class _YearInReviewScreenState extends State<YearInReviewScreen> {
   bool _isGenerating = false;
   String? _error;
   final _cloudService = YearInReviewCloudService.instance;
+  final _localService = YearInReviewService.instance;
+  final _supabaseService = SupabaseService();
+
+  bool _isBackingUp = false;
+  String? _statusMessage;
 
   @override
   void initState() {
@@ -34,8 +43,68 @@ class _YearInReviewScreenState extends State<YearInReviewScreen> {
       });
     });
 
-    // Fetch wrapped data from cloud
-    _loadYearInReview();
+    // Start the flow
+    _initializeWrappedFlow();
+  }
+
+  Future<void> _initializeWrappedFlow() async {
+    setState(() {
+      _isLoading = true;
+      _error = null;
+      _statusMessage = 'Checking eligibility...';
+    });
+
+    try {
+      // 1. Check Data Eligibility (Min 2 weeks)
+      final appState = context.read<AppState>();
+      if (!_localService.hasEnoughDataForWrapped(appState.habits)) {
+        setState(() {
+          _error = 'NOT_ENOUGH_DATA';
+          _isLoading = false;
+        });
+        return;
+      }
+
+      // 2. Check Expiration (1 week window)
+      final startDate = await _cloudService.getWrappedStartDate(widget.year);
+      if (startDate != null) {
+        final expirationDate = startDate.add(const Duration(days: 7));
+        if (DateTime.now().isAfter(expirationDate)) {
+          // EXPIRED! Clean up and block.
+          await _cloudService.deleteWrappedData(widget.year);
+          setState(() {
+            _error = 'EXPIRED';
+            _isLoading = false;
+          });
+          return;
+        }
+      } else {
+        // First time viewing! Run backup.
+        setState(() {
+          _isBackingUp = true;
+          _statusMessage = 'Backing up your 2025 data...';
+        });
+
+        await _supabaseService.syncHabitsToCloud(appState.habits);
+
+        // Mark start date
+        await _cloudService.setWrappedStartDate(widget.year);
+
+        setState(() {
+          _isBackingUp = false;
+        });
+      }
+
+      // 3. Load Data
+      setState(() => _statusMessage = 'Unwrapping specific stats...');
+      await _loadYearInReview();
+    } catch (e) {
+      setState(() {
+        _error = 'Initialization failed: $e';
+        _isLoading = false;
+        _isBackingUp = false;
+      });
+    }
   }
 
   Future<void> _loadYearInReview() async {
@@ -85,12 +154,43 @@ class _YearInReviewScreenState extends State<YearInReviewScreen> {
       return _LoadingScreen(year: widget.year);
     }
 
-    // Error state
+    // Error / Special States
     if (_error != null) {
+      if (_error == 'NOT_ENOUGH_DATA') {
+        return _StatusScreen(
+          icon: '📉',
+          title: 'See You Later!',
+          message:
+              'You need at least 2 weeks of tracking data to unlock your 2025 Wrapped. Keep consistent and check back soon!',
+          buttonText: 'Got it',
+          onPressed: () => Navigator.pop(context),
+        );
+      }
+      if (_error == 'EXPIRED') {
+        return _StatusScreen(
+          icon: '⌛',
+          title: 'Wrapped Event Ended',
+          message:
+              'Your 2025 Wrapped access period (1 week) has ended. The data has been cleared. See you in 2026!',
+          buttonText: 'Close',
+          onPressed: () => Navigator.pop(context),
+        );
+      }
+
       return _ErrorScreen(
         year: widget.year,
         error: _error!,
-        onRetry: _loadYearInReview,
+        onRetry: _initializeWrappedFlow,
+      );
+    }
+
+    // Backup Spinner
+    if (_isBackingUp) {
+      return _GenerationScreen(
+        year: widget.year,
+        isGenerating: true,
+        statusText: _statusMessage ?? 'Backing up data...',
+        onGenerate: () {}, // No-op
       );
     }
 
@@ -99,6 +199,7 @@ class _YearInReviewScreenState extends State<YearInReviewScreen> {
       return _GenerationScreen(
         year: widget.year,
         isGenerating: _isGenerating,
+        statusText: _isGenerating ? 'Analyzing year...' : null,
         onGenerate: _generateYearInReview,
       );
     }
@@ -142,7 +243,7 @@ class _YearInReviewScreenState extends State<YearInReviewScreen> {
                     decoration: BoxDecoration(
                       color: index <= _currentPage
                           ? Colors.white
-                          : Colors.white.withOpacity(0.3),
+                          : Colors.white.withValues(alpha: 0.3),
                       borderRadius: BorderRadius.circular(2),
                     ),
                   ),
@@ -171,7 +272,7 @@ class _YearInReviewScreenState extends State<YearInReviewScreen> {
                 child: Text(
                   'Swipe for more',
                   style: TextStyle(
-                    color: Colors.white.withOpacity(0.6),
+                    color: Colors.white.withValues(alpha: 0.6),
                     fontSize: 14,
                   ),
                 )
@@ -217,7 +318,7 @@ class _IntroPage extends StatelessWidget {
               height: 300,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: Colors.white.withOpacity(0.1),
+                color: Colors.white.withValues(alpha: 0.1),
               ),
             )
                 .animate(
@@ -235,7 +336,7 @@ class _IntroPage extends StatelessWidget {
               height: 250,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: Colors.white.withOpacity(0.08),
+                color: Colors.white.withValues(alpha: 0.08),
               ),
             )
                 .animate(
@@ -269,15 +370,15 @@ class _IntroPage extends StatelessWidget {
                     padding: const EdgeInsets.symmetric(
                         horizontal: 24, vertical: 12),
                     decoration: BoxDecoration(
-                      color: Colors.black.withOpacity(0.3),
+                      color: Colors.black.withValues(alpha: 0.3),
                       borderRadius: BorderRadius.circular(30),
                       border: Border.all(
-                          color: Colors.white.withOpacity(0.3), width: 2),
+                          color: Colors.white.withValues(alpha: 0.3), width: 2),
                     ),
                     child: Text(
                       'YOUR YEAR IN REVIEW',
                       style: TextStyle(
-                        color: Colors.white.withOpacity(0.95),
+                        color: Colors.white.withValues(alpha: 0.95),
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
                         letterSpacing: 2,
@@ -289,9 +390,9 @@ class _IntroPage extends StatelessWidget {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Text(
+                      const Text(
                         '✨',
-                        style: const TextStyle(fontSize: 24),
+                        style: TextStyle(fontSize: 24),
                       )
                           .animate(onPlay: (controller) => controller.repeat())
                           .rotate(duration: 2000.ms, begin: -0.05, end: 0.05)
@@ -301,15 +402,15 @@ class _IntroPage extends StatelessWidget {
                       Text(
                         'Streakoo Wrapped',
                         style: TextStyle(
-                          color: Colors.white.withOpacity(0.9),
+                          color: Colors.white.withValues(alpha: 0.9),
                           fontSize: 22,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
                       const SizedBox(width: 12),
-                      Text(
+                      const Text(
                         '✨',
-                        style: const TextStyle(fontSize: 24),
+                        style: TextStyle(fontSize: 24),
                       )
                           .animate(onPlay: (controller) => controller.repeat())
                           .rotate(duration: 2000.ms, begin: 0.05, end: -0.05)
@@ -360,7 +461,7 @@ class _TotalCompletionsPage extends StatelessWidget {
                   Text(
                     'YOU COMPLETED',
                     style: TextStyle(
-                      color: Colors.white.withOpacity(0.7),
+                      color: Colors.white.withValues(alpha: 0.7),
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
                       letterSpacing: 3,
@@ -372,7 +473,7 @@ class _TotalCompletionsPage extends StatelessWidget {
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       border: Border.all(
-                        color: Colors.white.withOpacity(0.3),
+                        color: Colors.white.withValues(alpha: 0.3),
                         width: 3,
                       ),
                     ),
@@ -403,7 +504,7 @@ class _TotalCompletionsPage extends StatelessWidget {
                   Text(
                     'THIS YEAR',
                     style: TextStyle(
-                      color: Colors.white.withOpacity(0.7),
+                      color: Colors.white.withValues(alpha: 0.7),
                       fontSize: 18,
                       fontWeight: FontWeight.w600,
                       letterSpacing: 2,
@@ -414,10 +515,10 @@ class _TotalCompletionsPage extends StatelessWidget {
                     padding: const EdgeInsets.symmetric(
                         horizontal: 32, vertical: 16),
                     decoration: BoxDecoration(
-                      color: Colors.black.withOpacity(0.3),
+                      color: Colors.black.withValues(alpha: 0.3),
                       borderRadius: BorderRadius.circular(30),
                       border: Border.all(
-                          color: Colors.white.withOpacity(0.3), width: 2),
+                          color: Colors.white.withValues(alpha: 0.3), width: 2),
                     ),
                     child: Text(
                       review.avgCompletionRate >= 0.8
@@ -449,7 +550,7 @@ class _DotPatternPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
-      ..color = Colors.white.withOpacity(0.05)
+      ..color = Colors.white.withValues(alpha: 0.05)
       ..style = PaintingStyle.fill;
 
     const spacing = 30.0;
@@ -501,7 +602,7 @@ class _LongestStreakPage extends StatelessWidget {
               Text(
                 'YOUR LONGEST STREAK',
                 style: TextStyle(
-                  color: Colors.white.withOpacity(0.8),
+                  color: Colors.white.withValues(alpha: 0.8),
                   fontSize: 14,
                   fontWeight: FontWeight.bold,
                   letterSpacing: 3,
@@ -541,10 +642,10 @@ class _LongestStreakPage extends StatelessWidget {
                 padding:
                     const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
                 decoration: BoxDecoration(
-                  color: Colors.black.withOpacity(0.3),
+                  color: Colors.black.withValues(alpha: 0.3),
                   borderRadius: BorderRadius.circular(30),
                   border: Border.all(
-                      color: Colors.white.withOpacity(0.3), width: 2),
+                      color: Colors.white.withValues(alpha: 0.3), width: 2),
                 ),
                 child: Text(
                   review.streakRank.toUpperCase(),
@@ -599,7 +700,7 @@ class _MostConsistentPage extends StatelessWidget {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.2),
+              color: Colors.white.withValues(alpha: 0.2),
               borderRadius: BorderRadius.circular(30),
             ),
             child: Text(
@@ -673,7 +774,7 @@ class _BestMonthPage extends StatelessWidget {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.2),
+              color: Colors.white.withValues(alpha: 0.2),
               borderRadius: BorderRadius.circular(30),
             ),
             child: const Text(
@@ -738,7 +839,7 @@ class _PerfectDaysPage extends StatelessWidget {
           Text(
             '(100% completion)',
             style: TextStyle(
-              color: Colors.white.withOpacity(0.6),
+              color: Colors.white.withValues(alpha: 0.6),
               fontSize: 16,
             ),
           ).animate().fadeIn(delay: 1200.ms, duration: 600.ms),
@@ -808,7 +909,7 @@ class _XPTotalPage extends StatelessWidget {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.2),
+              color: Colors.white.withValues(alpha: 0.2),
               borderRadius: BorderRadius.circular(30),
             ),
             child: Text(
@@ -865,7 +966,7 @@ class _HabitBreakdownPage extends StatelessWidget {
                   margin: const EdgeInsets.only(bottom: 16),
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.2),
+                    color: Colors.white.withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(16),
                   ),
                   child: Row(
@@ -874,7 +975,7 @@ class _HabitBreakdownPage extends StatelessWidget {
                         width: 32,
                         height: 32,
                         decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.3),
+                          color: Colors.white.withValues(alpha: 0.3),
                           shape: BoxShape.circle,
                         ),
                         child: Center(
@@ -1062,7 +1163,99 @@ class _LoadingScreen extends StatelessWidget {
   }
 }
 
-// ============ ERROR SCREEN ============
+// ============ GENERATION SCREEN ============
+class _GenerationScreen extends StatelessWidget {
+  final int year;
+  final bool isGenerating;
+  final VoidCallback onGenerate;
+  final String? statusText;
+
+  const _GenerationScreen({
+    required this.year,
+    required this.isGenerating,
+    required this.onGenerate,
+    this.statusText,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      color: Colors.black,
+      child: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            if (isGenerating)
+              SizedBox(
+                width: 60,
+                height: 60,
+                child: CircularProgressIndicator(
+                  color: Color(0xFF1DB954),
+                  strokeWidth: 4,
+                ),
+              )
+            else
+              Text(
+                '🎁',
+                style: const TextStyle(fontSize: 80),
+              ).animate().scale(
+                  duration: 1000.ms,
+                  curve: Curves.elasticOut,
+                  begin: const Offset(0.5, 0.5)),
+            const SizedBox(height: 32),
+            Text(
+              isGenerating
+                  ? (statusText ?? 'Generating your $year Wrapped...')
+                  : 'Your $year Wrapped is Ready',
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            if (!isGenerating) ...[
+              const SizedBox(height: 16),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 40),
+                child: Text(
+                  'Unwrap your year of habits, streaks, and achievements.',
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.7),
+                    fontSize: 16,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+              const SizedBox(height: 48),
+              ElevatedButton(
+                onPressed: onGenerate,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF1DB954),
+                  foregroundColor: Colors.black,
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 40, vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(30),
+                  ),
+                ),
+                child: const Text(
+                  'UNWRAP NOW',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 1,
+                  ),
+                ),
+              ).animate().shimmer(duration: 2000.ms, delay: 1000.ms),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _ErrorScreen extends StatelessWidget {
   final int year;
   final String error;
@@ -1078,63 +1271,44 @@ class _ErrorScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.black,
-      body: SafeArea(
-        child: Center(
-          child: Padding(
-            padding: const EdgeInsets.all(32),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Text(
-                  '⚠️',
-                  style: TextStyle(fontSize: 80),
+      body: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(32.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.error_outline, color: Colors.amber, size: 80),
+              const SizedBox(height: 24),
+              const Text(
+                'Something went wrong',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
                 ),
-                const SizedBox(height: 32),
-                const Text(
-                  'Oops! Something went wrong',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                  ),
-                  textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 16),
+              Text(
+                error,
+                style: TextStyle(
+                  color: Colors.white.withValues(alpha: 0.7),
+                  fontSize: 16,
                 ),
-                const SizedBox(height: 16),
-                Text(
-                  error,
-                  style: const TextStyle(
-                    color: Colors.white70,
-                    fontSize: 16,
-                  ),
-                  textAlign: TextAlign.center,
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 32),
+              ElevatedButton.icon(
+                onPressed: onRetry,
+                icon: const Icon(Icons.refresh),
+                label: const Text('Try Again'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.white,
+                  foregroundColor: Colors.black,
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
                 ),
-                const SizedBox(height: 40),
-                ElevatedButton.icon(
-                  onPressed: onRetry,
-                  icon: const Icon(Icons.refresh),
-                  label: const Text('Retry'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF6366F1),
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 32,
-                      vertical: 16,
-                    ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(30),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text(
-                    'Go Back',
-                    style: TextStyle(color: Colors.white70),
-                  ),
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),
@@ -1142,117 +1316,68 @@ class _ErrorScreen extends StatelessWidget {
   }
 }
 
-// ============ GENERATION SCREEN ============
-class _GenerationScreen extends StatelessWidget {
-  final int year;
-  final bool isGenerating;
-  final VoidCallback onGenerate;
+// ============ STATUS SCREEN ============
+class _StatusScreen extends StatelessWidget {
+  final String icon;
+  final String title;
+  final String message;
+  final String buttonText;
+  final VoidCallback onPressed;
 
-  const _GenerationScreen({
-    required this.year,
-    required this.isGenerating,
-    required this.onGenerate,
+  const _StatusScreen({
+    required this.icon,
+    required this.title,
+    required this.message,
+    required this.buttonText,
+    required this.onPressed,
   });
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.black,
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              const Color(0xFF6366F1),
-              const Color(0xFF8B5CF6),
-              const Color(0xFFEC4899),
-            ],
-          ),
-        ),
-        child: SafeArea(
-          child: Center(
-            child: Padding(
-              padding: const EdgeInsets.all(32),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    '$year',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 72,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ).animate().fadeIn(duration: 600.ms).scale(duration: 800.ms),
-                  const SizedBox(height: 24),
-                  const Text(
-                    'Ready to see your\nYear in Review?',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 28,
-                      fontWeight: FontWeight.w500,
-                    ),
-                    textAlign: TextAlign.center,
-                  ).animate().fadeIn(delay: 300.ms, duration: 600.ms),
-                  const SizedBox(height: 48),
-                  if (isGenerating) ...[
-                    const CircularProgressIndicator(
-                      color: Colors.white,
-                      strokeWidth: 3,
-                    ),
-                    const SizedBox(height: 24),
-                    const Text(
-                      'Creating your wrapped...\nThis may take a few seconds',
-                      style: TextStyle(
-                        color: Colors.white70,
-                        fontSize: 16,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                  ] else ...[
-                    ElevatedButton(
-                      onPressed: onGenerate,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.white,
-                        foregroundColor: const Color(0xFF6366F1),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 48,
-                          vertical: 20,
-                        ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(30),
-                        ),
-                        elevation: 8,
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: const [
-                          Text(
-                            'Generate My Wrapped',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          SizedBox(width: 8),
-                          Icon(Icons.auto_awesome),
-                        ],
-                      ),
-                    ).animate().fadeIn(delay: 600.ms, duration: 600.ms).slideY(
-                        begin: 0.2, end: 0, delay: 600.ms, duration: 600.ms),
-                    const SizedBox(height: 16),
-                    TextButton(
-                      onPressed: () => Navigator.pop(context),
-                      child: const Text(
-                        'Maybe later',
-                        style: TextStyle(color: Colors.white70),
-                      ),
-                    ),
-                  ],
-                ],
+      body: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(32.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(icon, style: const TextStyle(fontSize: 80)),
+              const SizedBox(height: 32),
+              Text(
+                title,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                ),
+                textAlign: TextAlign.center,
               ),
-            ),
+              const SizedBox(height: 16),
+              Text(
+                message,
+                style: TextStyle(
+                  color: Colors.white.withValues(alpha: 0.7),
+                  fontSize: 16,
+                  height: 1.5,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 48),
+              ElevatedButton(
+                onPressed: onPressed,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.white.withValues(alpha: 0.2),
+                  foregroundColor: Colors.white,
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(30),
+                  ),
+                ),
+                child: Text(buttonText),
+              ),
+            ],
           ),
         ),
       ),
