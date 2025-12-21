@@ -3,7 +3,7 @@
 ## Latest: v1.2.0 (December 9, 2025)
 
 Download: **[streakoo-v1.2.0.apk](streakoo-v1.2.0.apk)**
-https://drive.google.com/file/d/1GM6wQMMXkml37_lc_psZcPfGcH8Otyc9/view?usp=drivesdk
+https://drive.google.com/file/d/1j6Obc4W1TTJXSZH0yBe1XtODemFtqWfO/view?usp=drivesdk
 ---
 
 ## ✨ What's New in v1.2.0
