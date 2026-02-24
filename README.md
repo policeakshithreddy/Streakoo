@@ -1,5 +1,5 @@
 # Streakoo 🚀
-
+https://bit.ly/4cAoeNc
 **The Ultimate AI-Powered Habit Tracker with Gamification**
 
 Streakoo helps you build life-changing habits through XP, streaks, AI coaching, and global competition. Track your progress, compete with friends, and celebrate your wins with Spotify Wrapped-style yearly reviews!
