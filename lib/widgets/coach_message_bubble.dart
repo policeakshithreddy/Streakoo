@@ -711,7 +711,27 @@ class _CoachMessageBubbleContent extends StatelessWidget {
               height: 1.55,
               letterSpacing: -0.1,
             ),
-          ),
+          )
+              .animate()
+              .custom(
+                duration: 600.ms,
+                builder: (context, value, child) {
+                  final chars = message.text.characters;
+                  final textLen = chars.length;
+                  final currentLen = (textLen * value).round();
+                  return Text(
+                    chars.take(currentLen).toString(),
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: isDark
+                          ? Colors.white.withOpacity(0.95)
+                          : const Color(0xFF1A1A1A),
+                      height: 1.55,
+                      letterSpacing: -0.1,
+                    ),
+                  );
+                },
+              )
+              .fadeIn(duration: 200.ms),
         ),
       ),
     );

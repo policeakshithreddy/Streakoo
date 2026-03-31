@@ -1097,12 +1097,104 @@ class AppState extends ChangeNotifier {
   // ----------------- Stats helpers -----------------
   int get totalHabits => _habits.length;
 
+  int get totalCompletions =>
+      _habits.fold<int>(0, (sum, h) => sum + h.completionDates.length);
+
   int get completedTodayCount => _habits.where((h) => h.completedToday).length;
 
   int get totalStreaks => _habits.fold<int>(0, (sum, h) => sum + h.streak);
 
   bool get allCompletedToday =>
       _habits.isNotEmpty && _habits.every((h) => h.completedToday);
+
+  Map<String, dynamic> getWeeklyStats() {
+    if (_habits.isEmpty) {
+      return {'consistency': 0.0, 'completedCount': 0};
+    }
+
+    final now = DateTime.now();
+    final startOfWeek = now.subtract(const Duration(days: 6));
+    int completedCount = 0;
+    int expectedCount = 0;
+
+    for (final habit in _habits) {
+      final frequencyDays = habit.frequencyDays; // [1..7]
+
+      for (int i = 0; i < 7; i++) {
+        final day = startOfWeek.add(Duration(days: i));
+        final weekday = day.weekday;
+
+        if (frequencyDays.contains(weekday)) {
+          expectedCount++;
+
+          final dateKey = _dateToKey(day);
+          if (habit.completionDates.contains(dateKey)) {
+            completedCount++;
+          }
+        }
+      }
+    }
+
+    final consistency =
+        expectedCount > 0 ? (completedCount / expectedCount) * 100 : 0.0;
+
+    return {
+      'consistency': consistency,
+      'completedCount': completedCount,
+    };
+  }
+
+  int longestPerfectDayStreak() {
+    if (_habits.isEmpty) return 0;
+
+    final allDates = <String>{};
+    for (final habit in _habits) {
+      allDates.addAll(habit.completionDates);
+    }
+
+    if (allDates.isEmpty) return 0;
+
+    final sortedDates = allDates.map((d) => DateTime.parse(d)).toList()
+      ..sort((a, b) => a.compareTo(b)); // Oldest first
+
+    final startDate = sortedDates.first;
+    final endDate = sortedDates.last;
+
+    int maxStreak = 0;
+    int currentStreak = 0;
+
+    // Iterate day by day from start to end
+    for (var date = startDate;
+        date.isBefore(endDate.add(const Duration(days: 1)));
+        date = date.add(const Duration(days: 1))) {
+      final dateKey = _dateToKey(date);
+      final weekday = date.weekday;
+
+      final expectedHabits =
+          _habits.where((h) => h.frequencyDays.contains(weekday)).toList();
+
+      // If no habits expected, it counts as keeping the streak alive (rest day)
+      // If habits expected, must complete all of them
+      bool isPerfect = true;
+      if (expectedHabits.isNotEmpty) {
+        final completedCount = expectedHabits
+            .where((h) => h.completionDates.contains(dateKey))
+            .length;
+        if (completedCount != expectedHabits.length) {
+          isPerfect = false;
+        }
+      }
+
+      if (isPerfect) {
+        currentStreak++;
+        if (currentStreak > maxStreak) maxStreak = currentStreak;
+      } else {
+        currentStreak = 0;
+      }
+    }
+
+    return maxStreak;
+  }
 
   Map<String, int> completionHeatmap() {
     final map = <String, int>{};

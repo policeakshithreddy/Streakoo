@@ -4,7 +4,6 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:provider/provider.dart';
 
 import '../state/app_state.dart';
-import '../models/habit.dart';
 import '../services/health_service.dart';
 import '../services/behavior_mood_detector.dart';
 import '../services/ai_health_coach_service.dart';
