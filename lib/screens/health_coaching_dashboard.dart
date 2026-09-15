@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:provider/provider.dart';
+import 'package:tutorial_coach_mark/tutorial_coach_mark.dart';
 import '../state/app_state.dart';
 import '../services/health_service.dart';
 import '../services/health_score_service.dart';
 import '../services/ai_health_coach_service.dart';
+import '../services/tour_service.dart';
 import '../widgets/weekly_trend_chart.dart';
 import '../widgets/milestone_celebration.dart';
 import '../widgets/interactive_insight_cards.dart';
@@ -41,6 +43,13 @@ class _HealthCoachingDashboardState extends State<HealthCoachingDashboard> {
   double _todaySleep = 0.0;
   double _todayDistance = 0.0;
 
+  // Tour keys
+  final GlobalKey _healthScoreKey = GlobalKey();
+  final GlobalKey _aiInsightKey = GlobalKey();
+  final GlobalKey _nutritionKey = GlobalKey();
+  final GlobalKey _weeklyTrendKey = GlobalKey();
+  TutorialCoachMark? _tutorialCoachMark;
+
   // Card theme colors matching health dashboard
   // Wind AI - Indigo/Violet premium gradient
   static const _aiInsightPrimary = Color(0xFF6366F1); // Indigo
@@ -61,6 +70,161 @@ class _HealthCoachingDashboardState extends State<HealthCoachingDashboard> {
   void initState() {
     super.initState();
     _loadDashboardData();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _showHealthTourIfNeeded();
+    });
+  }
+
+  Future<void> _showHealthTourIfNeeded() async {
+    await Future.delayed(const Duration(milliseconds: 1500));
+
+    if (!mounted) return;
+
+    await TourService.instance.loadTourState();
+    if (TourService.instance.hasShownHealthTour) {
+      debugPrint('⏭️ Health tour already shown');
+      return;
+    }
+
+    debugPrint('🎓 Starting health tour...');
+
+    final targets = <TargetFocus>[];
+
+    // Calculate total steps based on available data
+    int totalSteps = 1; // Health Score is always there
+    final hasAiInsight = _smartInsight.isNotEmpty;
+    final hasNutrition = _smartInsight.isNotEmpty && _healthScore < 75;
+    final hasWeeklyScores = _weeklyScores.isNotEmpty;
+
+    if (hasAiInsight) totalSteps++;
+    if (hasNutrition) totalSteps++;
+    if (hasWeeklyScores) totalSteps++;
+
+    int step = 0;
+
+    // Determine next keys for scrolling
+    GlobalKey? getNextKey(int currentStep) {
+      if (currentStep == 1 && hasWeeklyScores) return _weeklyTrendKey;
+      if (currentStep == 1 && hasAiInsight) return _aiInsightKey;
+      if (currentStep == 2 && hasWeeklyScores && hasAiInsight) {
+        return _aiInsightKey;
+      }
+      if (currentStep == 2 && hasAiInsight && hasNutrition) {
+        return _nutritionKey;
+      }
+      if (currentStep == 3 && hasAiInsight && hasNutrition) {
+        return _nutritionKey;
+      }
+      return null;
+    }
+
+    // Target 1: Health Score
+    step++;
+    final nextKeyAfterHealthScore = getNextKey(step);
+    targets.add(
+      TourService.instance.createTarget(
+        identify: 'health_score',
+        keyTarget: _healthScoreKey,
+        title: 'Your Health Score',
+        description:
+            'This AI-calculated score reflects your overall health based on steps, sleep, and activity patterns!',
+        currentStep: step,
+        totalSteps: totalSteps,
+        onNext: () async {
+          if (nextKeyAfterHealthScore != null) {
+            await TourService.instance.scrollToTarget(nextKeyAfterHealthScore);
+          }
+          _tutorialCoachMark?.next();
+        },
+        onSkip: () => _tutorialCoachMark?.skip(),
+        align: ContentAlign.bottom,
+      ),
+    );
+
+    // Target 2: Weekly Trend
+    if (hasWeeklyScores) {
+      step++;
+      final nextKeyAfterWeekly = hasAiInsight ? _aiInsightKey : null;
+      targets.add(
+        TourService.instance.createTarget(
+          identify: 'weekly_trend',
+          keyTarget: _weeklyTrendKey,
+          title: 'Weekly Progress',
+          description:
+              'Track your health score trends over time and see how you\'re improving!',
+          currentStep: step,
+          totalSteps: totalSteps,
+          onNext: () async {
+            if (nextKeyAfterWeekly != null) {
+              await TourService.instance.scrollToTarget(nextKeyAfterWeekly);
+            }
+            _tutorialCoachMark?.next();
+          },
+          onSkip: () => _tutorialCoachMark?.skip(),
+          align: ContentAlign.top,
+        ),
+      );
+    }
+
+    // Target 3: AI Insight
+    if (hasAiInsight) {
+      step++;
+      final nextKeyAfterAiInsight = hasNutrition ? _nutritionKey : null;
+      targets.add(
+        TourService.instance.createTarget(
+          identify: 'ai_insight',
+          keyTarget: _aiInsightKey,
+          title: 'Wind AI Coaching',
+          description:
+              'Get personalized AI-powered insights and coaching based on your habits and health data!',
+          currentStep: step,
+          totalSteps: totalSteps,
+          onNext: () async {
+            if (nextKeyAfterAiInsight != null) {
+              await TourService.instance.scrollToTarget(nextKeyAfterAiInsight);
+            }
+            _tutorialCoachMark?.next();
+          },
+          onSkip: () => _tutorialCoachMark?.skip(),
+          align: ContentAlign.top,
+        ),
+      );
+    }
+
+    // Target 4: Nutrition Card
+    if (hasNutrition) {
+      step++;
+      targets.add(
+        TourService.instance.createTarget(
+          identify: 'nutrition',
+          keyTarget: _nutritionKey,
+          title: 'AI Nutrition Tips',
+          description:
+              'Receive personalized nutrition advice tailored to your activity level and goals!',
+          currentStep: step,
+          totalSteps: totalSteps,
+          onNext: () => _tutorialCoachMark?.next(),
+          onSkip: () => _tutorialCoachMark?.skip(),
+          align: ContentAlign.top,
+        ),
+      );
+    }
+
+    _tutorialCoachMark = TourService.instance.createTour(
+      targets: targets,
+      onFinish: () async {
+        debugPrint('✅ Health tour completed');
+        await TourService.instance.markTourAsShown('health');
+      },
+      onSkip: () async {
+        debugPrint('⏭️ Health tour skipped');
+        await TourService.instance.markTourAsShown('health');
+      },
+    );
+
+    // Scroll to first target before showing tour
+    await TourService.instance.scrollToTarget(_healthScoreKey);
+    if (mounted) _tutorialCoachMark?.show(context: context);
   }
 
   /// Get count of tasks completed today
@@ -397,13 +561,16 @@ class _HealthCoachingDashboardState extends State<HealthCoachingDashboard> {
                           onRefresh: _loadDashboardData,
                           color: _primaryPurple,
                           child: SingleChildScrollView(
-                            physics: const AlwaysScrollableScrollPhysics(),
+                            physics: const AlwaysScrollableScrollPhysics(
+                              parent: ClampingScrollPhysics(),
+                            ),
                             padding: const EdgeInsets.all(16),
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 // Health Score Card
-                                _buildHealthScoreCard(category, isDark),
+                                _buildHealthScoreCard(category, isDark,
+                                    key: _healthScoreKey),
 
                                 const SizedBox(height: 20),
 
@@ -414,9 +581,12 @@ class _HealthCoachingDashboardState extends State<HealthCoachingDashboard> {
 
                                 // Weekly Trend Chart
                                 if (_weeklyScores.isNotEmpty)
-                                  WeeklyTrendChart(
-                                    weeklyScores: _weeklyScores,
-                                    isDark: isDark,
+                                  Container(
+                                    key: _weeklyTrendKey,
+                                    child: WeeklyTrendChart(
+                                      weeklyScores: _weeklyScores,
+                                      isDark: isDark,
+                                    ),
                                   ),
 
                                 if (_weeklyScores.isNotEmpty)
@@ -431,13 +601,13 @@ class _HealthCoachingDashboardState extends State<HealthCoachingDashboard> {
                                         icon: Icons.auto_awesome,
                                         content: _smartInsight,
                                         isDark: isDark,
+                                        key: _aiInsightKey,
                                       ),
 
                                       // Nutrition Recommendations
-                                      if (_healthScore < 75)
-                                        const SizedBox(height: 16),
-                                      if (_healthScore < 75)
-                                        _buildNutritionCard(isDark),
+                                      const SizedBox(height: 16),
+                                      _buildNutritionCard(isDark,
+                                          key: _nutritionKey),
                                     ],
                                   ),
 
@@ -487,12 +657,14 @@ class _HealthCoachingDashboardState extends State<HealthCoachingDashboard> {
     );
   }
 
-  Widget _buildHealthScoreCard(HealthScoreCategory category, bool isDark) {
+  Widget _buildHealthScoreCard(HealthScoreCategory category, bool isDark,
+      {Key? key}) {
     final color = Color(
       int.parse('0xFF${category.color}'),
     );
 
     return Container(
+      key: key,
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
         gradient: LinearGradient(
@@ -621,7 +793,8 @@ class _HealthCoachingDashboardState extends State<HealthCoachingDashboard> {
                 icon: Icons.map_outlined,
                 label: 'Distance',
                 value: '${_todayDistance.toStringAsFixed(1)}km',
-                color: const Color(0xFF2196F3),
+                color: const Color(
+                    0xFFFF6D00), // Deep Orange - distinct from blue steps
                 isDark: isDark,
               ),
             ),
@@ -681,12 +854,14 @@ class _HealthCoachingDashboardState extends State<HealthCoachingDashboard> {
     required IconData icon,
     required String content,
     required bool isDark,
+    Key? key,
   }) {
     final completedTasks = _getTodayCompletedTasks();
     final hasEnoughTasks = completedTasks >= _minTasksForInsights;
     final tasksRemaining = _minTasksForInsights - completedTasks;
 
     return Container(
+      key: key,
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
         gradient: LinearGradient(
@@ -699,12 +874,16 @@ class _HealthCoachingDashboardState extends State<HealthCoachingDashboard> {
         ),
         borderRadius: BorderRadius.circular(24),
         border: Border.all(
-          color: _aiInsightPrimary.withValues(alpha: 0.4),
-          width: 2,
+          color: isDark
+              ? _aiInsightPrimary.withValues(alpha: 0.4)
+              : _aiInsightPrimary.withValues(alpha: 0.3),
+          width: isDark ? 2 : 1.5,
         ),
         boxShadow: [
           BoxShadow(
-            color: _aiInsightPrimary.withValues(alpha: 0.2),
+            color: isDark
+                ? _aiInsightPrimary.withValues(alpha: 0.2)
+                : _aiInsightPrimary.withValues(alpha: 0.1),
             blurRadius: 20,
             offset: const Offset(0, 10),
           ),
@@ -832,14 +1011,17 @@ class _HealthCoachingDashboardState extends State<HealthCoachingDashboard> {
             child: Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: isDark
-                    ? Colors.white.withValues(alpha: 0.04)
-                    : Colors.white,
+                gradient: LinearGradient(
+                  colors: [
+                    _primaryPurple.withValues(alpha: isDark ? 0.05 : 0.08),
+                    _primaryPurple.withValues(alpha: isDark ? 0.02 : 0.03),
+                  ],
+                ),
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(
                   color: isDark
                       ? Colors.white.withValues(alpha: 0.1)
-                      : Colors.grey[200]!,
+                      : _primaryPurple.withValues(alpha: 0.1),
                 ),
               ),
               child: Row(
@@ -887,7 +1069,7 @@ class _HealthCoachingDashboardState extends State<HealthCoachingDashboard> {
     );
   }
 
-  Widget _buildNutritionCard(bool isDark) {
+  Widget _buildNutritionCard(bool isDark, {Key? key}) {
     final completedTasks = _getTodayCompletedTasks();
     final hasEnoughTasks = completedTasks >= _minTasksForInsights;
 
@@ -958,6 +1140,7 @@ class _HealthCoachingDashboardState extends State<HealthCoachingDashboard> {
     }
 
     return Container(
+      key: key,
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
         gradient: LinearGradient(

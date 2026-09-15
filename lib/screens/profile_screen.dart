@@ -636,6 +636,30 @@ class ProfileScreen extends StatelessWidget {
   Widget _buildAchievementsPreview(
       BuildContext context, AppState appState, bool isDark) {
     final achievements = appState.achievements;
+
+    // Calculate actual unlocked badge count
+    bool hasStreakAchievement(int days) {
+      return achievements.any((a) =>
+          (a['challengeDays'] as int?) != null &&
+          (a['challengeDays'] as int) >= days);
+    }
+
+    final unlockedCount = [
+      hasStreakAchievement(3) || achievements.isNotEmpty, // First Streak
+      hasStreakAchievement(7), // Week Warrior
+      hasStreakAchievement(14) || hasStreakAchievement(15), // Habit Master
+      hasStreakAchievement(30), // Month Champion
+      hasStreakAchievement(60), // Diamond Streak
+      hasStreakAchievement(100), // Streak Royalty
+      achievements.any((a) =>
+              a['habitName'] == 'Perfect Day' || a['type'] == 'perfect_day') ||
+          (appState.habits.isNotEmpty &&
+              appState.habits.every((h) => h.completedToday)), // Perfect Day
+      achievements.any((a) => a['type'] == 'speed_demon'), // Speed Demon
+      achievements.any((a) => a['type'] == 'early_bird'), // Early Bird
+      achievements.any((a) => a['type'] == 'night_owl'), // Night Owl
+    ].where((unlocked) => unlocked).length;
+
     final displayAchievements = achievements.take(4).toList();
 
     return GestureDetector(
@@ -682,7 +706,7 @@ class ProfileScreen extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      '${achievements.length} Earned',
+                      '$unlockedCount Earned',
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
@@ -766,10 +790,10 @@ class ProfileScreen extends StatelessWidget {
                       .fadeIn(delay: Duration(milliseconds: 100 * index));
                 }).toList(),
               ),
-              if (achievements.length > 4) ...[
+              if (unlockedCount > 4) ...[
                 const SizedBox(height: 8),
                 Text(
-                  '+${achievements.length - 4} more',
+                  '+${unlockedCount - 4} more',
                   style: const TextStyle(
                     fontSize: 12,
                     color: _primaryOrange,
@@ -797,69 +821,105 @@ class ProfileScreen extends StatelessWidget {
       BuildContext context, AppState appState, bool isDark) {
     final achievements = appState.achievements;
 
+    // Helper to check if an achievement type is unlocked
+    bool hasStreakAchievement(int days) {
+      return achievements.any((a) =>
+          (a['challengeDays'] as int?) != null &&
+          (a['challengeDays'] as int) >= days);
+    }
+
+    bool hasPerfectDay() {
+      return achievements.any(
+          (a) => a['habitName'] == 'Perfect Day' || a['type'] == 'perfect_day');
+    }
+
+    bool hasEarlyBird() {
+      return achievements.any((a) => a['type'] == 'early_bird');
+    }
+
+    bool hasNightOwl() {
+      return achievements.any((a) => a['type'] == 'night_owl');
+    }
+
+    bool hasSpeedDemon() {
+      return achievements.any((a) => a['type'] == 'speed_demon');
+    }
+
     // All possible achievements
     final allBadges = [
       {
         'icon': '🔥',
         'name': 'First Streak',
         'desc': 'Complete your first 3-day streak',
-        'unlocked': achievements.any((a) => a['name'] == 'First Streak')
+        'unlocked': hasStreakAchievement(3) ||
+            achievements.isNotEmpty, // Any achievement = has streaked
       },
       {
         'icon': '🌟',
         'name': 'Week Warrior',
         'desc': 'Complete a 7-day streak',
-        'unlocked': achievements.any((a) => a['name'] == 'Week Warrior')
+        'unlocked': hasStreakAchievement(7),
       },
       {
         'icon': '💪',
         'name': 'Habit Master',
         'desc': 'Complete a 14-day streak',
-        'unlocked': achievements.any((a) => a['name'] == 'Habit Master')
+        'unlocked': hasStreakAchievement(14) || hasStreakAchievement(15),
       },
       {
         'icon': '🏆',
         'name': 'Month Champion',
         'desc': 'Complete a 30-day streak',
-        'unlocked': achievements.any((a) => a['name'] == 'Month Champion')
+        'unlocked': hasStreakAchievement(30),
       },
       {
         'icon': '💎',
         'name': 'Diamond Streak',
         'desc': 'Complete a 60-day streak',
-        'unlocked': achievements.any((a) => a['name'] == 'Diamond Streak')
+        'unlocked': hasStreakAchievement(60),
       },
       {
         'icon': '👑',
         'name': 'Streak Royalty',
         'desc': 'Complete a 100-day streak',
-        'unlocked': achievements.any((a) => a['name'] == 'Streak Royalty')
+        'unlocked': hasStreakAchievement(100),
       },
       {
         'icon': '🎯',
         'name': 'Perfect Day',
         'desc': 'Complete all habits in a day',
-        'unlocked': achievements.any((a) => a['name'] == 'Perfect Day')
+        'unlocked': hasPerfectDay() ||
+            appState.habits.isNotEmpty &&
+                appState.habits.every((h) => h.completedToday),
       },
       {
         'icon': '⚡',
         'name': 'Speed Demon',
         'desc': 'Complete 5 habits before noon',
-        'unlocked': achievements.any((a) => a['name'] == 'Speed Demon')
+        'unlocked': hasSpeedDemon(),
       },
       {
         'icon': '🌅',
         'name': 'Early Bird',
         'desc': 'Complete a habit before 6 AM',
-        'unlocked': achievements.any((a) => a['name'] == 'Early Bird')
+        'unlocked': hasEarlyBird(),
       },
       {
         'icon': '🦉',
         'name': 'Night Owl',
         'desc': 'Complete a habit after 11 PM',
-        'unlocked': achievements.any((a) => a['name'] == 'Night Owl')
+        'unlocked': hasNightOwl(),
       },
     ];
+
+    // Sort to show unlocked achievements FIRST, then locked ones
+    allBadges.sort((a, b) {
+      final aUnlocked = a['unlocked'] as bool;
+      final bUnlocked = b['unlocked'] as bool;
+      if (aUnlocked && !bUnlocked) return -1; // a comes first
+      if (!aUnlocked && bUnlocked) return 1; // b comes first
+      return 0; // keep original order
+    });
 
     showModalBottomSheet(
       context: context,
@@ -916,7 +976,7 @@ class ProfileScreen extends StatelessWidget {
                           ),
                         ),
                         Text(
-                          '${achievements.length}/${allBadges.length} unlocked',
+                          '${allBadges.where((b) => b['unlocked'] == true).length}/${allBadges.length} unlocked',
                           style: const TextStyle(
                             fontSize: 13,
                             color: _primaryOrange,
@@ -1338,12 +1398,6 @@ class _HealthDataCardState extends State<_HealthDataCard> {
                               : '-',
                           Colors.indigo,
                         ),
-                        _buildHealthStat(
-                          Icons.favorite_rounded,
-                          'Heart',
-                          stats['heart'] != null ? '${stats['heart']}bpm' : '-',
-                          Colors.red,
-                        ),
                       ],
                     );
                   },
@@ -1439,7 +1493,6 @@ class _HealthDataCardState extends State<_HealthDataCard> {
     return {
       'steps': steps,
       'sleep': null,
-      'heart': null,
     };
   }
 }

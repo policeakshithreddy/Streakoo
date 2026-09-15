@@ -1,7 +1,7 @@
 name: streakoo
 description: A modern habit tracker with streaks and an AI coach.
 publish_to: "none"
-version: 1.1.0+2
+version: 2.2.0+3
 
 environment:
   sdk: ">=3.3.0 <4.0.0"
@@ -38,7 +38,15 @@ dependencies:
   # 📱 Social sharing
   share_plus: ^10.1.4
   path_provider: ^2.1.5
+  # 🔥 Firebase
+  firebase_core: ^3.8.1
+  firebase_messaging: ^15.1.6
+  firebase_analytics: ^11.4.0
+  firebase_crashlytics: ^4.2.0
+  firebase_remote_config: ^5.2.0
   live_activities: ^2.4.3
+  tutorial_coach_mark: ^1.2.11  # Interactive onboarding tours
+
 
 dev_dependencies:
   flutter_test:

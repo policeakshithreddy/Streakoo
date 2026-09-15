@@ -21,6 +21,8 @@ class Habit {
   int? challengeTargetDays; // 7 / 15 / 30
   int challengeProgress;
   bool challengeCompleted;
+  List<String>
+      challengeFrozenDates; // Dates protected by freeze during challenge
 
   // Animation flag (for Lottie etc.)
   bool triggerAnimation;
@@ -57,6 +59,7 @@ class Habit {
     this.challengeTargetDays,
     this.challengeProgress = 0,
     this.challengeCompleted = false,
+    List<String>? challengeFrozenDates,
     this.triggerAnimation = false,
     this.isFocusTask = false,
     this.focusTaskPriority,
@@ -73,7 +76,8 @@ class Habit {
     this.habitGoal,
     this.focusModeDuration,
   })  : completionDates = completionDates ?? [],
-        frequencyDays = frequencyDays ?? [1, 2, 3, 4, 5, 6, 7];
+        frequencyDays = frequencyDays ?? [1, 2, 3, 4, 5, 6, 7],
+        challengeFrozenDates = challengeFrozenDates ?? [];
 
   // JSON helpers
   factory Habit.fromJson(Map<String, dynamic> json) {
@@ -91,6 +95,10 @@ class Habit {
       challengeTargetDays: json['challengeTargetDays'] as int?,
       challengeProgress: json['challengeProgress'] as int? ?? 0,
       challengeCompleted: json['challengeCompleted'] as bool? ?? false,
+      challengeFrozenDates: (json['challengeFrozenDates'] as List<dynamic>?)
+              ?.map((e) => e as String)
+              .toList() ??
+          [],
       triggerAnimation: json['triggerAnimation'] as bool? ?? false,
       isFocusTask: json['isFocusTask'] as bool? ?? false,
       focusTaskPriority: json['focusTaskPriority'] as int?,
@@ -124,6 +132,7 @@ class Habit {
     int? challengeTargetDays,
     int? challengeProgress,
     bool? challengeCompleted,
+    List<String>? challengeFrozenDates,
     bool? triggerAnimation,
     bool? isFocusTask,
     int? focusTaskPriority,
@@ -151,6 +160,7 @@ class Habit {
       challengeTargetDays: challengeTargetDays ?? this.challengeTargetDays,
       challengeProgress: challengeProgress ?? this.challengeProgress,
       challengeCompleted: challengeCompleted ?? this.challengeCompleted,
+      challengeFrozenDates: challengeFrozenDates ?? this.challengeFrozenDates,
       triggerAnimation: triggerAnimation ?? this.triggerAnimation,
       isFocusTask: isFocusTask ?? this.isFocusTask,
       focusTaskPriority: focusTaskPriority ?? this.focusTaskPriority,
@@ -180,6 +190,7 @@ class Habit {
       'challengeTargetDays': challengeTargetDays,
       'challengeProgress': challengeProgress,
       'challengeCompleted': challengeCompleted,
+      'challengeFrozenDates': challengeFrozenDates,
       'isFocusTask': isFocusTask,
       'focusTaskPriority': focusTaskPriority,
       'xpValue': xpValue,
@@ -225,5 +236,6 @@ class Habit {
 
   // Check if this habit can be manually completed
   // Habits with health tracking and goals enabled must be auto-completed by AI/health data
-  bool get canManuallyComplete => !(isHealthTracked && healthGoalValue != null);
+  // All three conditions must be met for the habit to be auto-tracked only
+  bool get canManuallyComplete => true;
 }

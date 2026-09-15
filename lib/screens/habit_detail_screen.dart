@@ -134,30 +134,37 @@ class HabitDetailScreen extends StatelessWidget {
             // Action Buttons
             Row(
               children: [
-                // Focus Mode button
-                Container(
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [Color(0xFF667EEA), Color(0xFF764BA2)],
+                // Focus Mode button - only show for habits with focusModeDuration (templates/AI)
+                if (currentHabit.focusModeDuration != null)
+                  Container(
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [
+                          Color(0xFFFFA94A),
+                          Color(0xFF1FD1A5)
+                        ], // App theme
+                      ),
+                      borderRadius: BorderRadius.circular(16),
                     ),
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: IconButton(
-                    onPressed: () {
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (_) => FocusModeScreen(
-                            habit: currentHabit,
-                            durationMinutes: 25,
+                    child: IconButton(
+                      onPressed: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => FocusModeScreen(
+                              habit: currentHabit,
+                              durationMinutes:
+                                  currentHabit.focusModeDuration ?? 25,
+                            ),
                           ),
-                        ),
-                      );
-                    },
-                    icon: const Icon(Icons.timer_rounded, color: Colors.white),
-                    tooltip: 'Focus Mode',
+                        );
+                      },
+                      icon:
+                          const Icon(Icons.timer_rounded, color: Colors.white),
+                      tooltip: 'Focus Mode',
+                    ),
                   ),
-                ),
-                const SizedBox(width: 8),
+                if (currentHabit.focusModeDuration != null)
+                  const SizedBox(width: 8),
                 Expanded(
                   child: OutlinedButton.icon(
                     onPressed: () {
@@ -688,8 +695,7 @@ class _HealthGoalProgressCardState extends State<_HealthGoalProgressCard>
         return '😴';
       case 'calories':
         return '🔥';
-      case 'heartRate':
-        return '❤️';
+
       default:
         return '🎯';
     }
@@ -705,8 +711,7 @@ class _HealthGoalProgressCardState extends State<_HealthGoalProgressCard>
         return 'Sleep';
       case 'calories':
         return 'Calories';
-      case 'heartRate':
-        return 'Heart Rate';
+
       default:
         return 'Progress';
     }

@@ -3,6 +3,8 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'package:uuid/uuid.dart';
+
 import '../models/habit.dart';
 import '../models/user_level.dart';
 import '../models/mood_tracker.dart';
@@ -18,6 +20,12 @@ import '../models/health_challenge.dart';
 import '../models/milestone.dart';
 import '../services/sync_service.dart';
 import '../widgets/streak_sync_confirmation_dialog.dart';
+import '../services/firebase_service.dart';
+import '../services/daily_brief_service.dart';
+import '../services/smart_time_service.dart';
+import '../models/streak_freeze.dart';
+import '../models/loot_box.dart';
+import '../models/pet_diary_entry.dart';
 
 class AppState extends ChangeNotifier {
   AppState();
@@ -28,18 +36,32 @@ class AppState extends ChangeNotifier {
   bool _isFirstRun = true;
   ThemeMode _themeMode = ThemeMode.dark;
   bool _hasShownStreakWarningSession = false;
+  bool _hasShownDuplicateWarningSession = false;
+  bool _hideManualCompletionWarning = false;
+
+  // Notification Preferences
+  bool _morningQuotesEnabled = false; // Off by default
+  bool _streakAlertsEnabled = true; // On by default
+  bool _milestoneCelebrationEnabled = true; // On by default
 
   // Gamification
   int _totalXP = 0;
   UserLevel? _userLevel;
+  String _petName = 'Your Pet'; // Default name
 
   // Mood tracking
   final List<MoodEntry> _moodHistory = [];
   String? _lastMoodCheckDate; // yyyy-MM-dd
 
-  // Streak Freeze
+  // Streak Freeze (Enhanced with level-based regeneration)
   int _streakFreezes = 0;
+  StreakFreeze? _enhancedStreakFreeze; // New level-based freeze system
   final List<String> _frozenDates = []; // yyyy-MM-dd
+  String? _lastMissedHabitDate; // yyyy-MM-dd
+  String? _lastFreezeRegenDate; // yyyy-MM-dd - track last regeneration
+
+  // Loot Boxes
+  LootBox? _pendingLootBox; // Earned but not opened yet
 
   // Cloud backup
   String? _lastBackupDate; // yyyy-MM-dd
@@ -63,8 +85,35 @@ class AppState extends ChangeNotifier {
   final List<String> _shownMilestoneIds =
       []; // Track which milestones were already shown
 
+  // Manual Health Logs - stores user-reported/goal-based health data
+  // Format: { "2024-12-15": { "sleep": 7.0, "steps": 10000, ... } }
+  final Map<String, Map<String, double>> _manualHealthLogs = {};
+
+  // Track Focus Challenge rewards to prevent double-awarding
+  bool _isSyncingHealth = false;
+
+  // Pet Diary
+  final List<PetDiaryEntry> _petDiary = [];
+
+  // Achievement types for Wrapped events
+  static const String typeChallengeCompletion = 'challenge_completion';
+  static const String typeFocusChallenge = 'focus_challenge';
+  static const String typeHealthChallenge = 'health_challenge';
+  static const String typeStreakMilestone = 'streak_milestone';
+  static const String typeLevelUp = 'level_up';
+
+  final Map<String, List<int>> _awardedFocusMilestones =
+      {}; // { "yyyy-MM-dd": [7, 15, 30] }
+
+  Future<void> setHideManualCompletionWarning(bool enabled) async {
+    _hideManualCompletionWarning = enabled;
+    await _savePreferences();
+    notifyListeners();
+  }
+
   // ----------------- Getters -----------------
   List<Habit> get habits => List.unmodifiable(_habits);
+  List<PetDiaryEntry> get petDiary => List.unmodifiable(_petDiary);
 
   // Sorted habits: focus tasks first (by priority), then regular tasks
   List<Habit> get sortedHabits {
@@ -93,14 +142,35 @@ class AppState extends ChangeNotifier {
   ThemeMode get themeMode => _themeMode;
   bool get hasShownStreakWarningSession => _hasShownStreakWarningSession;
 
+  // Notification Preferences Getters
+  bool get morningQuotesEnabled => _morningQuotesEnabled;
+  bool get streakAlertsEnabled => _streakAlertsEnabled;
+  bool get milestoneCelebrationEnabled => _milestoneCelebrationEnabled;
+
   void markStreakWarningShown() {
     _hasShownStreakWarningSession = true;
+    notifyListeners();
+  }
+
+  // Duplicate detection session tracking
+  bool get hasShownDuplicateWarningSession => _hasShownDuplicateWarningSession;
+  bool get hideManualCompletionWarning => _hideManualCompletionWarning;
+
+  void markDuplicateWarningShown() {
+    _hasShownDuplicateWarningSession = true;
     notifyListeners();
   }
 
   // Gamification getters
   int get totalXP => _totalXP;
   UserLevel get userLevel => _userLevel ?? UserLevel.fromTotalXP(0);
+  String get petName => _petName;
+
+  void setPetName(String name) {
+    _petName = name;
+    _savePreferences();
+    notifyListeners();
+  }
 
   // Mood getters
   List<MoodEntry> get moodHistory => List.unmodifiable(_moodHistory);
@@ -108,16 +178,176 @@ class AppState extends ChangeNotifier {
   // Streak Freeze getters
   int get streakFreezes => _streakFreezes;
   List<String> get frozenDates => List.unmodifiable(_frozenDates);
+  StreakFreeze? get enhancedStreakFreeze => _enhancedStreakFreeze;
+
+  // Loot Box getters
+  LootBox? get pendingLootBox => _pendingLootBox;
+  bool get hasPendingLootBox => _pendingLootBox != null;
 
   // Track recently frozen habits for animation
   final List<String> _recentlyFrozenHabitIds = [];
   bool get hasRecentlyFrozenHabits => _recentlyFrozenHabitIds.isNotEmpty;
+
+  bool get hasMissedHabitToday {
+    if (_lastMissedHabitDate == null) return false;
+    return _lastMissedHabitDate == _getTodayKey();
+  }
 
   List<String> consumeRecentlyFrozenHabits() {
     final list = List<String>.from(_recentlyFrozenHabitIds);
     _recentlyFrozenHabitIds.clear();
     notifyListeners();
     return list;
+  }
+
+  /// Initialize or update enhanced streak freeze based on level
+  void _initializeEnhancedFreeze() {
+    final level = _userLevel?.level ?? 1;
+
+    if (_enhancedStreakFreeze == null) {
+      // First time: create with current freezes
+      _enhancedStreakFreeze = StreakFreeze(
+        availableFreezes:
+            _streakFreezes.clamp(0, StreakFreeze.getMaxFreezesForLevel(level)),
+        maxFreezes: StreakFreeze.getMaxFreezesForLevel(level),
+        lastRegenTime: DateTime.now(),
+      );
+    } else {
+      // Update max based on new level
+      _enhancedStreakFreeze = _enhancedStreakFreeze!.checkAndRegenerate(level);
+    }
+
+    // Sync with legacy field
+    _streakFreezes = _enhancedStreakFreeze!.availableFreezes;
+  }
+
+  /// Check for freeze regeneration (call on app open)
+  void checkFreezeRegeneration() {
+    if (_enhancedStreakFreeze == null) {
+      _initializeEnhancedFreeze();
+    } else {
+      final level = _userLevel?.level ?? 1;
+      final updated = _enhancedStreakFreeze!.checkAndRegenerate(level);
+      if (updated.availableFreezes != _enhancedStreakFreeze!.availableFreezes) {
+        _enhancedStreakFreeze = updated;
+        _streakFreezes = updated.availableFreezes;
+        _lastFreezeRegenDate = _getTodayKey();
+        _savePreferences();
+        notifyListeners();
+      }
+    }
+  }
+
+  /// Use a streak freeze for a habit
+  bool useEnhancedFreeze(String habitId, String habitName) {
+    if (_enhancedStreakFreeze == null || !_enhancedStreakFreeze!.canUseFreeze) {
+      return false;
+    }
+
+    _enhancedStreakFreeze =
+        _enhancedStreakFreeze!.useFreeze(habitId, habitName);
+    _streakFreezes = _enhancedStreakFreeze!.availableFreezes;
+
+    // Record the frozen date so it appears on the heatmap and preserves streak!
+    final today = _getTodayKey();
+    if (!_frozenDates.contains(today)) {
+      _frozenDates.add(today);
+    }
+
+    _savePreferences();
+    notifyListeners();
+    return true;
+  }
+
+  /// Award extra freeze (from loot box or challenge completion)
+  void awardExtraFreeze(int count) {
+    debugPrint('🧊 awardExtraFreeze called with count: $count');
+    debugPrint('🧊 Current freezes before: $_streakFreezes');
+
+    if (_enhancedStreakFreeze == null) {
+      _initializeEnhancedFreeze();
+    }
+
+    final level = _userLevel?.level ?? 1;
+    final maxFreezes = StreakFreeze.getMaxFreezesForLevel(level);
+    final currentCount =
+        _enhancedStreakFreeze?.availableFreezes ?? _streakFreezes;
+    final newCount = (currentCount + count)
+        .clamp(0, maxFreezes + 5); // Allow 5 over max from rewards
+
+    if (_enhancedStreakFreeze != null) {
+      _enhancedStreakFreeze =
+          _enhancedStreakFreeze!.copyWith(availableFreezes: newCount);
+    }
+    _streakFreezes = newCount;
+
+    debugPrint('🧊 New freezes after award: $_streakFreezes');
+
+    _savePreferences();
+    notifyListeners();
+  }
+
+  /// Set pending loot box (earned from milestone)
+  void setPendingLootBox(LootBox lootBox) {
+    _pendingLootBox = lootBox;
+    notifyListeners();
+  }
+
+  /// Clear pending loot box (after opening)
+  void clearPendingLootBox() {
+    _pendingLootBox = null;
+    notifyListeners();
+  }
+
+  /// Check if a streak milestone triggers a loot box
+  LootBox? checkStreakLootBox(
+      int newStreak, int previousStreak, String habitId) {
+    LootBoxTrigger? trigger;
+
+    if (newStreak >= 100 && previousStreak < 100) {
+      trigger = LootBoxTrigger.streak100;
+    } else if (newStreak >= 30 && previousStreak < 30) {
+      trigger = LootBoxTrigger.streak30;
+    } else if (newStreak >= 7 && previousStreak < 7) {
+      trigger = LootBoxTrigger.streak7;
+    }
+
+    if (trigger != null) {
+      final lootBox = LootBox(
+        id: '${trigger.name}_${DateTime.now().millisecondsSinceEpoch}',
+        trigger: trigger,
+        earnedAt: DateTime.now(),
+      );
+      _pendingLootBox = lootBox;
+      notifyListeners();
+      return lootBox;
+    }
+
+    return null;
+  }
+
+  /// Check for level-up loot box
+  LootBox? checkLevelUpLootBox(int newLevel, int previousLevel) {
+    LootBoxTrigger? trigger;
+
+    if (newLevel % 10 == 0 && previousLevel % 10 != 0) {
+      trigger = LootBoxTrigger.levelUp10;
+    } else if (newLevel % 5 == 0 && previousLevel % 5 != 0) {
+      trigger = LootBoxTrigger.levelUp5;
+    }
+
+    if (trigger != null) {
+      final lootBox = LootBox(
+        id: '${trigger.name}_${DateTime.now().millisecondsSinceEpoch}',
+        trigger: trigger,
+        earnedAt: DateTime.now(),
+      );
+      _pendingLootBox = lootBox;
+      notifyListeners();
+      return lootBox;
+    }
+
+    return null;
   }
 
   // AI Brief Getters
@@ -137,6 +367,42 @@ class AppState extends ChangeNotifier {
       List.unmodifiable(_achievedMilestones);
   Milestone? get latestMilestone =>
       _achievedMilestones.isEmpty ? null : _achievedMilestones.last;
+
+  // Manual Health Log Getters and Helpers
+  /// Get manually logged health data for a specific date and metric
+  double? getManualHealthLog(String dateKey, String metricType) {
+    return _manualHealthLogs[dateKey]?[metricType];
+  }
+
+  /// Get all manual health logs
+  Map<String, Map<String, double>> get manualHealthLogs =>
+      Map.unmodifiable(_manualHealthLogs);
+
+  /// Log a manual health metric (called when user completes a health habit with goal)
+  void _logManualHealthMetric(
+      String dateKey, HealthMetricType metric, double value) {
+    _manualHealthLogs[dateKey] ??= {};
+    final metricKey = metric.name; // 'sleep', 'steps', etc.
+
+    // Keep the higher value if already logged (user might complete multiple habits)
+    final existing = _manualHealthLogs[dateKey]![metricKey] ?? 0;
+    if (value > existing) {
+      _manualHealthLogs[dateKey]![metricKey] = value;
+      debugPrint('📊 Manual health log: $dateKey - $metricKey = $value');
+    }
+  }
+
+  /// Get sleep hours for a date (manual log or from habits)
+  double getManualSleepHours(DateTime date) {
+    final dateKey = _dateToKey(date);
+    return _manualHealthLogs[dateKey]?['sleep'] ?? 0.0;
+  }
+
+  /// Get steps for a date (manual log or from habits)
+  int getManualSteps(DateTime date) {
+    final dateKey = _dateToKey(date);
+    return (_manualHealthLogs[dateKey]?['steps'] ?? 0).toInt();
+  }
 
   // Health Challenge Setter with Cloud Sync
   Future<void> setActiveHealthChallenge(HealthChallenge? challenge) async {
@@ -170,6 +436,40 @@ class AppState extends ChangeNotifier {
     if (_activeHealthChallenge == null) return;
 
     final challengeId = _activeHealthChallenge!.id;
+    final durationWeeks = _activeHealthChallenge!.durationWeeks;
+
+    // 0. Award streak freezes based on challenge duration!
+    // Align with 2/3/6 rule: 1 week (7d) = 2, 2 weeks (14d+) = 3, 4 weeks (30d+) = 6
+    int freezeReward = 0;
+    if (durationWeeks >= 4) {
+      freezeReward = 6;
+    } else if (durationWeeks >= 2) {
+      freezeReward = 3;
+    } else if (durationWeeks >= 1) {
+      freezeReward = 2;
+    }
+
+    if (freezeReward > 0) {
+      awardExtraFreeze(freezeReward);
+      debugPrint('🏆 Challenge reward: +$freezeReward streak freeze(s)!');
+    }
+
+    // 0b. Archive for Wrapped Events before deletion
+    _addAchievement(
+      habitName: _activeHealthChallenge!.title,
+      habitEmoji: '💪', // Default health emoji
+      challengeDays: _activeHealthChallenge!.durationWeeks * 7,
+      completedDate: DateTime.now().toIso8601String().split('T').first,
+      type: typeHealthChallenge,
+    );
+
+    // 0c. Pet Diary Entry
+    final petName = _petName.isNotEmpty ? _petName : 'Your pet';
+    _addPetDiaryEntry(
+      'MISSION ACCOMPLISHED! $petName is so proud of our progress in the "${_activeHealthChallenge!.title}". We are getting stronger every day! 💪🏆',
+      '🥳',
+      PetDiaryEntryType.challengeCompleted,
+    );
 
     // 1. Delete from Cloud
     try {
@@ -200,6 +500,14 @@ class AppState extends ChangeNotifier {
     debugPrint('🎉 Challenge completed & data cleaned up');
   }
 
+  /// Overwrite local habits with a specific list (used for Sync Conflict Resolution)
+  Future<void> overwriteHabits(List<Habit> newHabits) async {
+    _habits.clear();
+    _habits.addAll(newHabits);
+    await _savePreferences();
+    notifyListeners();
+  }
+
   bool get needsMoodCheckIn {
     final today = _getTodayKey();
     return _lastMoodCheckDate != today;
@@ -218,12 +526,15 @@ class AppState extends ChangeNotifier {
   // ----------------- Prefs keys -----------------
   static const _prefsKeyHabits = 'habits_v1';
   static const _prefsKeyAchievements = 'achievements_v1';
+  static const _prefsKeyHideManualCompletionWarning =
+      'hide_manual_completion_warning';
   static const _prefsKeyFirstRun = 'isFirstRun';
   static const _prefsKeyTheme = 'themeMode';
   static const _prefsKeyTotalXP = 'totalXP';
   static const _prefsKeyMoodHistory = 'moodHistory_v1';
   static const _prefsKeyUserLevel = 'userLevel_v1';
   static const _prefsKeyLastMoodCheck = 'lastMoodCheckDate';
+  static const _prefsKeyLastMissedHabit = 'last_missed_habit_date';
   static const _prefsKeyWeeklyReports = 'weekly_reports';
   static const _prefsKeyLastDailyBrief = 'last_daily_brief';
   static const _prefsKeyLastWeeklyReport = 'last_weekly_report';
@@ -231,11 +542,26 @@ class AppState extends ChangeNotifier {
   static const _prefsKeyActiveChallenge = 'active_challenge_v1';
   static const _prefsKeyAchievedMilestones = 'achieved_milestones';
   static const _prefsKeyShownMilestones = 'shown_milestone_ids';
+  static const _prefsKeyPetName = 'streakoo_pet_name';
+
+  // Notification Preferences Keys
+  static const _prefsKeyMorningQuotes = 'notification_morning_quotes';
+  static const _prefsKeyStreakAlerts = 'notification_streak_alerts';
+  static const _prefsKeyMilestoneCelebration =
+      'notification_milestone_celebration';
 
   // ----------------- Load / Save -----------------
-  Future<void> loadPreferences() async {
+  /// Load only essential preferences needed before UI renders
+  /// This is the critical path - keep it as fast as possible
+  Future<void> loadEssentialPreferences() async {
+    debugPrint('⚡ Loading essential preferences...');
+    final sw = Stopwatch()..start();
+
     final prefs = await SharedPreferences.getInstance();
 
+    _petName = prefs.getString(_prefsKeyPetName) ?? 'Your Pet';
+
+    // Only load what's absolutely necessary for the initial screen
     _isFirstRun = prefs.getBool(_prefsKeyFirstRun) ?? true;
 
     final themeStr = prefs.getString(_prefsKeyTheme);
@@ -247,6 +573,20 @@ class AppState extends ChangeNotifier {
       _themeMode = ThemeMode.dark;
     }
 
+    notifyListeners();
+    sw.stop();
+    debugPrint('✅ Essential preferences loaded in ${sw.elapsedMilliseconds}ms');
+  }
+
+  /// Load all app data in the background after UI is rendered
+  /// This can be called asynchronously without blocking the UI
+  Future<void> loadFullData() async {
+    debugPrint('📦 Loading full app data...');
+    final sw = Stopwatch()..start();
+
+    final prefs = await SharedPreferences.getInstance();
+
+    // Load habits
     final habitsJson = prefs.getString(_prefsKeyHabits);
     if (habitsJson != null && habitsJson.isNotEmpty) {
       try {
@@ -256,6 +596,265 @@ class AppState extends ChangeNotifier {
           ..addAll(list.map((e) => Habit.fromJson(e as Map<String, dynamic>)));
       } catch (_) {
         // ignore corrupt data
+      }
+
+      // REPAIR: Check for duplicate IDs which caused completion issues
+      final hasRepairs = _repairDuplicateIds();
+      if (hasRepairs) {
+        debugPrint('🛠️ Repaired duplicate habit IDs');
+        await _savePreferences();
+      }
+
+      // IMPORTANT: Recalculate completedToday based on today's date
+      // This ensures habits reset properly each day
+      final now = DateTime.now();
+      final today = DateTime(now.year, now.month, now.day);
+      final todayKey =
+          '${today.year.toString().padLeft(4, '0')}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}';
+
+      for (var i = 0; i < _habits.length; i++) {
+        final habit = _habits[i];
+        final isCompletedToday = habit.completionDates.contains(todayKey);
+        if (habit.completedToday != isCompletedToday) {
+          _habits[i] = habit.copyWith(completedToday: isCompletedToday);
+          debugPrint(
+              '📅 Reset completedToday for "${habit.name}": ${habit.completedToday} -> $isCompletedToday');
+        }
+      }
+    }
+
+    // Load achievements
+    final achievementsJson = prefs.getString(_prefsKeyAchievements);
+    if (achievementsJson != null && achievementsJson.isNotEmpty) {
+      try {
+        final list = jsonDecode(achievementsJson) as List;
+        _achievements
+          ..clear()
+          ..addAll(list.map((e) => e as Map<String, dynamic>));
+      } catch (_) {
+        // ignore corrupt data
+      }
+    }
+
+    // Load User Level
+    final userLevelJson = prefs.getString(_prefsKeyUserLevel);
+    if (userLevelJson != null && userLevelJson.isNotEmpty) {
+      try {
+        _userLevel = UserLevel.fromJson(jsonDecode(userLevelJson));
+      } catch (_) {
+        _userLevel = UserLevel.fromTotalXP(0);
+      }
+    } else {
+      // Fallback for migration: try to load totalXP
+      _totalXP = prefs.getInt(_prefsKeyTotalXP) ?? 0;
+      _userLevel = UserLevel.fromTotalXP(_totalXP);
+    }
+
+    // Load mood history
+    final moodJson = prefs.getString(_prefsKeyMoodHistory);
+    if (moodJson != null && moodJson.isNotEmpty) {
+      try {
+        final list = jsonDecode(moodJson) as List;
+        _moodHistory
+          ..clear()
+          ..addAll(
+              list.map((e) => MoodEntry.fromJson(e as Map<String, dynamic>)));
+      } catch (_) {
+        // ignore corrupt data
+      }
+    }
+
+    _lastMoodCheckDate = prefs.getString(_prefsKeyLastMoodCheck);
+    _lastBackupDate = prefs.getString(_prefsKeyLastBackup);
+
+    // Load Streak Freezes
+    // Load Streak Freezes - Give 2 freebeez for new users!
+    if (prefs.containsKey('streak_freezes')) {
+      _streakFreezes = prefs.getInt('streak_freezes') ?? 0;
+    } else {
+      _streakFreezes = 2; // Default for new users
+    }
+    final frozenJson = prefs.getString('frozen_dates');
+    if (frozenJson != null) {
+      try {
+        final list = jsonDecode(frozenJson) as List;
+        _frozenDates.clear();
+        _frozenDates.addAll(list.map((e) => e as String));
+      } catch (_) {}
+    }
+
+    // Load enhanced streak freeze
+    final enhancedFreezeJson = prefs.getString('enhanced_streak_freeze');
+    if (enhancedFreezeJson != null) {
+      try {
+        _enhancedStreakFreeze = StreakFreeze.deserialize(enhancedFreezeJson);
+      } catch (_) {}
+    }
+
+    // NEW: Backfill rewards for existing users who already completed challenges or reached streaks
+    await _backfillLegacyRewards(prefs);
+    _lastFreezeRegenDate = prefs.getString('last_freeze_regen_date');
+
+    // Initialize or check regeneration
+    checkFreezeRegeneration();
+
+    // Check and reset streaks for missed days
+    _lastMissedHabitDate = prefs.getString(_prefsKeyLastMissedHabit);
+    _checkAndResetStreaks();
+    _recalculateAllStreaks();
+
+    // Load Weekly Reports
+    final reportsJson = prefs.getString(_prefsKeyWeeklyReports);
+    if (reportsJson != null && reportsJson.isNotEmpty) {
+      try {
+        final list = jsonDecode(reportsJson) as List;
+        _weeklyReports
+          ..clear()
+          ..addAll(list
+              .map((e) => WeeklyReport.fromJson(e as Map<String, dynamic>)));
+      } catch (e) {
+        debugPrint('Error loading weekly reports: $e');
+      }
+    }
+
+    // Load generation dates
+    final lastDaily = prefs.getString(_prefsKeyLastDailyBrief);
+    if (lastDaily != null) {
+      _lastDailyBriefDate = DateTime.tryParse(lastDaily);
+    }
+
+    final lastWeekly = prefs.getString(_prefsKeyLastWeeklyReport);
+    if (lastWeekly != null) {
+      _lastWeeklyReportDate = DateTime.tryParse(lastWeekly);
+    }
+
+    // Load Active Challenge
+    final challengeJson = prefs.getString(_prefsKeyActiveChallenge);
+    if (challengeJson != null) {
+      try {
+        _activeHealthChallenge =
+            HealthChallenge.fromJson(jsonDecode(challengeJson));
+      } catch (e) {
+        debugPrint('Error loading active challenge: $e');
+      }
+    }
+
+    // Load Milestones
+    final milestonesJson = prefs.getString(_prefsKeyAchievedMilestones);
+    if (milestonesJson != null && milestonesJson.isNotEmpty) {
+      try {
+        final list = jsonDecode(milestonesJson) as List;
+        _achievedMilestones
+          ..clear()
+          ..addAll(
+              list.map((e) => Milestone.fromJson(e as Map<String, dynamic>)));
+      } catch (e) {
+        debugPrint('Error loading milestones: $e');
+      }
+    }
+
+    final shownIdsJson = prefs.getString(_prefsKeyShownMilestones);
+    if (shownIdsJson != null) {
+      try {
+        final list = jsonDecode(shownIdsJson) as List;
+        _shownMilestoneIds.clear();
+        _shownMilestoneIds.addAll(list.map((e) => e as String));
+      } catch (e) {
+        debugPrint('Error loading shown milestone IDs: $e');
+      }
+    }
+
+    // Load Notification Preferences
+    _morningQuotesEnabled = prefs.getBool(_prefsKeyMorningQuotes) ?? false;
+    _streakAlertsEnabled = prefs.getBool(_prefsKeyStreakAlerts) ?? true;
+    _milestoneCelebrationEnabled =
+        prefs.getBool(_prefsKeyMilestoneCelebration) ?? true;
+    _hideManualCompletionWarning =
+        prefs.getBool(_prefsKeyHideManualCompletionWarning) ?? false;
+    debugPrint(
+        '🔔 Notification prefs loaded - Morning: $_morningQuotesEnabled, Streak: $_streakAlertsEnabled, Milestone: $_milestoneCelebrationEnabled');
+
+    // Load Pet Diary
+    final petDiaryJson = prefs.getString('pet_diary');
+    if (petDiaryJson != null && petDiaryJson.isNotEmpty) {
+      try {
+        final list = jsonDecode(petDiaryJson) as List;
+        _petDiary
+          ..clear()
+          ..addAll(list
+              .map((e) => PetDiaryEntry.fromJson(e as Map<String, dynamic>)));
+      } catch (e) {
+        debugPrint('Error loading pet diary: $e');
+      }
+    }
+
+    // Initialize and update home screen widget with current data
+    await HomeWidgetService.initialize();
+    final completedToday = _habits.where((h) => h.completedToday).length;
+    final totalHabits = _habits.length;
+    final maxStreak = _habits.isEmpty
+        ? 0
+        : _habits.map((h) => h.streak).reduce((a, b) => a > b ? a : b);
+    await HomeWidgetService.updateWidgetData(
+      completedHabits: completedToday,
+      totalHabits: totalHabits,
+      currentStreak: maxStreak,
+      steps: 0, // Steps will be updated when health data syncs
+    );
+
+    // Perform daily cloud backup if needed (non-blocking)
+    checkAndPerformDailyBackup().catchError((e) {
+      debugPrint('Auto-backup error: $e');
+    });
+
+    // Check and update daily AI insight for active challenge
+    checkAndUpdateDailyInsight().catchError((e) {
+      debugPrint('Auto-insight update error: $e');
+    });
+
+    notifyListeners();
+    sw.stop();
+    debugPrint('✅ Full data loaded in ${sw.elapsedMilliseconds}ms');
+  }
+
+  /// Legacy method - loads all preferences synchronously
+  /// Kept for compatibility, but prefer loadEssentialPreferences + loadFullData
+  Future<void> loadPreferences() async {
+    final prefs = await SharedPreferences.getInstance();
+
+    _isFirstRun = prefs.getBool(_prefsKeyFirstRun) ?? true;
+
+    final themeStr = switch (_themeMode) {
+      ThemeMode.light => 'light',
+      ThemeMode.dark => 'dark',
+      ThemeMode.system => 'system',
+    };
+    await prefs.setString(_prefsKeyTheme, themeStr);
+
+    final habitsJson = prefs.getString(_prefsKeyHabits);
+    if (habitsJson != null && habitsJson.isNotEmpty) {
+      try {
+        final list = jsonDecode(habitsJson) as List;
+        _habits
+          ..clear()
+          ..addAll(list.map((e) => Habit.fromJson(e as Map<String, dynamic>)));
+      } catch (_) {
+        // ignore corrupt data
+      }
+
+      // IMPORTANT: Recalculate completedToday based on today's date
+      // This ensures habits reset properly each day
+      final now = DateTime.now();
+      final today = DateTime(now.year, now.month, now.day);
+      final todayKey =
+          '${today.year.toString().padLeft(4, '0')}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}';
+
+      for (var i = 0; i < _habits.length; i++) {
+        final habit = _habits[i];
+        final isCompletedToday = habit.completionDates.contains(todayKey);
+        if (habit.completedToday != isCompletedToday) {
+          _habits[i] = habit.copyWith(completedToday: isCompletedToday);
+        }
       }
     }
 
@@ -402,6 +1001,47 @@ class AppState extends ChangeNotifier {
       }
     }
 
+    // Load Notification Preferences
+    _morningQuotesEnabled = prefs.getBool(_prefsKeyMorningQuotes) ?? false;
+    _streakAlertsEnabled = prefs.getBool(_prefsKeyStreakAlerts) ?? true;
+    _milestoneCelebrationEnabled =
+        prefs.getBool(_prefsKeyMilestoneCelebration) ?? true;
+    _hideManualCompletionWarning =
+        prefs.getBool(_prefsKeyHideManualCompletionWarning) ?? false;
+
+    // Load Manual Health Logs
+    final healthLogsJson = prefs.getString('manual_health_logs');
+    if (healthLogsJson != null) {
+      try {
+        final decoded = jsonDecode(healthLogsJson) as Map<String, dynamic>;
+        _manualHealthLogs.clear();
+        decoded.forEach((dateKey, metrics) {
+          _manualHealthLogs[dateKey] = Map<String, double>.from(
+            (metrics as Map)
+                .map((k, v) => MapEntry(k as String, (v as num).toDouble())),
+          );
+        });
+        debugPrint(
+            '📊 Loaded ${_manualHealthLogs.length} manual health log entries');
+      } catch (e) {
+        debugPrint('Error loading manual health logs: $e');
+      }
+    }
+
+    // Load Pet Diary
+    final petDiaryJson = prefs.getString('pet_diary');
+    if (petDiaryJson != null && petDiaryJson.isNotEmpty) {
+      try {
+        final list = jsonDecode(petDiaryJson) as List;
+        _petDiary
+          ..clear()
+          ..addAll(list
+              .map((e) => PetDiaryEntry.fromJson(e as Map<String, dynamic>)));
+      } catch (e) {
+        debugPrint('Error loading pet diary: $e');
+      }
+    }
+
     // Initialize and update home screen widget with current data
     await HomeWidgetService.initialize();
     final completedToday = _habits.where((h) => h.completedToday).length;
@@ -485,7 +1125,10 @@ class AppState extends ChangeNotifier {
     final yesterday = today.subtract(const Duration(days: 1));
     final yesterdayKey =
         '${yesterday.year.toString().padLeft(4, '0')}-${yesterday.month.toString().padLeft(2, '0')}-${yesterday.day.toString().padLeft(2, '0')}';
+    final todayKey =
+        '${today.year.toString().padLeft(4, '0')}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}';
 
+    bool shouldSave = false;
     bool usedFreezeToday = false;
 
     for (var i = 0; i < _habits.length; i++) {
@@ -497,41 +1140,60 @@ class AppState extends ChangeNotifier {
       final lastCompletionStr = habit.completionDates.last;
       final lastCompletion = DateTime.parse(lastCompletionStr);
       final lastDay = DateTime(
-          lastCompletion.year, lastCompletion.month, lastCompletion.day);
+        lastCompletion.year,
+        lastCompletion.month,
+        lastCompletion.day,
+      );
 
-      // Calculate days difference
+      // If completed today or already processed yesterday, streak is fine
+      if (lastDay.isAtSameMomentAs(today) ||
+          lastDay.isAtSameMomentAs(yesterday)) {
+        continue;
+      }
+
+      // If we are here, the habit was missed yesterday (or earlier)
+      // Check if we can freeze it
       final daysDifference = today.difference(lastDay).inDays;
-
-      // If more than 1 day has passed, reset the streak OR use freeze
       if (daysDifference > 1) {
         bool protectedByFreeze = false;
 
         // ONLY focus tasks are eligible for freeze protection
-        if (habit.isFocusTask && daysDifference == 2) {
-          // Check if yesterday is already frozen or if we have freezes
+        if (habit.isFocusTask) {
+          // Check if yesterday is already frozen
           if (_frozenDates.contains(yesterdayKey)) {
             protectedByFreeze = true;
             debugPrint(
                 '❄️ Focus task "${habit.name}" protected by existing freeze');
-          } else if (_streakFreezes > 0) {
-            // Use a freeze!
-            if (!usedFreezeToday) {
-              _streakFreezes--;
-              _frozenDates.add(yesterdayKey);
-              usedFreezeToday = true;
-              _recentlyFrozenHabitIds.add(habit.id); // Trigger animation
-              debugPrint(
-                  '❄️ Used freeze to protect focus task "${habit.name}"');
-            }
+          } else if (_streakFreezes > 0 && !usedFreezeToday) {
+            // Auto-use freeze if available and not already used today
+            _streakFreezes--;
+            _frozenDates.add(yesterdayKey);
+            _recentlyFrozenHabitIds.add(habit.id);
             protectedByFreeze = true;
+            usedFreezeToday = true;
+            debugPrint(
+                '🧊 Used freeze for "${habit.name}" (Focus Task). Freezes left: $_streakFreezes');
+            shouldSave = true;
           }
         }
 
         if (protectedByFreeze) {
           // Streak saved! Just mark as not completed today
+          // Also track frozen date for challenge if applicable
+          List<String>? newChallengeFrozenDates;
+          if (habit.challengeTargetDays != null && !habit.challengeCompleted) {
+            newChallengeFrozenDates = [
+              ...habit.challengeFrozenDates,
+              yesterdayKey
+            ];
+            debugPrint(
+                '❄️ Frozen date $yesterdayKey added to challenge for "${habit.name}"');
+          }
           _habits[i] = habit.copyWith(
             completedToday: false,
+            challengeFrozenDates: newChallengeFrozenDates,
           );
+          shouldSave = true;
         } else {
           // Reset streak
           if (habit.isFocusTask) {
@@ -545,6 +1207,10 @@ class AppState extends ChangeNotifier {
             streak: 0,
             completedToday: false,
           );
+
+          // Mark as missed habit for pet emotion
+          _lastMissedHabitDate = todayKey;
+          shouldSave = true;
         }
       }
       // If it's a new day (but not more than 1 day), just mark as not completed today
@@ -552,7 +1218,16 @@ class AppState extends ChangeNotifier {
         _habits[i] = habit.copyWith(
           completedToday: false,
         );
+        // No need to save here usually, but if we change 'completedToday', we might want to?
+        // Actually completedToday is transient often, but let's be safe.
+        // Wait, completedToday is stored in JSON usually? No, "runtime only".
+        // But for UI updates we need notifyListeners.
       }
+    }
+
+    if (shouldSave) {
+      _savePreferences();
+      notifyListeners();
     }
   }
 
@@ -573,6 +1248,8 @@ class AppState extends ChangeNotifier {
 
     final achievementsEncoded = jsonEncode(_achievements);
     await prefs.setString(_prefsKeyAchievements, achievementsEncoded);
+    // Sync achievements to cloud
+    await SupabaseService().upsertAchievements(_achievements);
 
     // Save User Level
     if (_userLevel != null) {
@@ -581,6 +1258,7 @@ class AppState extends ChangeNotifier {
     }
     // Also save totalXP for backup/compatibility
     await prefs.setInt(_prefsKeyTotalXP, _totalXP);
+    await prefs.setString(_prefsKeyPetName, _petName);
 
     final moodEncoded =
         jsonEncode(_moodHistory.map((m) => m.toJson()).toList());
@@ -592,6 +1270,15 @@ class AppState extends ChangeNotifier {
 
     await prefs.setInt('streak_freezes', _streakFreezes);
     await prefs.setString('frozen_dates', jsonEncode(_frozenDates));
+
+    // Save enhanced streak freeze
+    if (_enhancedStreakFreeze != null) {
+      await prefs.setString(
+          'enhanced_streak_freeze', _enhancedStreakFreeze!.serialize());
+    }
+    if (_lastFreezeRegenDate != null) {
+      await prefs.setString('last_freeze_regen_date', _lastFreezeRegenDate!);
+    }
 
     // Save Weekly Reports
     final reportsEncoded =
@@ -628,6 +1315,28 @@ class AppState extends ChangeNotifier {
 
     await prefs.setString(
         _prefsKeyShownMilestones, jsonEncode(_shownMilestoneIds));
+
+    // Save Manual Health Logs
+    if (_manualHealthLogs.isNotEmpty) {
+      await prefs.setString(
+          'manual_health_logs', jsonEncode(_manualHealthLogs));
+    }
+
+    // Save Notification Preferences
+    await prefs.setBool(_prefsKeyMorningQuotes, _morningQuotesEnabled);
+    await prefs.setBool(_prefsKeyStreakAlerts, _streakAlertsEnabled);
+    await prefs.setBool(
+        _prefsKeyMilestoneCelebration, _milestoneCelebrationEnabled);
+    await prefs.setBool(
+        _prefsKeyHideManualCompletionWarning, _hideManualCompletionWarning);
+
+    // Save Focus Challenge Milestone tracking
+    await prefs.setString(
+        'awarded_focus_milestones', jsonEncode(_awardedFocusMilestones));
+
+    // Save Pet Diary
+    final diaryEncoded = jsonEncode(_petDiary.map((e) => e.toJson()).toList());
+    await prefs.setString('pet_diary', diaryEncoded);
 
     // Update Home Screen Widget
     try {
@@ -669,6 +1378,33 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
+  // Notification Preference Setters
+  Future<void> setMorningQuotesEnabled(bool enabled) async {
+    _morningQuotesEnabled = enabled;
+    await _savePreferences();
+
+    // Reschedule morning brief notification based on new preference
+    try {
+      await DailyBriefService.instance.scheduleMorningBrief(enabled: enabled);
+    } catch (e) {
+      debugPrint('⚠️ Failed to reschedule morning brief: $e');
+    }
+
+    notifyListeners();
+  }
+
+  Future<void> setStreakAlertsEnabled(bool enabled) async {
+    _streakAlertsEnabled = enabled;
+    await _savePreferences();
+    notifyListeners();
+  }
+
+  Future<void> setMilestoneCelebrationEnabled(bool enabled) async {
+    _milestoneCelebrationEnabled = enabled;
+    await _savePreferences();
+    notifyListeners();
+  }
+
   // ----------------- Habit CRUD -----------------
   Future<void> addHabit(Habit habit) async {
     _habits.add(habit);
@@ -677,6 +1413,15 @@ class AppState extends ChangeNotifier {
 
     // Sync to cloud
     await SupabaseService().upsertHabit(habit);
+
+    // Track with Firebase Analytics
+    FirebaseService.instance.logHabitCreated(
+      habitName: habit.name,
+      category: habit.category,
+      hasReminder: habit.reminderEnabled,
+      isHealthTracked: habit.isHealthTracked,
+      isFocusTask: habit.isFocusTask,
+    );
   }
 
   Future<void> updateHabit(Habit updated) async {
@@ -722,134 +1467,328 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
-  // ----------------- Completion / streaks -----------------
-  Future<void> completeHabit(Habit habit, {bool isAiTriggered = false}) async {
-    final index = _habits.indexWhere((h) => h.id == habit.id);
-    if (index == -1) return;
+  /// Merge two habits into one, keeping the primary and deleting the secondary
+  Future<void> mergeHabits(
+      String primaryId, String secondaryId, Habit mergedHabit) async {
+    final primaryIndex = _habits.indexWhere((h) => h.id == primaryId);
+    final secondaryIndex = _habits.indexWhere((h) => h.id == secondaryId);
 
-    final now = DateTime.now();
-    final today = DateTime(now.year, now.month, now.day);
-    final todayKey =
-        '${today.year.toString().padLeft(4, '0')}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}';
-
-    final current = _habits[index];
-
-    // Prevent manual completion of health-tracked habits with goals
-    if (!isAiTriggered && !current.canManuallyComplete) {
-      debugPrint(
-          '⚠️ Cannot manually complete health-tracked habit "${current.name}". It will auto-complete when your health goal is met.');
+    if (primaryIndex == -1 || secondaryIndex == -1) {
+      debugPrint('❌ Merge failed: habit not found');
       return;
     }
 
-    // Log completion source
-    if (isAiTriggered) {
-      debugPrint('🤖 AI-triggered completion for "${current.name}"');
-    } else {
-      debugPrint('👆 Manual completion for "${current.name}"');
-    }
+    // Update primary habit with merged data
+    _habits[primaryIndex] = mergedHabit;
 
-    // Already done today?
-    final isAlreadyCompletedToday = current.completionDates.contains(todayKey);
-
-    if (isAlreadyCompletedToday) {
-      debugPrint(
-          'ℹ️ Habit "${current.name}" already completed today. Skipping XP/progress rewards.');
-      // Just update the UI state, don't award XP or progress again
-      _habits[index] = current.copyWith(completedToday: true);
-      notifyListeners();
-
-      // Sync to cloud
-      SupabaseService().upsertHabit(_habits[index]);
-      return;
-    }
-
-    // Create new completion dates list (immutable)
-    final newCompletionDates = [...current.completionDates, todayKey];
-
-    // Calculate robust streak based on dates
-    final newStreak = _calculateStreak(newCompletionDates);
-
-    // Note: Removed automatic 7-day streak freeze reward
-    // Freezes are now only awarded on challenge completion
-
-    // Award XP (only for NEW completions)
-    final xpGained = current.actualXP;
-    final oldLevel = userLevel.level;
-
-    // Update UserLevel
-    _userLevel ??= UserLevel.fromTotalXP(_totalXP);
-    _userLevel!.addXP(xpGained);
-    _totalXP += xpGained; // Keep tracking total XP just in case
-
-    final newLevel = userLevel.level;
-
-    // Calculate new challenge progress
-    int newChallengeProgress = current.challengeProgress;
-    bool newChallengeCompleted = current.challengeCompleted;
-
-    if (current.challengeTargetDays != null && !current.challengeCompleted) {
-      newChallengeProgress += 1;
-      if (newChallengeProgress >= current.challengeTargetDays!) {
-        newChallengeCompleted = true;
-
-        // Reward: Streak Freeze for completing challenge
-        // Award freezes based on challenge duration
-        int freezesToAward = 1; // default
-        if (current.challengeTargetDays == 7) {
-          freezesToAward = 2;
-        } else if (current.challengeTargetDays == 15) {
-          freezesToAward = 3;
-        } else if (current.challengeTargetDays == 30) {
-          freezesToAward = 6;
-        }
-
-        _streakFreezes += freezesToAward;
-
-        // Create achievement for completed challenge
-        _addAchievement(
-          habitName: current.name,
-          habitEmoji: current.emoji,
-          challengeDays: current.challengeTargetDays!,
-          completedDate: todayKey,
-        );
-      }
-    }
-    // Create NEW habit instance with updated values (IMMUTABLE UPDATE)
-    final updated = current.copyWith(
-      completedToday: true,
-      streak: newStreak,
-      completionDates: newCompletionDates,
-      challengeProgress: newChallengeProgress,
-      challengeCompleted: newChallengeCompleted,
-    );
-
-    // Check for streak milestones
-    _checkStreakMilestone(updated);
-
-    // Check for level up
-    if (newLevel > oldLevel) {
-      _addLevelUpAchievement(newLevel);
-    }
-
-    // Replace with NEW habit instance
-    _habits[index] = updated;
-    // Debug: Verify streak updated
-    debugPrint(
-        '✅ Habit "${updated.name}" completed! Streak: ${updated.streak} days');
+    // Delete secondary habit
+    final secondaryHabit = _habits[secondaryIndex];
+    _habits.removeAt(secondaryIndex);
 
     _savePreferences();
     notifyListeners();
 
-    // Sync to cloud (Habit + User Level)
+    // Sync changes to cloud
     final supabase = SupabaseService();
-    supabase.upsertHabit(updated);
-    if (_userLevel != null) {
-      supabase.upsertUserLevel(_userLevel!, _totalXP);
+    await supabase.upsertHabit(mergedHabit);
+    if (supabase.isAuthenticated) {
+      try {
+        await supabase.deleteHabit(secondaryHabit.id);
+        debugPrint(
+            '✅ Merged habits: "${mergedHabit.name}" (deleted duplicate)');
+      } catch (e) {
+        debugPrint('⚠️ Failed to delete duplicate from cloud: $e');
+      }
+    }
+  }
+
+  /// Reset challenge progress for a set of habits and start a new target
+  Future<void> resetChallengeForHabits(
+      List<String> habitIds, int newTargetDays) async {
+    bool changed = false;
+
+    // Record achievement before resetting if it was completed
+    final focusHabits = _habits.where((h) => h.isFocusTask).toList();
+    final isAggregateReset = habitIds.length == focusHabits.length &&
+        habitIds.every((id) => focusHabits.any((h) => h.id == id));
+
+    if (isAggregateReset) {
+      // It's a focus challenge reset. If it was completed, record it.
+      // (Wait, we'll rely on the individual achievements or the aggregate one added in _checkAndAwardFocusChallengeReward)
     }
 
-    // Check for milestones if there's an active challenge
-    if (_activeHealthChallenge != null) {
-      await _checkForNewMilestones();
+    for (var i = 0; i < _habits.length; i++) {
+      if (habitIds.contains(_habits[i].id)) {
+        _habits[i] = _habits[i].copyWith(
+          challengeProgress: 0,
+          challengeCompleted: false,
+          challengeTargetDays: newTargetDays,
+          challengeFrozenDates: [],
+        );
+        changed = true;
+      }
+    }
+
+    if (changed) {
+      _savePreferences();
+      notifyListeners();
+
+      // Sync all changed habits to cloud
+      await SupabaseService().syncHabitsToCloud(
+          _habits.where((h) => habitIds.contains(h.id)).toList());
+    }
+  }
+
+  void _checkAndAwardFocusChallengeReward(String todayKey) {
+    final focusHabits = _habits.where((h) => h.isFocusTask).toList();
+    if (focusHabits.isEmpty) return;
+
+    // Calculate aggregate streak ONLY if all completed today
+    bool allDoneToday = focusHabits.every((h) => h.completedToday);
+    if (!allDoneToday) return;
+
+    // We can't really use the same streak calculation as PetScreen easily without duplication,
+    // but we can check if each habit has reached its target today.
+
+    // For simplicity, let's say the Focus Challenge rewards happen when all focus habits
+    // hit common milestones: 7, 15, 30.
+
+    // Find common milestone hit today
+    final streaks = focusHabits.map((h) => h.streak).toList();
+    final minStreak = streaks.reduce((a, b) => a < b ? a : b);
+
+    // If the lowest streak hit a milestone, reward!
+    if ([7, 15, 30].contains(minStreak)) {
+      final milestonesToday = _awardedFocusMilestones[todayKey] ?? [];
+      if (!milestonesToday.contains(minStreak)) {
+        // Milestone hit for the first time today!
+        int freezesToAward = minStreak == 7 ? 2 : (minStreak == 15 ? 3 : 6);
+
+        awardExtraFreeze(freezesToAward);
+
+        _addAchievement(
+          habitName: 'Focus Challenge',
+          habitEmoji: '🎯',
+          challengeDays: minStreak,
+          completedDate: todayKey,
+          type: typeFocusChallenge,
+        );
+
+        milestonesToday.add(minStreak);
+        _awardedFocusMilestones[todayKey] = milestonesToday;
+        _savePreferences();
+      }
+    }
+  }
+
+  // ----------------- Completion / streaks -----------------
+  Future<void> completeHabit(Habit habit, {bool isAiTriggered = false}) async {
+    try {
+      final index = _habits.indexWhere((h) => h.id == habit.id);
+      if (index == -1) {
+        debugPrint('❌ completeHabit: Habit not found with ID ${habit.id}');
+        return;
+      }
+
+      final now = DateTime.now();
+      final today = DateTime(now.year, now.month, now.day);
+      final todayKey =
+          '${today.year.toString().padLeft(4, '0')}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}';
+
+      final current = _habits[index];
+
+      // Log completion source
+      if (isAiTriggered) {
+        debugPrint('🤖 AI-triggered completion for "${current.name}"');
+      } else {
+        debugPrint('👆 Manual completion for "${current.name}"');
+      }
+
+      // Already done today?
+      final isAlreadyCompletedToday =
+          current.completionDates.contains(todayKey);
+
+      if (isAlreadyCompletedToday) {
+        debugPrint(
+            'ℹ️ Habit "${current.name}" already completed today. Skipping XP/progress rewards.');
+        // Just update the UI state, don't award XP or progress again
+        _habits[index] = current.copyWith(completedToday: true);
+        notifyListeners();
+
+        // Sync to cloud
+        SupabaseService().upsertHabit(_habits[index]);
+        return;
+      }
+
+      // Create new completion dates list (immutable)
+      final newCompletionDates = [...current.completionDates, todayKey];
+
+      // Capture previous streak for milestone checks
+      final previousStreak = current.streak;
+
+      // Calculate robust streak based on dates
+      final newStreak = _calculateStreak(newCompletionDates);
+
+      // Note: Removed automatic 7-day streak freeze reward
+      // Freezes are now only awarded on challenge completion
+
+      // Award XP (only for NEW completions)
+      final xpGained = current.actualXP;
+      final oldLevel = userLevel.level;
+
+      // Update UserLevel
+      _userLevel ??= UserLevel.fromTotalXP(_totalXP);
+      _userLevel!.addXP(xpGained);
+      _totalXP += xpGained; // Keep tracking total XP just in case
+
+      final newLevel = userLevel.level;
+
+      // Calculate new challenge progress
+      int newChallengeProgress = current.challengeProgress;
+      bool newChallengeCompleted = current.challengeCompleted;
+
+      if (current.challengeTargetDays != null && !current.challengeCompleted) {
+        newChallengeProgress += 1;
+        if (newChallengeProgress >= current.challengeTargetDays!) {
+          newChallengeCompleted = true;
+
+          // Reward: Streak Freeze for completing challenge
+          // Award freezes based on challenge duration
+          int freezesToAward = 1; // default
+          if (current.challengeTargetDays == 7) {
+            freezesToAward = 2;
+          } else if (current.challengeTargetDays == 15) {
+            freezesToAward = 3;
+          } else if (current.challengeTargetDays == 30) {
+            freezesToAward = 6;
+          }
+
+          awardExtraFreeze(freezesToAward);
+
+          // Create achievement for completed challenge
+          _addAchievement(
+            habitName: current.name,
+            habitEmoji: current.emoji,
+            challengeDays: current.challengeTargetDays!,
+            completedDate: todayKey,
+            type: typeChallengeCompletion,
+          );
+
+          // Pet Diary: Challenge Completed
+          final petName = _petName.isNotEmpty ? _petName : 'Your pet';
+          _addPetDiaryEntry(
+            'HUGE WIN! $petName watched you finish the ${current.challengeTargetDays}-day challenge for "${current.name}". You are a legend! 🏆✨',
+            '🔥',
+            PetDiaryEntryType.challengeCompleted,
+          );
+        }
+      }
+
+      // Check for Aggregate Focus Challenge Reward
+      if (current.isFocusTask) {
+        _checkAndAwardFocusChallengeReward(todayKey);
+
+        // Pet Diary: Focus Task Completed
+        final petName = _petName.isNotEmpty ? _petName : 'Your pet';
+        _addPetDiaryEntry(
+          '$petName saw you crush your focus task "${current.name}"! He is feeling extra motivated now. 🎯🦾',
+          '😎',
+          PetDiaryEntryType.focusTaskCompleted,
+        );
+      }
+      // Create NEW habit instance with updated values (IMMUTABLE UPDATE)
+      final updated = current.copyWith(
+        completedToday: true,
+        streak: newStreak,
+        completionDates: newCompletionDates,
+        challengeProgress: newChallengeProgress,
+        challengeCompleted: newChallengeCompleted,
+      );
+
+      // Check for streak milestones
+      _checkStreakMilestone(updated);
+
+      // Check for level up
+      if (newLevel > oldLevel) {
+        _addLevelUpAchievement(newLevel);
+
+        // Check for level-up loot box (every 5 or 10 levels)
+        checkLevelUpLootBox(newLevel, oldLevel);
+
+        // Update freeze max based on new level
+        _initializeEnhancedFreeze();
+      }
+
+      // Check for streak milestone loot box
+      checkStreakLootBox(newStreak, previousStreak, habit.id);
+
+      // Re-find index after potential awaits
+      final finalIndex = _habits.indexWhere((h) => h.id == updated.id);
+      if (finalIndex != -1) {
+        _habits[finalIndex] = updated;
+      }
+
+      // Debug: Verify streak updated
+      debugPrint(
+          '✅ Habit "${updated.name}" completed! Streak: ${updated.streak} days');
+
+      // Log health metric if this is a health-tracked habit with a goal
+      // For stats: use actual health data (not just the goal)
+      if (updated.healthGoalValue != null && updated.healthMetric != null) {
+        // Try to get actual health value; fall back to goal for manual completions
+        double valueToLog = updated.healthGoalValue!;
+        if (isAiTriggered) {
+          // AI-triggered means we have actual health data
+          try {
+            final actualValue = await HealthService.instance
+                .getCurrentValue(updated.healthMetric!);
+            valueToLog = actualValue;
+          } catch (e) {
+            debugPrint('⚠️ Could not fetch actual health value: $e');
+          }
+        }
+        _logManualHealthMetric(todayKey, updated.healthMetric!, valueToLog);
+      }
+
+      _savePreferences();
+      notifyListeners();
+
+      // Sync to cloud (Habit + User Level)
+      final supabase = SupabaseService();
+      supabase.upsertHabit(updated);
+      if (_userLevel != null) {
+        supabase.upsertUserLevel(_userLevel!, _totalXP);
+      }
+
+      // Track with Firebase Analytics
+      FirebaseService.instance.logHabitCompleted(
+        habitId: updated.id,
+        habitName: updated.name,
+        category: updated.category,
+        streak: updated.streak,
+        isHealthTracked: updated.isHealthTracked,
+      );
+
+      // Record completion time for smart suggestions
+      SmartTimeService.instance.recordCompletion(updated.id);
+
+      // Track streak milestones
+      if ([7, 14, 21, 30, 50, 100, 365].contains(updated.streak)) {
+        FirebaseService.instance.logStreakMilestone(
+          habitName: updated.name,
+          streakDays: updated.streak,
+        );
+      }
+
+      // Check for milestones if there's an active challenge
+      if (_activeHealthChallenge != null) {
+        await _checkForNewMilestones();
+      }
+    } catch (e, stack) {
+      debugPrint('❌ Error completing habit "${habit.name}": $e');
+      debugPrint(stack.toString());
+      // Re-throw to let UI know something went wrong
+      rethrow;
     }
   }
 
@@ -905,10 +1844,19 @@ class AppState extends ChangeNotifier {
     // Recalculate streak
     final newStreak = _calculateStreak(newCompletionDates);
 
-    // Deduct XP (but don't go below 0)
+    // Deduct XP using the proper method that preserves avatar data
     final xpToDeduct = current.actualXP;
-    _totalXP = (_totalXP - xpToDeduct).clamp(0, _totalXP);
-    _userLevel = UserLevel.fromTotalXP(_totalXP);
+
+    if (_userLevel != null) {
+      final oldLevel = _userLevel!.level;
+      final oldXp = _userLevel!.currentXP;
+      _userLevel!.removeXP(xpToDeduct);
+      _totalXP = (_totalXP - xpToDeduct).clamp(0, _totalXP);
+      debugPrint(
+          '📉 XP: $oldXp -> ${_userLevel!.currentXP}, Level: $oldLevel -> ${_userLevel!.level}');
+    } else {
+      _totalXP = (_totalXP - xpToDeduct).clamp(0, _totalXP);
+    }
 
     _habits[index] = current.copyWith(
       completedToday: false,
@@ -921,6 +1869,12 @@ class AppState extends ChangeNotifier {
 
     _savePreferences();
     notifyListeners();
+
+    // Sync to cloud
+    SupabaseService().upsertHabit(_habits[index]);
+    if (_userLevel != null) {
+      SupabaseService().upsertUserLevel(_userLevel!, _totalXP);
+    }
   }
 
   /// Check for new milestones based on current challenge progress
@@ -996,33 +1950,46 @@ class AppState extends ChangeNotifier {
       ..sort((a, b) => b.compareTo(a)); // Newest first
 
     int streak = 0;
-    // final today = DateTime(now.year, now.month, now.day); // Unused
-
-    // Check if the most recent date is today or yesterday
-    // If the last completion was before yesterday, streak is broken (but this function is called after adding today)
-
     DateTime? lastDate;
 
     for (final date in sortedDates) {
       final day = DateTime(date.year, date.month, date.day);
 
       if (lastDate == null) {
-        // First date (should be today if we just completed it)
+        // First completion date (usually today or recent)
         streak = 1;
         lastDate = day;
       } else {
-        final difference = lastDate.difference(day).inDays;
+        // Find how many days between these completions
+        int difference = lastDate.difference(day).inDays;
 
         if (difference == 1) {
-          // Consecutive day
+          // Consecutive completion
           streak++;
           lastDate = day;
         } else if (difference == 0) {
-          // Same day (duplicate?), ignore
+          // Same day completion (duplicate)
           continue;
         } else {
-          // Gap found, stop counting
-          break;
+          // Gap of more than 1 day. Check if all days in between were frozen.
+          bool allFrozen = true;
+          for (int i = 1; i < difference; i++) {
+            final checkDate = lastDate.subtract(Duration(days: i));
+            final checkKey = _dateToKey(checkDate);
+            if (!_frozenDates.contains(checkKey)) {
+              allFrozen = false;
+              break;
+            }
+          }
+
+          if (allFrozen) {
+            // All days in the gap were frozen, count this previous completion as consecutive
+            streak++;
+            lastDate = day;
+          } else {
+            // True gap found, streak broken
+            break;
+          }
         }
       }
     }
@@ -1035,10 +2002,11 @@ class AppState extends ChangeNotifier {
     required String habitEmoji,
     required int challengeDays,
     required String completedDate,
+    String? type,
   }) {
-    final badge = challengeDays == 7
+    final badge = challengeDays <= 7
         ? '🥉'
-        : challengeDays == 15
+        : challengeDays <= 15
             ? '🥈'
             : '🥇';
 
@@ -1049,9 +2017,11 @@ class AppState extends ChangeNotifier {
       'challengeDays': challengeDays,
       'badge': badge,
       'completedDate': completedDate,
+      'type': type ?? 'general',
     };
 
     _achievements.add(achievement);
+    _savePreferences();
   }
 
   void _addLevelUpAchievement(int level) {
@@ -1062,9 +2032,32 @@ class AppState extends ChangeNotifier {
       'challengeDays': level,
       'badge': '🎖️',
       'completedDate': _getTodayKey(),
-      'type': 'level_up',
+      'type': typeLevelUp,
     };
     _achievements.add(achievement);
+
+    // Pet Diary: Level Up
+    final petName = _petName.isNotEmpty ? _petName : 'Your pet';
+    _addPetDiaryEntry(
+      'LEVEL UP! You reached level $level! $petName is so proud of your growth and dedication. Keep shining! ✨',
+      '🥳',
+      PetDiaryEntryType.levelUp,
+    );
+  }
+
+  void _addPetDiaryEntry(
+      String message, String moodEmoji, PetDiaryEntryType type) {
+    final entry = PetDiaryEntry(
+      id: const Uuid().v4(),
+      date: DateTime.now(),
+      message: message,
+      moodEmoji: moodEmoji,
+      type: type,
+    );
+    _petDiary.insert(0, entry);
+    if (_petDiary.length > 50) _petDiary.removeLast(); // Keep only last 50
+    _savePreferences();
+    notifyListeners();
   }
 
   void _checkStreakMilestone(Habit habit) {
@@ -1081,9 +2074,17 @@ class AppState extends ChangeNotifier {
                 ? '🥇'
                 : '🔥',
         'completedDate': _getTodayKey(),
-        'type': 'streak_milestone',
+        'type': typeStreakMilestone,
       };
       _achievements.add(achievement);
+
+      // Pet Diary: Milestone
+      final petName = _petName.isNotEmpty ? _petName : 'Your pet';
+      _addPetDiaryEntry(
+        'INCREDIBLE! ${habit.name} reached a ${habit.streak}-day streak. $petName is doing a happy dance! 🕺✨',
+        '🌟',
+        PetDiaryEntryType.milestoneReached,
+      );
     }
   }
 
@@ -1202,10 +2203,8 @@ class AppState extends ChangeNotifier {
     if (_activeHealthChallenge == null) return;
 
     final today = _getTodayKey();
-    final lastInsightDate = _activeHealthChallenge!.aiPlan['lastInsightDate'];
-
     // If we already generated an insight today, skip
-    if (lastInsightDate == today) return;
+    if (_activeHealthChallenge!.aiPlan['lastInsightDate'] == today) return;
 
     debugPrint('🧠 generating daily AI insight...');
 
@@ -1292,45 +2291,52 @@ class AppState extends ChangeNotifier {
         return HealthMetricType.distance;
       case 'calories':
         return HealthMetricType.calories;
-      case 'heartRate':
-        return HealthMetricType.heartRate;
+
       default:
         return null;
     }
   }
 
   Future<void> syncHealthHabits() async {
-    debugPrint('🔄 Syncing health habits...');
-    final healthService = HealthService.instance;
+    if (_isSyncingHealth) return;
+    _isSyncingHealth = true;
 
-    // Check permissions first
-    final hasAccess = await healthService.hasHealthDataAccess();
-    if (!hasAccess) {
-      debugPrint('⚠️ No health data access. Skipping sync.');
-      return;
-    }
+    try {
+      debugPrint('🔄 Syncing health habits...');
+      final healthService = HealthService.instance;
 
-    for (final habit in _habits) {
-      if (!habit.isHealthTracked || habit.healthMetric == null) continue;
-
-      // Skip if already completed today
-      if (habit.completedToday) continue;
-
-      try {
-        final currentValue =
-            await healthService.getCurrentValue(habit.healthMetric!);
-        final goal = habit.healthGoalValue ?? 0;
-
-        debugPrint(
-            '❤️ Health Check: ${habit.name} (${habit.healthMetric?.name}) - Current: $currentValue / Goal: $goal');
-
-        if (currentValue >= goal) {
-          completeHabit(habit, isAiTriggered: true);
-          debugPrint('✅ Auto-completed health habit: ${habit.name}');
-        }
-      } catch (e) {
-        debugPrint('❌ Error syncing habit ${habit.name}: $e');
+      // Check permissions first
+      final hasAccess = await healthService.hasHealthDataAccess();
+      if (!hasAccess) {
+        debugPrint('⚠️ No health data access. Skipping sync.');
+        return;
       }
+
+      for (final habit in _habits) {
+        if (!habit.isHealthTracked || habit.healthMetric == null) continue;
+
+        // Skip if already completed today
+        if (habit.completedToday) continue;
+
+        try {
+          final currentValue =
+              await healthService.getCurrentValue(habit.healthMetric!);
+          final goal = habit.healthGoalValue ?? 0;
+
+          debugPrint(
+              '❤️ Health Check: ${habit.name} (${habit.healthMetric?.name}) - Current: $currentValue / Goal: $goal');
+
+          if (currentValue >= goal) {
+            // Auto-complete the habit
+            await completeHabit(habit, isAiTriggered: true);
+            debugPrint('✅ Auto-completed health habit: ${habit.name}');
+          }
+        } catch (e) {
+          debugPrint('❌ Error syncing habit ${habit.name}: $e');
+        }
+      }
+    } finally {
+      _isSyncingHealth = false;
     }
   }
 
@@ -1399,10 +2405,11 @@ class AppState extends ChangeNotifier {
       await _savePreferences();
       debugPrint('✅ Saved restored data locally');
 
-      // Recalculate streaks to ensure they are up to date
-      _checkAndResetStreaks();
+      // Trust cloud data - only recalculate streaks for internal consistency
+      // DO NOT call _checkAndResetStreaks() here as it would reset streaks based on local time
+      // The cloud data already has the correct streaks from when user last used the app
       _recalculateAllStreaks();
-      debugPrint('✅ Recalculated streaks');
+      debugPrint('✅ Recalculated streaks from cloud data');
 
       notifyListeners();
 
@@ -1484,5 +2491,101 @@ class AppState extends ChangeNotifier {
     } catch (e) {
       debugPrint('❌ Error handling sync conflicts: $e');
     }
+  }
+
+  /// Fix duplicate IDs in habits list
+  /// (Legacy bug where templates created habits with same timestamp ID)
+  /// Backfill streak freeze rewards for users who have already reached milestones
+  Future<void> _backfillLegacyRewards(SharedPreferences prefs) async {
+    const flagKey = 'legacy_rewards_backfilled_v2';
+    if (prefs.getBool(flagKey) ?? false) return;
+
+    debugPrint('💎 Checking for legacy streak rewards to backfill...');
+    int totalNewFreezes = 0;
+
+    for (final habit in _habits) {
+      // 1. Check for COMPLETED challenges that were never rewarded
+      if (habit.challengeCompleted && habit.challengeTargetDays != null) {
+        int reward = 1;
+        if (habit.challengeTargetDays == 7) reward = 2;
+        if (habit.challengeTargetDays == 15) reward = 3;
+        if (habit.challengeTargetDays == 30) reward = 6;
+
+        totalNewFreezes += reward;
+        debugPrint(
+            '💎 Backfilling $reward freezes for COMPLETED ${habit.challengeTargetDays}-day challenge on "${habit.name}"');
+      }
+
+      // 2. Check for HIGH streaks that passed milestones (if challenge not completed yet)
+      if (!habit.challengeCompleted) {
+        if (habit.streak >= 30) {
+          totalNewFreezes += 6;
+        } else if (habit.streak >= 15) {
+          totalNewFreezes += 3;
+        } else if (habit.streak >= 7) {
+          totalNewFreezes += 2;
+        }
+        if (habit.streak >= 7) {
+          debugPrint(
+              '💎 Backfilling freezes based on current streak of ${habit.streak} for "${habit.name}"');
+        }
+      }
+    }
+
+    if (totalNewFreezes > 0) {
+      awardExtraFreeze(totalNewFreezes);
+      debugPrint(
+          '🎉 Backfilled total of $totalNewFreezes streak freezes representing your hard work!');
+    }
+
+    await prefs.setBool(flagKey, true);
+  }
+
+  bool _repairDuplicateIds() {
+    final seenIds = <String>{};
+    bool changed = false;
+
+    for (int i = 0; i < _habits.length; i++) {
+      final habit = _habits[i];
+      if (seenIds.contains(habit.id)) {
+        // Found duplicate! Generate new unique ID
+        final newId = const Uuid().v4();
+        debugPrint(
+            '🔧 Fixing duplicate ID: ${habit.id} -> $newId (${habit.name})');
+
+        // Create new replacement habit with unique ID
+        _habits[i] = Habit(
+          id: newId,
+          name: habit.name,
+          emoji: habit.emoji,
+          category: habit.category,
+          streak: habit.streak,
+          completedToday: habit.completedToday,
+          completionDates: habit.completionDates,
+          challengeTargetDays: habit.challengeTargetDays,
+          challengeProgress: habit.challengeProgress,
+          challengeCompleted: habit.challengeCompleted,
+          triggerAnimation: habit.triggerAnimation,
+          isFocusTask: habit.isFocusTask,
+          focusTaskPriority: habit.focusTaskPriority,
+          xpValue: habit.xpValue,
+          difficulty: habit.difficulty,
+          customColor: habit.customColor,
+          customIcon: habit.customIcon,
+          reminderTime: habit.reminderTime,
+          frequencyDays: habit.frequencyDays,
+          reminderEnabled: habit.reminderEnabled,
+          isHealthTracked: habit.isHealthTracked,
+          healthMetric: habit.healthMetric,
+          healthGoalValue: habit.healthGoalValue,
+          habitGoal: habit.habitGoal,
+          focusModeDuration: habit.focusModeDuration,
+        );
+        changed = true;
+      } else {
+        seenIds.add(habit.id);
+      }
+    }
+    return changed;
   }
 }

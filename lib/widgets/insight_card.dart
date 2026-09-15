@@ -38,15 +38,17 @@ class InsightCard extends StatelessWidget {
             color: isDark ? const Color(0xFF191919) : Colors.white,
             borderRadius: BorderRadius.circular(16),
             boxShadow: [
-              const BoxShadow(
-                color: Color(0x4DFF6B35), // Orange glow
+              BoxShadow(
+                color: isDark
+                    ? const Color(0x4DFF6B35)
+                    : const Color(0x1AFF6B35), // Subtle orange in light mode
                 blurRadius: 20,
-                offset: Offset(0, 4),
+                offset: const Offset(0, 4),
               ),
               BoxShadow(
                 color: isDark
                     ? Colors.black26
-                    : Colors.black.withValues(alpha: 0.1),
+                    : Colors.black.withValues(alpha: 0.05),
                 blurRadius: 15,
                 offset: const Offset(0, 8),
               ),

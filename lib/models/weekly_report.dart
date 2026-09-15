@@ -13,37 +13,30 @@ enum StreakAchievement {
 class WeeklyHealthStats {
   final int? averageSteps;
   final double? averageSleep; // hours
-  final int? averageHeartRate;
+
   final int? stepsChange; // vs previous week (can be negative)
   final double? sleepChange;
-  final int? heartRateChange;
 
   const WeeklyHealthStats({
     this.averageSteps,
     this.averageSleep,
-    this.averageHeartRate,
     this.stepsChange,
     this.sleepChange,
-    this.heartRateChange,
   });
 
   Map<String, dynamic> toJson() => {
         'averageSteps': averageSteps,
         'averageSleep': averageSleep,
-        'averageHeartRate': averageHeartRate,
         'stepsChange': stepsChange,
         'sleepChange': sleepChange,
-        'heartRateChange': heartRateChange,
       };
 
   factory WeeklyHealthStats.fromJson(Map<String, dynamic> json) {
     return WeeklyHealthStats(
       averageSteps: json['averageSteps'] as int?,
       averageSleep: (json['averageSleep'] as num?)?.toDouble(),
-      averageHeartRate: json['averageHeartRate'] as int?,
       stepsChange: json['stepsChange'] as int?,
       sleepChange: (json['sleepChange'] as num?)?.toDouble(),
-      heartRateChange: json['heartRateChange'] as int?,
     );
   }
 }

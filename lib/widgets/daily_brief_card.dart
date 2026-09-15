@@ -16,6 +16,35 @@ class _DailyBriefCardState extends State<DailyBriefCard> {
   bool _isExpanded = false;
 
   @override
+  void initState() {
+    super.initState();
+  }
+
+  String _getGreeting(int hour) {
+    if (hour < 12) {
+      return 'Good Morning!';
+    } else if (hour < 17) {
+      return 'Good Afternoon!';
+    } else if (hour < 21) {
+      return 'Good Evening!';
+    } else {
+      return 'Working Late?';
+    }
+  }
+
+  String _getGreetingEmoji(int hour) {
+    if (hour < 12) {
+      return '☀️';
+    } else if (hour < 17) {
+      return '🌤️';
+    } else if (hour < 21) {
+      return '🌆';
+    } else {
+      return '🌙';
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     final appState = context.watch<AppState>();
     final now = DateTime.now();
@@ -34,9 +63,6 @@ class _DailyBriefCardState extends State<DailyBriefCard> {
     // Get completion stats
     final completedToday = todayHabits.where((h) => h.completedToday).length;
     final totalToday = todayHabits.length;
-
-    // Motivational quote
-    final quote = _getMotivationalQuote(completedToday, totalToday);
 
     // Habits to display
     final habitsToShow =
@@ -256,89 +282,8 @@ class _DailyBriefCardState extends State<DailyBriefCard> {
                 ),
               ),
             ),
-
-          const SizedBox(height: 16),
-
-          // Motivational quote
-          Container(
-            padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(
-              color: isDark
-                  ? Colors.white.withValues(alpha: 0.05)
-                  : const Color(0xFFFFA94A).withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                color: isDark
-                    ? Colors.white.withValues(alpha: 0.1)
-                    : const Color(0xFFFFA94A).withValues(alpha: 0.2),
-                width: 1,
-              ),
-            ),
-            child: Row(
-              children: [
-                const Text(
-                  '💬',
-                  style: TextStyle(fontSize: 18),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Text(
-                    quote,
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontStyle: FontStyle.italic,
-                      color: isDark
-                          ? Colors.white.withValues(alpha: 0.8)
-                          : Colors.black87,
-                      height: 1.4,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
         ],
       ),
     );
-  }
-
-  String _getGreeting(int hour) {
-    if (hour < 12) {
-      return 'Good Morning!';
-    } else if (hour < 17) {
-      return 'Good Afternoon!';
-    } else if (hour < 21) {
-      return 'Good Evening!';
-    } else {
-      return 'Working Late?';
-    }
-  }
-
-  String _getGreetingEmoji(int hour) {
-    if (hour < 12) {
-      return '☀️';
-    } else if (hour < 17) {
-      return '🌤️';
-    } else if (hour < 21) {
-      return '🌆';
-    } else {
-      return '🌙';
-    }
-  }
-
-  String _getMotivationalQuote(int completed, int total) {
-    if (total == 0) {
-      return 'Enjoy your free day! Tomorrow is a fresh start. 🌟';
-    }
-
-    if (completed == total) {
-      return 'All done for today! You\'re unstoppable! 🎉';
-    } else if (completed > total / 2) {
-      return 'You\'re on fire! Keep the momentum going! 🔥';
-    } else if (completed > 0) {
-      return 'Great start! Small steps lead to big changes. 💪';
-    } else {
-      return 'Ready to start strong? Your future self will thank you! ✨';
-    }
   }
 }

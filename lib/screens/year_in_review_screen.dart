@@ -65,7 +65,17 @@ class _YearInReviewScreenState extends State<YearInReviewScreen> {
         return;
       }
 
-      // 2. Check Expiration (1 week window)
+      // 2. Check if Wrapped data already exists in cloud
+      // If it does, we should USE it and NOT regenerate
+      final existingData = await _cloudService.hasYearInReview(widget.year);
+      if (existingData) {
+        debugPrint('✅ Wrapped data already exists - fetching from cloud');
+        setState(() => _statusMessage = 'Loading your 2025 stats...');
+        await _loadYearInReview();
+        return;
+      }
+
+      // 3. Check Expiration (1 week window) for NEW wrapped events
       final startDate = await _cloudService.getWrappedStartDate(widget.year);
       if (startDate != null) {
         final expirationDate = startDate.add(const Duration(days: 7));
@@ -78,25 +88,29 @@ class _YearInReviewScreenState extends State<YearInReviewScreen> {
           });
           return;
         }
-      } else {
-        // First time viewing! Run backup.
-        setState(() {
-          _isBackingUp = true;
-          _statusMessage = 'Backing up your 2025 data...';
-        });
-
-        await _supabaseService.syncHabitsToCloud(appState.habits);
-
-        // Mark start date
-        await _cloudService.setWrappedStartDate(widget.year);
-
-        setState(() {
-          _isBackingUp = false;
-        });
+        // Start date exists but no data yet - just load (user will generate)
+        setState(() => _statusMessage = 'Loading...');
+        await _loadYearInReview();
+        return;
       }
 
-      // 3. Load Data
-      setState(() => _statusMessage = 'Unwrapping specific stats...');
+      // 4. First time viewing! Run backup and set start date.
+      setState(() {
+        _isBackingUp = true;
+        _statusMessage = 'Backing up your 2025 data...';
+      });
+
+      await _supabaseService.syncHabitsToCloud(appState.habits);
+
+      // Mark start date
+      await _cloudService.setWrappedStartDate(widget.year);
+
+      setState(() {
+        _isBackingUp = false;
+      });
+
+      // 5. Load Data (will be null, user will generate)
+      setState(() => _statusMessage = 'Ready to unwrap...');
       await _loadYearInReview();
     } catch (e) {
       setState(() {
@@ -1186,7 +1200,7 @@ class _GenerationScreen extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             if (isGenerating)
-              SizedBox(
+              const SizedBox(
                 width: 60,
                 height: 60,
                 child: CircularProgressIndicator(
@@ -1195,9 +1209,9 @@ class _GenerationScreen extends StatelessWidget {
                 ),
               )
             else
-              Text(
+              const Text(
                 '🎁',
-                style: const TextStyle(fontSize: 80),
+                style: TextStyle(fontSize: 80),
               ).animate().scale(
                   duration: 1000.ms,
                   curve: Curves.elasticOut,

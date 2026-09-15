@@ -12,51 +12,32 @@ This project is submitted for the Google Agents Intensive Capstone Project.
 
 ---
 
-## ✨ What's New in v2.1.0
+## ✨ What's New in v2.2.0
 
-### 🎉 Year in Review (Spotify Wrapped Style!)
-- Beautiful animated slides showcasing your entire year
-- Total habits created, completions, streaks, and XP earned
-- Top performing habits and categories
-- Streak evolution timeline
-- Achievement highlights with celebrations
-- **Share to social media** with one tap
+### 🐾 Smarter Pet Evolution
+- **Granular Progress**: Evolution bar now reflects exact XP progress - watch your pet grow with every task!
+- **Smooth Updates**: No more waiting for level-ups to see progress.
 
-### 🏆 Global Leaderboard
-- Compete with users worldwide
-- Weekly and all-time rankings
-- **Privacy controls** - stay private or go public
-- Real-time score updates based on:
-  - Daily completions (10 pts each)
-  - Longest streaks (5 pts per day)
-  - Consistency rate (completion %)
-  - Total XP earned
+### 🤝 Social Connection Focus
+- **Connect with Friends**: "My Teams" redesigned to emphasize finding accountability buddies.
+- **Updated Messaging**: Focus on social connection rather than team creation.
+- **New Emoji**: Handshake emoji 🤝 for connection theme.
 
-### 🧠 Smart Habit Insights
-- AI analyzes your completion patterns
-- Identifies struggling habits
-- Sends personalized insights as notifications
-- Trend analysis and predictions
-- Best/worst performing days
+### 🏆 Achievement Showcase
+- **Earned First**: Your earned badges now appear first in the achievements modal.
+- **Fixed Unlocking**: Achievement detection now properly matches your streak data.
 
-### 🔔 Smart Notifications
-- **Predictive streak warnings** at 6 PM
-- Milestone celebrations (7, 30, 100 days)
-- Daily brief every morning
-- Perfect day achievements
-- Focus task reminders
+### ⚡ Performance
+- **Lightning Start**: App launches instantly - heavy data loads in background.
+- **Optimized Startup**: Critical path reduced to ~100ms.
 
-### 🔥 Streak Flames
-- Animated fire visualizations
-- Flame intensity grows with streak length
-- Visual motivation on home screen
-- Celebrate streak milestones
+### 🎯 UI Polish
+- **Global Ranking Clarity**: Shows "Top X% by Consistency" based on your completion rate.
+- **Focus Tasks Save Button**: Now visible in light theme.
+- **What's New Popup**: See new features on every update!
 
-### ☁️ Smart Cross-Device Sync
-- Conflict resolution for streaks
-- User confirmation dialogs
-- Seamless multi-device experience
-- Automatic backup to cloud
+### 📦 Release APK
+Download the latest APK from the [Releases](https://github.com/policeakshithreddy/Streakoo/releases) page.
 
 ---
 
@@ -255,28 +236,38 @@ flutter run -d android
 
 ## 🗺️ Roadmap
 
-### 🚀 Next Release (v2.2.0) - Planned
+### ✅ Recently Completed (v2.2.0)
 
 #### Social Features
-- [ ] Friend system with challenges
-- [ ] Accountability partners
+- [x] Accountability partners system
+- [x] Teams with shared habit challenges
+- [x] Partner streak comparison
+- [x] Competition notifications
+
+#### Gamification Enhancements
+- [x] Streak freeze tokens
+- [x] Pet evolution with XP progress
+- [x] Achievement badges showcase
+- [x] Level-up celebrations
+
+#### UX Improvements
+- [x] Celebration animations (confetti)
+- [x] What's New popup on updates
+- [x] Haptic feedback throughout app
+- [x] Fast app startup
+
+### 🚀 Next Release (v2.3.0) - Planned
+
+#### Social Features
 - [ ] Community feed for achievements
 - [ ] Comment and encourage friends
 - [ ] Share habit templates
 
-#### Gamification Enhancements
-- [ ] Streak freeze tokens (1 per week)
-- [ ] 20+ new achievement badges
-- [ ] Level-based feature unlocks
+#### Engagement
+- [ ] Daily/weekly challenges system
+- [ ] Morning motivation / evening reflection
 - [ ] XP multipliers (weekends, perfect weeks)
 - [ ] Daily login rewards
-
-#### UX Improvements
-- [ ] Celebration animations (confetti, fireworks)
-- [ ] Morning motivation / evening reflection
-- [ ] Habit streaks dashboard with heatmap
-- [ ] Undo feature for accidental completions
-- [ ] Haptic feedback throughout app
 
 ### 📅 Future Features
 

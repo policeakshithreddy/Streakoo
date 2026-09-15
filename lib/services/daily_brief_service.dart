@@ -165,8 +165,19 @@ class DailyBriefService {
   }
 
   /// Schedule morning brief notification
-  Future<void> scheduleMorningBrief(
-      {TimeOfDay time = const TimeOfDay(hour: 8, minute: 0)}) async {
+  /// Won't schedule if it's already past morning time today (for new users)
+  Future<void> scheduleMorningBrief({
+    TimeOfDay time = const TimeOfDay(hour: 8, minute: 0),
+    bool enabled = true,
+  }) async {
+    if (!enabled) {
+      // Cancel any existing morning brief if disabled
+      await LocalNotificationService.cancelNotification(
+          _morningBriefNotificationId);
+      debugPrint('Morning brief disabled - cancelled');
+      return;
+    }
+
     await LocalNotificationService.scheduleDailyNotification(
       id: _morningBriefNotificationId,
       title: '☀️ Good Morning!',
@@ -177,8 +188,17 @@ class DailyBriefService {
   }
 
   /// Schedule evening reflection notification
-  Future<void> scheduleEveningReflection(
-      {TimeOfDay time = const TimeOfDay(hour: 20, minute: 0)}) async {
+  Future<void> scheduleEveningReflection({
+    TimeOfDay time = const TimeOfDay(hour: 20, minute: 0),
+    bool enabled = true,
+  }) async {
+    if (!enabled) {
+      await LocalNotificationService.cancelNotification(
+          _eveningReflectionNotificationId);
+      debugPrint('Evening reflection disabled - cancelled');
+      return;
+    }
+
     await LocalNotificationService.scheduleDailyNotification(
       id: _eveningReflectionNotificationId,
       title: '🌙 Time to Reflect',
@@ -189,12 +209,15 @@ class DailyBriefService {
   }
 
   /// Schedule both daily notifications
+  /// Pass morningEnabled to respect user's morning quotes preference
   Future<void> scheduleDailyNotifications({
     TimeOfDay morningTime = const TimeOfDay(hour: 8, minute: 0),
     TimeOfDay eveningTime = const TimeOfDay(hour: 20, minute: 0),
+    bool morningEnabled = true,
+    bool eveningEnabled = true,
   }) async {
-    await scheduleMorningBrief(time: morningTime);
-    await scheduleEveningReflection(time: eveningTime);
+    await scheduleMorningBrief(time: morningTime, enabled: morningEnabled);
+    await scheduleEveningReflection(time: eveningTime, enabled: eveningEnabled);
   }
 
   String _getTimeBasedGreeting() {

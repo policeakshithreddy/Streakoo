@@ -348,20 +348,29 @@ class _TemplatePackCard extends StatelessWidget {
             // Header Row
             Row(
               children: [
-                // Pack Emoji with gradient background
+                // Pack Emoji with gradient border/background
                 Container(
                   width: 56,
                   height: 56,
                   decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: gradientColors,
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
+                    color: isDark ? null : Colors.white,
+                    gradient: isDark
+                        ? LinearGradient(
+                            colors: gradientColors,
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          )
+                        : null,
                     borderRadius: BorderRadius.circular(16),
+                    border: isDark
+                        ? null
+                        : Border.all(
+                            color: gradientColors[0].withValues(alpha: 0.5),
+                            width: 1.5,
+                          ),
                     boxShadow: [
                       BoxShadow(
-                        color: gradientColors[0].withValues(alpha: 0.3),
+                        color: gradientColors[0].withValues(alpha: 0.2),
                         blurRadius: 10,
                         offset: const Offset(0, 4),
                       ),

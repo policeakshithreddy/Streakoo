@@ -12,13 +12,15 @@ class ActivityRingsWidget extends StatefulWidget {
   // Real-time health data
   final double sleepHours;
   final double distanceKm;
-  final int? heartRateBpm;
+  final double caloriesBurned;
 
   // Data for embedded trends
   final int currentStepsAvg;
   final int previousStepsAvg;
   final double currentSleepAvg;
   final double previousSleepAvg;
+  final double currentCaloriesAvg;
+  final double previousCaloriesAvg;
 
   const ActivityRingsWidget({
     super.key,
@@ -29,11 +31,13 @@ class ActivityRingsWidget extends StatefulWidget {
     required this.stepsGoal,
     this.sleepHours = 0.0,
     this.distanceKm = 0.0,
-    this.heartRateBpm,
+    this.caloriesBurned = 0.0,
     required this.currentStepsAvg,
     required this.previousStepsAvg,
     required this.currentSleepAvg,
     required this.previousSleepAvg,
+    required this.currentCaloriesAvg,
+    required this.previousCaloriesAvg,
   });
 
   @override
@@ -149,25 +153,23 @@ class _ActivityRingsWidgetState extends State<ActivityRingsWidget>
                         const SizedBox(height: 12),
                         _buildMetricRow(
                           context,
-                          emoji: '💓',
-                          label: 'Heart Rate',
-                          value: widget.heartRateBpm?.toString() ?? '--',
-                          unit: 'bpm',
-                          progress: widget.heartRateBpm != null
-                              ? ((widget.heartRateBpm! - 50) / 120)
-                                  .clamp(0.0, 1.0)
-                              : 0.0,
-                          color: const Color(0xFFEF5350),
-                        ),
-                        const SizedBox(height: 12),
-                        _buildMetricRow(
-                          context,
                           emoji: '😴',
                           label: 'Sleep',
                           value: widget.sleepHours.toStringAsFixed(1),
                           unit: 'hours',
                           progress: (widget.sleepHours / 8.0).clamp(0.0, 1.0),
                           color: const Color(0xFF9C27B0),
+                        ),
+                        const SizedBox(height: 12),
+                        _buildMetricRow(
+                          context,
+                          emoji: '🔥',
+                          label: 'Calories',
+                          value: widget.caloriesBurned.toInt().toString(),
+                          unit: 'cal',
+                          progress:
+                              (widget.caloriesBurned / 500.0).clamp(0.0, 1.0),
+                          color: const Color(0xFFFF5722),
                         ),
                       ],
                     ],
@@ -194,6 +196,8 @@ class _ActivityRingsWidgetState extends State<ActivityRingsWidget>
                           previousStepsAvg: widget.previousStepsAvg,
                           currentSleepAvg: widget.currentSleepAvg,
                           previousSleepAvg: widget.previousSleepAvg,
+                          currentCaloriesAvg: widget.currentCaloriesAvg,
+                          previousCaloriesAvg: widget.previousCaloriesAvg,
                           embedded: true,
                         ),
                       ],

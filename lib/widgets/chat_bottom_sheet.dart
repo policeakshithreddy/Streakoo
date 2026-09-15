@@ -151,7 +151,6 @@ class _ChatBottomSheetState extends State<ChatBottomSheet> {
         final todaySteps = await healthService.getTodaySteps();
         final todayDistance = await healthService.getTodayDistance();
         final todaySleep = await healthService.getTodaySleep();
-        final todayHeartRate = await healthService.getTodayHeartRate();
 
         final reply = await _ai
             .getReply(
@@ -164,7 +163,6 @@ class _ChatBottomSheetState extends State<ChatBottomSheet> {
               todaySteps: todaySteps,
               todayDistance: todayDistance,
               todaySleep: todaySleep,
-              todayHeartRate: todayHeartRate,
             )
             .timeout(
               const Duration(seconds: 10),

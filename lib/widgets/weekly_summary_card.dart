@@ -487,15 +487,6 @@ class _HealthStatsSection extends StatelessWidget {
                     isDark: isDark,
                   ),
                 ),
-              if (healthStats.averageHeartRate != null)
-                Expanded(
-                  child: _HealthStatItem(
-                    icon: '❤️',
-                    value: '${healthStats.averageHeartRate}',
-                    label: 'bpm',
-                    isDark: isDark,
-                  ),
-                ),
             ],
           ),
         ],

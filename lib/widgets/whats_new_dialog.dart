@@ -8,12 +8,43 @@ class WhatsNewDialog extends StatelessWidget {
   const WhatsNewDialog({super.key});
 
   // Current app version for tracking shown updates
-  static const String currentVersion = '2.2.0';
+  static const String currentVersion = '2.3.0';
   static const String _prefsKey = 'whats_new_version_shown';
 
   // App theme colors (Orange)
   static const _primaryOrange = Color(0xFFFFA94A);
   static const _secondaryOrange = Color(0xFFFF8C42);
+
+  static const _features = [
+    _Feature(
+      icon: Icons.cloud_sync_rounded,
+      title: 'Smart Data Sync',
+      description:
+          'Seamlessly merge your guest data with your cloud backup. Never lose a streak again!',
+      color: Color(0xFFFFA94A),
+    ),
+    _Feature(
+      icon: Icons.pets_rounded,
+      title: 'Enhanced Pet Games',
+      description:
+          'Your pet chicken is smarter! It reacts to missed habits and shares improved daily thoughts.',
+      color: Color(0xFF1FD1A5),
+    ),
+    _Feature(
+      icon: Icons.check_circle_outline_rounded,
+      title: 'Standard Dialogs',
+      description:
+          'We listened! All dialogs are now back to the standard, familiar style you love.',
+      color: Color(0xFF2196F3),
+    ),
+    _Feature(
+      icon: Icons.auto_awesome_rounded,
+      title: 'Smart Notifications',
+      description:
+          'Reliable 7 AM daily quotes and backup scheduling to keep you motivated.',
+      color: Color(0xFFFF7043),
+    ),
+  ];
 
   /// Check if we should show the What's New dialog
   static Future<bool> shouldShow() async {
@@ -136,48 +167,18 @@ class WhatsNewDialog extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _buildFeatureItem(
-                      '🤖',
-                      'AI Habit Coach',
-                      'Meet your new personal assistant! Chat with AI to set perfect goals and get tailored advice.',
-                      isDark,
-                      0,
-                    ),
-                    _buildFeatureItem(
-                      '🌬️',
-                      'Wind Insights',
-                      'Deep health analysis powered by Wind AI. Understand your patterns like never before.',
-                      isDark,
-                      1,
-                    ),
-                    _buildFeatureItem(
-                      '🧘',
-                      'Focus Mode',
-                      'Boost productivity with the nested Focus Timer. Perfect for deep work and meditation.',
-                      isDark,
-                      2,
-                    ),
-                    _buildFeatureItem(
-                      '📋',
-                      'Habit Templates',
-                      'Jumpstart your journey with curated templates for health, productivity, and mindfulness.',
-                      isDark,
-                      3,
-                    ),
-                    _buildFeatureItem(
-                      '📊',
-                      'Weekly Summary',
-                      'Track your progress with the redesigned, premium weekly report card.',
-                      isDark,
-                      4,
-                    ),
-                    _buildFeatureItem(
-                      '🎉',
-                      'Year in Review',
-                      'See your 2025 stats with beautiful animated slides and share your achievements.',
-                      isDark,
-                      5,
-                    ),
+                    ..._features.asMap().entries.map((entry) {
+                      int index = entry.key;
+                      _Feature feature = entry.value;
+                      return _buildFeatureItem(
+                        feature.icon,
+                        feature.title,
+                        feature.description,
+                        isDark,
+                        index,
+                        feature.color,
+                      );
+                    }),
                   ],
                 ),
               ),
@@ -233,11 +234,12 @@ class WhatsNewDialog extends StatelessWidget {
   }
 
   Widget _buildFeatureItem(
-    String emoji,
+    IconData icon,
     String title,
     String description,
     bool isDark,
     int index,
+    Color color,
   ) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
@@ -249,13 +251,13 @@ class WhatsNewDialog extends StatelessWidget {
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 colors: [
-                  _primaryOrange.withValues(alpha: 0.15),
-                  _secondaryOrange.withValues(alpha: 0.1),
+                  color.withValues(alpha: 0.15),
+                  color.withValues(alpha: 0.1),
                 ],
               ),
               borderRadius: BorderRadius.circular(12),
             ),
-            child: Text(emoji, style: const TextStyle(fontSize: 22)),
+            child: Icon(icon, size: 22, color: color),
           ),
           const SizedBox(width: 14),
           Expanded(
@@ -288,4 +290,18 @@ class WhatsNewDialog extends StatelessWidget {
           begin: 0.1,
         );
   }
+}
+
+class _Feature {
+  final IconData icon;
+  final String title;
+  final String description;
+  final Color color;
+
+  const _Feature({
+    required this.icon,
+    required this.title,
+    required this.description,
+    required this.color,
+  });
 }

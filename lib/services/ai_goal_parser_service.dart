@@ -65,7 +65,9 @@ class AiGoalParserService {
           caseSensitive: false),
 
       // General numbers for health metrics
-      RegExp(r'(\d+[,.]?\d*)\s*(bpm|beats)', caseSensitive: false),
+
+      // Calories: "500 cal", "500 kcal", "500 calories"
+      RegExp(r'(\d+[,.]?\d*)\s*(calories|cal|kcal)', caseSensitive: false),
     ];
 
     for (final pattern in patterns) {
@@ -75,7 +77,7 @@ class AiGoalParserService {
 
         // Handle "k" suffix (e.g., "10k steps" = 10000)
         if (text.contains(
-            RegExp('${value}\\s*k\\s*steps?', caseSensitive: false))) {
+            RegExp('$value\\s*k\\s*steps?', caseSensitive: false))) {
           value = value.replaceAll(',', '');
           return double.tryParse(value)! * 1000;
         }
@@ -104,12 +106,16 @@ class AiGoalParserService {
       return HealthMetricType.sleep;
     }
 
-    if (text.contains(RegExp(r'(heart|bpm|beats)', caseSensitive: false))) {
-      return HealthMetricType.heartRate;
-    }
-
-    if (text.contains(RegExp(r'(calories|cal|burned)', caseSensitive: false))) {
-      return HealthMetricType.calories;
+    if (text.contains(
+        RegExp(r'(calories|cal|kcal|burned)', caseSensitive: false))) {
+      // STRICT CHECK: Only return calories if explicitly related to burning/activity
+      // This prevents "1900 cal diet" from being tracked as a physical activity
+      if (text.contains(RegExp(r'(burn|burned|burning|active|expend)',
+          caseSensitive: false))) {
+        return HealthMetricType.calories;
+      }
+      // If ambiguous or food-related, return null (do not track)
+      return null;
     }
 
     return null;
@@ -235,13 +241,11 @@ class AiGoalParserService {
       HealthMetricType.steps => 'steps',
       HealthMetricType.distance => 'km',
       HealthMetricType.sleep => 'hours',
-      HealthMetricType.heartRate => 'bpm',
       HealthMetricType.calories => 'calories',
     };
 
     final valueStr = switch (type) {
       HealthMetricType.steps => value.toInt().toString(),
-      HealthMetricType.heartRate => value.toInt().toString(),
       HealthMetricType.calories => value.toInt().toString(),
       _ => value.toStringAsFixed(1),
     };

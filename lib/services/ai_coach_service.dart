@@ -21,7 +21,6 @@ class AiCoachService {
     int? todaySteps,
     double? todayDistance,
     double? todaySleep,
-    int? todayHeartRate,
   }) async {
     if (!AppConfig.isApiConfigured || !AppConfig.useAIForCoaching) {
       return _getFallbackResponse(userMessage);
@@ -73,10 +72,7 @@ All habits: ${allHabits.map((h) => '${h.name} ${h.emoji} (${h.streak}🔥, ${h.c
 
       // Build health context
       String healthContext = '';
-      if (todaySteps != null ||
-          todayDistance != null ||
-          todaySleep != null ||
-          todayHeartRate != null) {
+      if (todaySteps != null || todayDistance != null || todaySleep != null) {
         final healthLines = <String>[];
         if (todaySteps != null) {
           healthLines.add(
@@ -87,9 +83,6 @@ All habits: ${allHabits.map((h) => '${h.name} ${h.emoji} (${h.streak}🔥, ${h.c
         }
         if (todaySleep != null) {
           healthLines.add('- Sleep: ${todaySleep.toStringAsFixed(1)} hours');
-        }
-        if (todayHeartRate != null) {
-          healthLines.add('- Avg Heart Rate: $todayHeartRate bpm');
         }
 
         if (healthLines.isNotEmpty) {

@@ -80,5 +80,15 @@
 			</array>
 		</dict>
 	</array>
+	<!-- Siri Shortcuts Configuration -->
+	<key>NSUserActivityTypes</key>
+	<array>
+		<string>CompleteHabitIntent</string>
+		<string>ViewStreakIntent</string>
+		<string>com.streakoo.complete-habit</string>
+		<string>com.streakoo.view-streaks</string>
+	</array>
+	<key>NSSiriUsageDescription</key>
+	<string>Streakoo uses Siri to help you quickly complete habits and check your streaks with voice commands.</string>
 </dict>
 </plist>

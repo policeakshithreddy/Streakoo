@@ -4,4 +4,10 @@
     <string name="widget_small_description">Quick streak view</string>
     <string name="widget_large_description">Full habit stats and progress</string>
     <string name="widget_focus_description">Focus on Habits, Steps, or Sleep</string>
+    
+    <!-- Shortcut strings for Google Assistant -->
+    <string name="shortcut_complete_habit">Complete Habit</string>
+    <string name="shortcut_complete_habit_long">Quickly complete your first habit</string>
+    <string name="shortcut_view_streaks">View Streaks</string>
+    <string name="shortcut_view_streaks_long">Check your current habit streaks</string>
 </resources>

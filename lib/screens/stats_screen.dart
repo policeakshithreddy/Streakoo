@@ -208,13 +208,7 @@ class _OverviewTab extends StatelessWidget {
                         showDialog(
                           context: context,
                           builder: (context) => AlertDialog(
-                            shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(16)),
-                            title: const Row(
-                              children: [
-                                Text('❄️ How to Earn Freezes'),
-                              ],
-                            ),
+                            title: const Text('❄️ How to Earn Freezes'),
                             content: Column(
                               mainAxisSize: MainAxisSize.min,
                               crossAxisAlignment: CrossAxisAlignment.start,
@@ -263,14 +257,40 @@ class _OverviewTab extends StatelessWidget {
                                     ],
                                   ),
                                 ),
+                                const SizedBox(height: 12),
+                                Container(
+                                  padding: const EdgeInsets.all(12),
+                                  decoration: BoxDecoration(
+                                    color: Colors.blue.withValues(alpha: 0.1),
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(
+                                      color: Colors.blue.withValues(alpha: 0.3),
+                                    ),
+                                  ),
+                                  child: const Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        '❄️ Challenge Continuity',
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.blue,
+                                        ),
+                                      ),
+                                      SizedBox(height: 4),
+                                      Text(
+                                        'When a freeze is used during a challenge, your progress is preserved but the frozen day doesn\'t count as completed. You can continue the next day!',
+                                        style: TextStyle(fontSize: 12),
+                                      ),
+                                    ],
+                                  ),
+                                ),
                               ],
                             ),
                             actions: [
                               TextButton(
                                 onPressed: () => Navigator.pop(context),
-                                style: TextButton.styleFrom(
-                                  foregroundColor: StatsScreen.primaryOrange,
-                                ),
                                 child: const Text('Got it!'),
                               ),
                             ],
@@ -319,7 +339,7 @@ class _OverviewTab extends StatelessWidget {
               return Card(
                 color: Theme.of(context).brightness == Brightness.dark
                     ? const Color(0xFF191919)
-                    : null,
+                    : Colors.white,
                 child: Padding(
                   padding: const EdgeInsets.all(16),
                   child: Column(
@@ -721,7 +741,14 @@ class _TrendsTab extends StatelessWidget {
 
     // Prepare heatmap data
     final now = DateTime.now();
-    final startDate = now.subtract(const Duration(days: 90)); // Last 3 months
+    DateTime startDate =
+        now.subtract(const Duration(days: 90)); // Last 3 months
+
+    // Snap to the beginning of the week (Monday) to avoid "separated" cells in first column
+    while (startDate.weekday != DateTime.monday) {
+      startDate = startDate.subtract(const Duration(days: 1));
+    }
+
     final datasets = <DateTime, int>{};
 
     for (final habit in habits) {
@@ -855,6 +882,8 @@ class _HealthDashboardTabState extends State<_HealthDashboardTab> {
     setState(() => _isLoading = true);
 
     final now = DateTime.now();
+    final appState = context.read<AppState>();
+
     // Load last 7 days
     for (int i = 0; i < 7; i++) {
       final date = now.subtract(Duration(days: 6 - i));
@@ -863,13 +892,27 @@ class _HealthDashboardTabState extends State<_HealthDashboardTab> {
       final steps = await _healthService.getStepCount(date);
       _weeklySteps[i] = steps;
 
+      // Use manual step log as fallback if Health Connect returns 0
+      if (steps == 0) {
+        final manualSteps = appState.getManualSteps(date);
+        if (manualSteps > 0) {
+          _weeklySteps[i] = manualSteps;
+        }
+      }
+
       // Calories
       final calories = await _healthService.getCalories(date);
       _weeklyCalories[i] = calories;
 
-      // Sleep - fetch real data from health service
+      // Sleep - fetch from Health Connect, fallback to manual logs
       final sleep = await _healthService.getSleepHours(date);
-      _weeklySleep[i] = _healthService.isValidSleepHours(sleep) ? sleep : 0.0;
+      if (_healthService.isValidSleepHours(sleep) && sleep > 0) {
+        _weeklySleep[i] = sleep;
+      } else {
+        // Fallback to manual health log (from completed sleep habits)
+        final manualSleep = appState.getManualSleepHours(date);
+        _weeklySleep[i] = manualSleep > 0 ? manualSleep : 0.0;
+      }
 
       // Distance - fetch real data from health service
       final distance = await _healthService.getDistance(date);
@@ -880,6 +923,13 @@ class _HealthDashboardTabState extends State<_HealthDashboardTab> {
     if (mounted) {
       setState(() => _isLoading = false);
     }
+
+    // Skip AI summary if Health Dashboard is active (reduces AI traffic)
+    if (appState.activeHealthChallenge != null) {
+      debugPrint('🚫 Skipping Wind AI summary - Health Dashboard is active');
+      return;
+    }
+
     try {
       final summary =
           await AIHealthCoachService.instance.generateWeeklyHealthSummary(
@@ -1004,6 +1054,11 @@ class _HealthDashboardTabState extends State<_HealthDashboardTab> {
     final prevSleepAvg =
         (_weeklySleep[0] + _weeklySleep[1] + _weeklySleep[2]) / 3;
 
+    final currentCaloriesAvg =
+        (_weeklyCalories[4] + _weeklyCalories[5] + _weeklyCalories[6]) / 3;
+    final prevCaloriesAvg =
+        (_weeklyCalories[0] + _weeklyCalories[1] + _weeklyCalories[2]) / 3;
+
     return RefreshIndicator(
       onRefresh: _loadHealthData,
       child: SingleChildScrollView(
@@ -1065,11 +1120,13 @@ class _HealthDashboardTabState extends State<_HealthDashboardTab> {
               stepsGoal: stepsGoal,
               sleepHours: _weeklySleep[displayIndex],
               distanceKm: _weeklyDistance[displayIndex],
-              heartRateBpm: null, // TODO: Fetch heart rate data
+              caloriesBurned: _weeklyCalories[displayIndex],
               currentStepsAvg: currentStepsAvg,
               previousStepsAvg: prevStepsAvg,
               currentSleepAvg: currentSleepAvg,
               previousSleepAvg: prevSleepAvg,
+              currentCaloriesAvg: currentCaloriesAvg,
+              previousCaloriesAvg: prevCaloriesAvg,
             ),
 
             const SizedBox(height: 16),
@@ -1085,10 +1142,13 @@ class _HealthDashboardTabState extends State<_HealthDashboardTab> {
 
             const SizedBox(height: 24),
 
-            // AI Summary Card
-            if (_weeklySummary != null) ...[
+            // AI Summary Card - Only show if Health Dashboard NOT active
+            if (_weeklySummary != null &&
+                appState.activeHealthChallenge == null) ...[
               Card(
-                color: const Color(0xFF191919),
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? const Color(0xFF191919)
+                    : Colors.white,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(16),
                   side: const BorderSide(
@@ -1099,16 +1159,16 @@ class _HealthDashboardTabState extends State<_HealthDashboardTab> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Row(
+                      const Row(
                         children: [
                           Icon(Icons.auto_awesome,
-                              color: const Color(0xFFFFA94A)), // Orange icon
-                          const SizedBox(width: 8),
+                              color: Color(0xFFFFA94A)), // Orange icon
+                          SizedBox(width: 8),
                           Text(
                             'Wind Insights 🌬️',
                             style: TextStyle(
                               fontWeight: FontWeight.bold,
-                              color: const Color(0xFFFFA94A), // Orange text
+                              color: Color(0xFFFFA94A), // Orange text
                             ),
                           ),
                         ],
@@ -1116,7 +1176,12 @@ class _HealthDashboardTabState extends State<_HealthDashboardTab> {
                       const SizedBox(height: 8),
                       Text(
                         _weeklySummary!,
-                        style: const TextStyle(fontSize: 14),
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Theme.of(context).brightness == Brightness.dark
+                              ? Colors.white
+                              : Colors.black87,
+                        ),
                       ),
                     ],
                   ),
@@ -1145,6 +1210,18 @@ class _HealthDashboardTabState extends State<_HealthDashboardTab> {
               data: _weeklySleep,
               color: Colors.purple,
               maxValue: 10,
+              selectedIndex: _selectedDayIndex,
+              onTap: _onDaySelected,
+            ),
+
+            const SizedBox(height: 16),
+
+            // Weekly Calories Chart
+            _WeeklyChart(
+              title: 'Weekly Calories Burned',
+              data: _weeklyCalories,
+              color: Colors.deepOrange,
+              maxValue: 800,
               selectedIndex: _selectedDayIndex,
               onTap: _onDaySelected,
             ),

@@ -123,6 +123,32 @@ class _HealthOnboardingScreenState extends State<HealthOnboardingScreen> {
         if (!success) {
           _errorMessage =
               'Could not get permission. Please enable health data access in your device settings.';
+
+          // Prompt user to open settings since they likely denied permissions or have them disabled
+          if (mounted) {
+            showDialog(
+              context: context,
+              builder: (context) => AlertDialog(
+                title: const Text('Permissions Required'),
+                content: const Text(
+                  'To sync your health data, you need to grant permissions in Health Connect. Would you like to open settings?',
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: const Text('Cancel'),
+                  ),
+                  TextButton(
+                    onPressed: () {
+                      Navigator.pop(context);
+                      HealthService.instance.openHealthConnectSettings();
+                    },
+                    child: const Text('Open Settings'),
+                  ),
+                ],
+              ),
+            );
+          }
         }
       });
 

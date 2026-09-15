@@ -1,3 +1,4 @@
+import 'package:uuid/uuid.dart';
 import '../models/habit.dart';
 
 /// Pre-made habit template packs for easy onboarding
@@ -11,6 +12,7 @@ class HabitTemplate {
   final List<int> frequencyDays; // 1=Mon, 7=Sun
   final String? suggestedGoal; // AI-suggested goal for the habit
   final double? defaultHealthGoalValue; // Default numeric goal value
+  final int? defaultFocusDuration; // Default focus mode duration in minutes
 
   const HabitTemplate({
     required this.id,
@@ -22,17 +24,20 @@ class HabitTemplate {
     this.frequencyDays = const [1, 2, 3, 4, 5, 6, 7], // daily by default
     this.suggestedGoal,
     this.defaultHealthGoalValue,
+    this.defaultFocusDuration,
   });
 
   Habit toHabit() {
     return Habit(
-      id: DateTime.now().millisecondsSinceEpoch.toString(),
+      id: const Uuid().v4(),
       name: name,
       emoji: emoji,
       category: category,
       frequencyDays: frequencyDays,
       habitGoal: suggestedGoal,
-      healthGoalValue: defaultHealthGoalValue,
+      // Note: healthGoalValue is intentionally NOT set here.
+      // It should only be set via the confirmation page when user enables health tracking,
+      // which ensures both healthGoalValue AND healthMetric are set together.
     );
   }
 }
@@ -138,6 +143,7 @@ class HabitTemplates {
         defaultReminders: ['07:00'],
         suggestedGoal: 'Complete 30 minutes of cardio or strength training',
         defaultHealthGoalValue: 30,
+        defaultFocusDuration: 30,
       ),
       HabitTemplate(
         id: 'steps_10k',
@@ -158,6 +164,7 @@ class HabitTemplates {
         defaultReminders: ['18:00'],
         frequencyDays: [1, 3, 5], // Mon, Wed, Fri
         suggestedGoal: 'Complete 3 sets of 10 reps for major muscle groups',
+        defaultFocusDuration: 45,
       ),
       HabitTemplate(
         id: 'stretching',
@@ -167,6 +174,7 @@ class HabitTemplates {
         description: 'Cool down with stretching',
         defaultReminders: ['18:45'],
         suggestedGoal: '10 minutes of full-body stretching routine',
+        defaultFocusDuration: 10,
       ),
     ],
   );
@@ -189,8 +197,8 @@ class HabitTemplates {
         emoji: '🧘',
         category: 'Mindfulness',
         description: '10 minutes of meditation',
-        defaultReminders: ['07:00', '21:00'],
         suggestedGoal: '10 minute mindfulness meditation',
+        defaultFocusDuration: 10,
       ),
       HabitTemplate(
         id: 'gratitude_journal',
@@ -207,6 +215,7 @@ class HabitTemplates {
         category: 'Mindfulness',
         description: '5 minutes of deep breathing',
         defaultReminders: ['12:00'],
+        defaultFocusDuration: 5,
       ),
       HabitTemplate(
         id: 'no_phone_morning',
@@ -238,6 +247,7 @@ class HabitTemplates {
         category: 'Productivity',
         description: 'Write top 3 priorities',
         defaultReminders: ['07:30'],
+        defaultFocusDuration: 15,
       ),
       HabitTemplate(
         id: 'deep_work',
@@ -246,6 +256,7 @@ class HabitTemplates {
         category: 'Productivity',
         description: '90 minutes of focused work',
         defaultReminders: ['09:00'],
+        defaultFocusDuration: 90,
       ),
       HabitTemplate(
         id: 'review_day',
@@ -254,6 +265,7 @@ class HabitTemplates {
         category: 'Productivity',
         description: 'Review what you accomplished',
         defaultReminders: ['18:00'],
+        defaultFocusDuration: 10,
       ),
       HabitTemplate(
         id: 'learn_something',
@@ -262,6 +274,7 @@ class HabitTemplates {
         category: 'Learning',
         description: '20 minutes of learning',
         defaultReminders: ['19:00'],
+        defaultFocusDuration: 20,
       ),
     ],
   );

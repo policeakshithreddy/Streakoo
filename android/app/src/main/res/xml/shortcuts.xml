@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Static shortcut for quick habit completion -->
+    <shortcut
+        android:shortcutId="complete_habit_quick"
+        android:enabled="true"
+        android:icon="@drawable/ic_check_circle"
+        android:shortcutShortLabel="@string/shortcut_complete_habit"
+        android:shortcutLongLabel="@string/shortcut_complete_habit_long">
+        <intent
+            android:action="com.streakoo.COMPLETE_HABIT"
+            android:targetPackage="com.example.streakoo"
+            android:targetClass="com.example.streakoo.MainActivity" />
+        <categories android:name="android.shortcut.conversation" />
+        
+        <!-- Google Assistant capability -->
+        <capability-binding android:key="actions.intent.COMPLETE_TASK">
+            <parameter-binding
+                android:key="task.name"
+                android:value="habitName" />
+        </capability-binding>
+    </shortcut>
+    
+    <!-- Shortcut to view streaks -->
+    <shortcut
+        android:shortcutId="view_streaks"
+        android:enabled="true"
+        android:icon="@drawable/ic_fire"
+        android:shortcutShortLabel="@string/shortcut_view_streaks"
+        android:shortcutLongLabel="@string/shortcut_view_streaks_long">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetPackage="com.example.streakoo"
+            android:targetClass="com.example.streakoo.MainActivity"
+            android:data="streakoo://streaks" />
+        <categories android:name="android.shortcut.conversation" />
+    </shortcut>
+</shortcuts>

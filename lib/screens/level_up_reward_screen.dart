@@ -1,12 +1,13 @@
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import 'package:confetti/confetti.dart';
-import 'package:lottie/lottie.dart';
 
 import '../models/level_reward.dart';
 import '../models/user_level.dart';
 
-/// Full-screen level-up reward modal (Duolingo-style)
+/// Modern, sleek level-up celebration screen
+/// Inspired by gaming apps with smooth, premium animations
 class LevelUpRewardScreen extends StatefulWidget {
   final int newLevel;
   final String title;
@@ -27,228 +28,103 @@ class LevelUpRewardScreen extends StatefulWidget {
 
 class _LevelUpRewardScreenState extends State<LevelUpRewardScreen>
     with TickerProviderStateMixin {
-  late ConfettiController _confettiController;
-  bool _showRewards = false;
+  late AnimationController _pulseController;
+  late AnimationController _rotateController;
+  bool _showContent = false;
+
+  // App theme colors
+  static const _primaryOrange = Color(0xFFFFA94A);
+  static const _secondaryTeal = Color(0xFF1FD1A5);
 
   @override
   void initState() {
     super.initState();
 
-    _confettiController = ConfettiController(
-      duration: const Duration(seconds: 3),
-    );
+    // Haptic feedback on open
+    HapticFeedback.heavyImpact();
 
-    // Sequence animations
-    Future.delayed(const Duration(milliseconds: 500), () {
-      _confettiController.play();
-    });
+    // Pulse animation for the badge glow
+    _pulseController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1500),
+    )..repeat(reverse: true);
 
-    Future.delayed(const Duration(milliseconds: 1200), () {
-      if (mounted) {
-        setState(() => _showRewards = true);
-      }
+    // Slow rotation for background elements
+    _rotateController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 20),
+    )..repeat();
+
+    // Delayed content reveal
+    Future.delayed(const Duration(milliseconds: 150), () {
+      if (mounted) setState(() => _showContent = true);
     });
   }
 
   @override
   void dispose() {
-    _confettiController.dispose();
+    _pulseController.dispose();
+    _rotateController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor: Colors.black.withValues(alpha: 0.85),
+      backgroundColor: Colors.transparent,
       body: Stack(
         children: [
-          // Confetti
-          Align(
-            alignment: Alignment.topCenter,
-            child: ConfettiWidget(
-              confettiController: _confettiController,
-              blastDirectionality: BlastDirectionality.explosive,
-              emissionFrequency: 0.05,
-              numberOfParticles: 50,
-              gravity: 0.2,
-              colors: const [
-                Color(0xFFFFD700),
-                Color(0xFFFFA500),
-                Color(0xFFFF6B6B),
-                Color(0xFF4ECDC4),
-              ],
-            ),
-          ),
+          // Animated background
+          _buildAnimatedBackground(isDark),
 
+          // Main content
           SafeArea(
             child: Column(
               children: [
-                const Spacer(),
-
-                // Fire animations around level badge
-                Stack(
-                  alignment: Alignment.center,
-                  children: [
-                    // Left fire
-                    Positioned(
-                      left: -20,
-                      child: Lottie.asset(
-                        'assets/lottie/flame_burst.json',
-                        width: 120,
-                        repeat: true,
-                      ),
-                    ),
-                    // Right fire
-                    Positioned(
-                      right: -20,
-                      child: Lottie.asset(
-                        'assets/lottie/flame_burst.json',
-                        width: 120,
-                        repeat: true,
-                      ),
-                    ),
-                    // Top fire
-                    Positioned(
-                      top: -10,
-                      child: Lottie.asset(
-                        'assets/lottie/flame_burst.json',
-                        width: 100,
-                        repeat: true,
-                      ),
-                    ),
-                    // Bottom fire
-                    Positioned(
-                      bottom: -10,
-                      child: Lottie.asset(
-                        'assets/lottie/flame_burst.json',
-                        width: 100,
-                        repeat: true,
-                      ),
-                    ),
-                    // Level up badge
-                    TweenAnimationBuilder<double>(
-                      tween: Tween(begin: 0.0, end: 1.0),
-                      duration: const Duration(milliseconds: 800),
-                      curve: Curves.elasticOut,
-                      builder: (context, value, child) {
-                        return Transform.scale(
-                          scale: value,
-                          child: child,
-                        );
-                      },
-                      child: Container(
-                        width: 160,
-                        height: 160,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          gradient: const LinearGradient(
-                            colors: [
-                              Color(0xFFFFD700),
-                              Color(0xFFFFA500),
-                            ],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                          ),
-                          boxShadow: [
-                            BoxShadow(
-                              color: const Color(0xFFFFD700).withValues(alpha: 0.5),
-                              blurRadius: 40,
-                              spreadRadius: 10,
-                            ),
-                          ],
-                        ),
-                        child: Center(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              const Text(
-                                '⭐',
-                                style: TextStyle(fontSize: 50),
-                              ),
-                              Text(
-                                '${widget.newLevel}',
-                                style: const TextStyle(
-                                  fontSize: 42,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.white,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-
-                const SizedBox(height: 60),
-
-                // Rewards section
-                if (_showRewards && widget.rewards.isNotEmpty)
-                  Container(
-                    margin: const EdgeInsets.symmetric(horizontal: 24),
-                    padding: const EdgeInsets.all(20),
-                    decoration: BoxDecoration(
-                      color: theme.colorScheme.surface,
-                      borderRadius: BorderRadius.circular(24),
-                    ),
-                    child: Column(
-                      children: [
-                        ...widget.rewards.map((reward) => _RewardItem(
-                              reward: reward,
-                            )),
-                      ],
-                    ),
-                  )
-                      .animate()
-                      .fadeIn(duration: 600.ms)
-                      .slideY(begin: 0.2, end: 0)
-                else if (_showRewards)
-                  Container(
-                    margin: const EdgeInsets.symmetric(horizontal: 24),
-                    padding: const EdgeInsets.all(20),
-                    decoration: BoxDecoration(
-                      color: theme.colorScheme.surface,
-                      borderRadius: BorderRadius.circular(24),
-                    ),
-                    child: Text(
-                      'Keep building your streak for rewards!',
-                      style: theme.textTheme.bodyLarge?.copyWith(
-                        fontWeight: FontWeight.w600,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                  )
-                      .animate()
-                      .fadeIn(duration: 600.ms)
-                      .slideY(begin: 0.2, end: 0),
-
-                const Spacer(),
-
-                // Collect button
-                Padding(
-                  padding: const EdgeInsets.all(24),
-                  child: FilledButton(
-                    onPressed: () => Navigator.of(context).pop(),
-                    style: FilledButton.styleFrom(
-                      backgroundColor: const Color(0xFF58CC02),
-                      minimumSize: const Size(double.infinity, 56),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                    ),
-                    child: const Text(
-                      'COLLECT',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        letterSpacing: 1,
+                // Close button
+                Align(
+                  alignment: Alignment.topRight,
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: IconButton(
+                      onPressed: () => Navigator.of(context).pop(),
+                      icon: Icon(
+                        Icons.close_rounded,
+                        color: Colors.white.withValues(alpha: 0.7),
+                        size: 28,
                       ),
                     ),
                   ),
-                ).animate().fadeIn(delay: 1500.ms).slideY(begin: 0.2, end: 0),
+                ).animate(delay: 800.ms).fadeIn(duration: 400.ms),
+
+                const Spacer(flex: 2),
+
+                if (_showContent) ...[
+                  // Animated level badge
+                  _buildLevelBadge(),
+
+                  const SizedBox(height: 32),
+
+                  // "LEVEL UP" text with gradient
+                  _buildLevelUpText(),
+
+                  const SizedBox(height: 12),
+
+                  // Title/Rank
+                  _buildTitleText(),
+
+                  const SizedBox(height: 40),
+
+                  // Rewards section
+                  if (widget.rewards.isNotEmpty) _buildRewardsSection(isDark),
+                ],
+
+                const Spacer(flex: 3),
+
+                // Continue button with gradient
+                _buildContinueButton(),
               ],
             ),
           ),
@@ -256,91 +132,405 @@ class _LevelUpRewardScreenState extends State<LevelUpRewardScreen>
       ),
     );
   }
+
+  Widget _buildAnimatedBackground(bool isDark) {
+    return AnimatedBuilder(
+      animation: _rotateController,
+      builder: (context, child) {
+        return Container(
+          decoration: BoxDecoration(
+            gradient: RadialGradient(
+              center: Alignment.center,
+              radius: 1.2,
+              colors: [
+                _primaryOrange.withValues(alpha: 0.15),
+                isDark ? const Color(0xFF0A0A0A) : const Color(0xFF1A1A1A),
+                isDark ? Colors.black : const Color(0xFF0D0D0D),
+              ],
+              stops: const [0.0, 0.5, 1.0],
+            ),
+          ),
+          child: Stack(
+            children: [
+              // Rotating glow orbs
+              Positioned(
+                top: -100,
+                left: -100,
+                child: Transform.rotate(
+                  angle: _rotateController.value * 2 * math.pi,
+                  child: Container(
+                    width: 300,
+                    height: 300,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: RadialGradient(
+                        colors: [
+                          _primaryOrange.withValues(alpha: 0.3),
+                          _primaryOrange.withValues(alpha: 0.0),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              Positioned(
+                bottom: -150,
+                right: -100,
+                child: Transform.rotate(
+                  angle: -_rotateController.value * 2 * math.pi,
+                  child: Container(
+                    width: 350,
+                    height: 350,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: RadialGradient(
+                        colors: [
+                          _secondaryTeal.withValues(alpha: 0.2),
+                          _secondaryTeal.withValues(alpha: 0.0),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildLevelBadge() {
+    return AnimatedBuilder(
+      animation: _pulseController,
+      builder: (context, child) {
+        final pulseValue = 1.0 + (_pulseController.value * 0.08);
+        return Transform.scale(
+          scale: pulseValue,
+          child: Container(
+            width: 140,
+            height: 140,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: const LinearGradient(
+                colors: [
+                  Color(0xFFFFB347),
+                  _primaryOrange,
+                  Color(0xFFFF8C00),
+                ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: _primaryOrange.withValues(
+                      alpha: 0.5 + (_pulseController.value * 0.3)),
+                  blurRadius: 40 + (_pulseController.value * 20),
+                  spreadRadius: 5,
+                ),
+                BoxShadow(
+                  color: _primaryOrange.withValues(alpha: 0.3),
+                  blurRadius: 60,
+                  spreadRadius: 10,
+                ),
+              ],
+            ),
+            child: Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    '${widget.newLevel}',
+                    style: const TextStyle(
+                      fontSize: 52,
+                      fontWeight: FontWeight.w800,
+                      color: Colors.white,
+                      height: 1.0,
+                      shadows: [
+                        Shadow(
+                          color: Colors.black26,
+                          blurRadius: 8,
+                          offset: Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const Text(
+                    'LEVEL',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.white70,
+                      letterSpacing: 3,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    )
+        .animate()
+        .scale(
+          begin: const Offset(0.3, 0.3),
+          end: const Offset(1.0, 1.0),
+          duration: 600.ms,
+          curve: Curves.elasticOut,
+        )
+        .fadeIn(duration: 300.ms);
+  }
+
+  Widget _buildLevelUpText() {
+    return ShaderMask(
+      shaderCallback: (bounds) => const LinearGradient(
+        colors: [_primaryOrange, Color(0xFFFFD700), _primaryOrange],
+      ).createShader(bounds),
+      child: const Text(
+        'LEVEL UP!',
+        style: TextStyle(
+          fontSize: 36,
+          fontWeight: FontWeight.w900,
+          color: Colors.white,
+          letterSpacing: 4,
+        ),
+      ),
+    )
+        .animate(delay: 200.ms)
+        .fadeIn(duration: 400.ms)
+        .slideY(begin: 0.3, end: 0, curve: Curves.easeOutBack)
+        .shimmer(
+          delay: 600.ms,
+          duration: 1500.ms,
+          color: Colors.white.withValues(alpha: 0.3),
+        );
+  }
+
+  Widget _buildTitleText() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: _primaryOrange.withValues(alpha: 0.3),
+          width: 1,
+        ),
+      ),
+      child: Text(
+        widget.title,
+        style: const TextStyle(
+          fontSize: 18,
+          fontWeight: FontWeight.w600,
+          color: Colors.white,
+          letterSpacing: 1,
+        ),
+      ),
+    )
+        .animate(delay: 350.ms)
+        .fadeIn(duration: 400.ms)
+        .slideY(begin: 0.3, end: 0);
+  }
+
+  Widget _buildRewardsSection(bool isDark) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 28),
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(
+          color: Colors.white.withValues(alpha: 0.1),
+        ),
+      ),
+      child: Column(
+        children: [
+          const Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.card_giftcard_rounded,
+                color: _primaryOrange,
+                size: 20,
+              ),
+              SizedBox(width: 8),
+              Text(
+                'REWARDS UNLOCKED',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  color: Colors.white60,
+                  letterSpacing: 1.5,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          ...widget.rewards.asMap().entries.map((entry) {
+            final index = entry.key;
+            final reward = entry.value;
+            return _ModernRewardItem(
+              reward: reward,
+              delay: Duration(milliseconds: 500 + (index * 120)),
+            );
+          }),
+        ],
+      ),
+    )
+        .animate(delay: 450.ms)
+        .fadeIn(duration: 400.ms)
+        .slideY(begin: 0.15, end: 0);
+  }
+
+  Widget _buildContinueButton() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(28, 0, 28, 32),
+      child: SizedBox(
+        width: double.infinity,
+        height: 58,
+        child: Container(
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: [_primaryOrange, Color(0xFFFF8C00)],
+              begin: Alignment.centerLeft,
+              end: Alignment.centerRight,
+            ),
+            borderRadius: BorderRadius.circular(18),
+            boxShadow: [
+              BoxShadow(
+                color: _primaryOrange.withValues(alpha: 0.4),
+                blurRadius: 20,
+                offset: const Offset(0, 8),
+              ),
+            ],
+          ),
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: () {
+                HapticFeedback.mediumImpact();
+                Navigator.of(context).pop();
+              },
+              borderRadius: BorderRadius.circular(18),
+              child: const Center(
+                child: Text(
+                  'Continue',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.white,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    )
+        .animate(delay: 700.ms)
+        .fadeIn(duration: 400.ms)
+        .slideY(begin: 0.3, end: 0);
+  }
 }
 
-class _RewardItem extends StatelessWidget {
+/// Modern reward item with sleek styling
+class _ModernRewardItem extends StatelessWidget {
   final LevelReward reward;
+  final Duration delay;
 
-  const _RewardItem({required this.reward});
+  const _ModernRewardItem({
+    required this.reward,
+    required this.delay,
+  });
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
     return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: reward.color.withValues(alpha: 0.1),
+        color: reward.color.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: reward.color.withValues(alpha: 0.3),
-          width: 2,
+          color: reward.color.withValues(alpha: 0.2),
         ),
       ),
       child: Row(
         children: [
-          // Icon
+          // Gradient icon container
           Container(
-            width: 48,
-            height: 48,
+            width: 44,
+            height: 44,
             decoration: BoxDecoration(
-              color: reward.color,
+              gradient: LinearGradient(
+                colors: [
+                  reward.color,
+                  reward.color.withValues(alpha: 0.7),
+                ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
               borderRadius: BorderRadius.circular(12),
+              boxShadow: [
+                BoxShadow(
+                  color: reward.color.withValues(alpha: 0.3),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ],
             ),
             child: Icon(
               reward.icon,
               color: Colors.white,
-              size: 28,
+              size: 22,
             ),
           ),
-
-          const SizedBox(width: 16),
-
-          // Details
+          const SizedBox(width: 14),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   reward.title,
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
+                  style: const TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.white,
                   ),
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: 2),
                 Text(
                   reward.description,
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.white.withValues(alpha: 0.6),
                   ),
                 ),
               ],
             ),
           ),
-
-          // Badge or quantity
           if (reward.quantity != null)
             Container(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 12,
-                vertical: 6,
-              ),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               decoration: BoxDecoration(
                 color: reward.color,
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(10),
               ),
               child: Text(
-                'x${reward.quantity}',
+                '+${reward.quantity}',
                 style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
                   color: Colors.white,
                 ),
               ),
             ),
         ],
       ),
-    ).animate().fadeIn(duration: 400.ms).slideX(begin: -0.2, end: 0);
+    )
+        .animate(delay: delay)
+        .fadeIn(duration: 300.ms)
+        .slideX(begin: -0.15, end: 0, curve: Curves.easeOutCubic);
   }
 }

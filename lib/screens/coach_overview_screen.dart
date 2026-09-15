@@ -3,21 +3,29 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:intl/intl.dart';
 
 import '../models/habit.dart';
+
 import '../state/app_state.dart';
 import '../models/weekly_report.dart';
 import '../models/ai_insight.dart';
 import '../services/weekly_report_service.dart';
 import '../services/insight_analyzer_service.dart';
 import '../services/brief_generation_service.dart';
+import '../services/groq_ai_service.dart';
+import '../services/team_service.dart';
 import '../widgets/daily_brief_card.dart';
 import '../widgets/weekly_summary_card.dart';
 import '../widgets/insight_card.dart';
 import '../widgets/chat_bottom_sheet.dart';
 import '../widgets/weekly_archive_card.dart';
 import '../services/supabase_service.dart';
+import '../services/accountability_service.dart';
 import 'auth_screen.dart';
+import 'accountability_partners_screen.dart';
+import 'team_dashboard_screen.dart';
 
 class CoachOverviewScreen extends StatefulWidget {
   const CoachOverviewScreen({super.key});
@@ -33,10 +41,155 @@ class _CoachOverviewScreenState extends State<CoachOverviewScreen> {
   bool _isLoading = true;
   final _briefService = BriefGenerationService();
 
+  // AI Smart Insight state
+  String? _aiSmartInsight;
+  bool _isLoadingSmartInsight = false;
+  static const String _smartInsightCacheKey = 'ai_smart_insight_v3';
+  static const String _smartInsightDateKey = 'ai_smart_insight_date_v3';
+
+  // Teams Promo state
+  bool _showTeamsPromo = true;
+
   @override
   void initState() {
     super.initState();
     _loadData();
+    _loadOrGenerateSmartInsight();
+    _loadTeamsPromoPreference();
+  }
+
+  Future<void> _loadTeamsPromoPreference() async {
+    final prefs = await SharedPreferences.getInstance();
+    if (mounted) {
+      setState(() {
+        _showTeamsPromo = prefs.getBool('show_teams_promo') ?? true;
+      });
+    }
+  }
+
+  Future<void> _dismissTeamsPromo() async {
+    setState(() {
+      _showTeamsPromo = false;
+    });
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('show_teams_promo', false);
+  }
+
+  Future<void> _loadOrGenerateSmartInsight() async {
+    final appState = context.read<AppState>();
+    // No longer skipping AI insight if health challenge is active,
+    // as pattern insights are still valuable.
+
+    final prefs = await SharedPreferences.getInstance();
+    final today = DateFormat('yyyy-MM-dd').format(DateTime.now());
+    final cachedDate = prefs.getString(_smartInsightDateKey);
+
+    // Use cached insight if from today
+    if (cachedDate == today) {
+      final cached = prefs.getString(_smartInsightCacheKey);
+      if (cached != null && mounted) {
+        setState(() {
+          _aiSmartInsight = cached;
+        });
+        return;
+      }
+    }
+
+    // Generate new AI insight
+    if (!mounted) return;
+    setState(() => _isLoadingSmartInsight = true);
+
+    try {
+      final habits = appState.habits;
+      if (habits.isEmpty) {
+        setState(() => _isLoadingSmartInsight = false);
+        return;
+      }
+
+      // Collect pattern data
+      final now = DateTime.now();
+      final dayCounts = <int, List<int>>{}; // weekday -> [completed, total]
+      for (int i = 0; i < 28; i++) {
+        final date = DateTime(now.year, now.month, now.day - i);
+        final dateStr =
+            '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+        final weekday = date.weekday;
+        dayCounts.putIfAbsent(weekday, () => [0, 0]);
+        for (final h in habits) {
+          dayCounts[weekday]![1]++;
+          if (h.completionDates.contains(dateStr)) {
+            dayCounts[weekday]![0]++;
+          }
+        }
+      }
+
+      // Calculate stats for prompt
+      int worstDay = 1;
+      double worstRate = 1.0;
+      int bestDay = 1;
+      double bestRate = 0.0;
+      final dayNames = [
+        'Monday',
+        'Tuesday',
+        'Wednesday',
+        'Thursday',
+        'Friday',
+        'Saturday',
+        'Sunday'
+      ];
+
+      dayCounts.forEach((day, stats) {
+        if (stats[1] > 0) {
+          final rate = stats[0] / stats[1];
+          if (rate < worstRate) {
+            worstRate = rate;
+            worstDay = day;
+          }
+          if (rate > bestRate) {
+            bestRate = rate;
+            bestDay = day;
+          }
+        }
+      });
+
+      final avgStreak =
+          habits.map((h) => h.streak).reduce((a, b) => a + b) / habits.length;
+
+      final prompt =
+          '''You're a cool habit coach. Give ONE solid insight (20-30 words).
+
+Stats:
+- Power day: ${dayNames[bestDay - 1]} (${(bestRate * 100).round()}%)
+- Weak day: ${dayNames[worstDay - 1]} (${(worstRate * 100).round()}%)
+- Avg streak: ${avgStreak.round()} days
+- Today: ${dayNames[now.weekday - 1]}
+
+Rules:
+- Start with a relevant emoji
+- Use Gen-Z friendly language
+- Be motivating & fun
+- Length: 20-30 words to give real value''';
+
+      final insight = await GroqAIService.instance.generateResponse(
+        systemPrompt:
+            'You are a trendy habit coach. Give meaningful insights. Length 20-30 words. Sound cool and motivating.',
+        userPrompt: prompt,
+        maxTokens: 60,
+      );
+
+      if (insight != null && insight.isNotEmpty && mounted) {
+        setState(() {
+          _aiSmartInsight = insight;
+          _isLoadingSmartInsight = false;
+        });
+        // Cache
+        await prefs.setString(_smartInsightCacheKey, insight);
+        await prefs.setString(_smartInsightDateKey, today);
+      }
+    } catch (e) {
+      debugPrint('Failed to generate AI smart insight: $e');
+      if (mounted) setState(() => _isLoadingSmartInsight = false);
+    }
   }
 
   Future<void> _loadData() async {
@@ -248,9 +401,11 @@ class _CoachOverviewScreenState extends State<CoachOverviewScreen> {
                       _buildFutureYou(context, isDark),
                       const SizedBox(height: 20),
 
-                      // Leaderboard Teaser (Supabase-powered)
-                      _buildLeaderboardTeaser(context, isDark),
+                      // 👨‍👩‍👧‍👦 My Teams Section
+                      _buildTeamsSection(context, isDark),
                       const SizedBox(height: 20),
+
+                      _buildLeaderboardTeaser(context, isDark),
 
                       // Current Week Summary
                       if (_currentWeekReport != null) ...[
@@ -771,7 +926,7 @@ class _CoachOverviewScreenState extends State<CoachOverviewScreen> {
   static const _secondaryOrange = Color(0xFFFF8C42);
 
   // Minimum tasks required before showing AI insights
-  static const int _minTasksForInsights = 2;
+  static const int _minTasksForInsights = 1;
 
   /// Get count of tasks completed today
   int _getTodayCompletedTasks() {
@@ -1103,7 +1258,7 @@ class _CoachOverviewScreenState extends State<CoachOverviewScreen> {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: const Color(0xFF191919),
+        color: isDark ? const Color(0xFF191919) : Colors.white,
         borderRadius: BorderRadius.circular(18),
         border: Border.all(
           color: const Color(0xFFFFA94A), // Orange
@@ -1113,40 +1268,95 @@ class _CoachOverviewScreenState extends State<CoachOverviewScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Row(
+          Row(
             children: [
-              Icon(Icons.lightbulb_outline, color: Colors.amber, size: 22),
-              SizedBox(width: 8),
-              Text('SMART INSIGHT',
+              const Icon(Icons.lightbulb_outline,
+                  color: Colors.amber, size: 22),
+              const SizedBox(width: 8),
+              const Text('SMART INSIGHT',
                   style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.bold,
                       color: Colors.amber,
                       letterSpacing: 1)),
+              const Spacer(),
+              // AI Badge
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: isDark
+                        ? [
+                            const Color(0xFF9C27B0)
+                                .withValues(alpha: 0.2), // Purple
+                            const Color(0xFF2196F3)
+                                .withValues(alpha: 0.2), // Blue
+                          ]
+                        : [
+                            const Color(0xFFF3E5F5), // Light Purple
+                            const Color(0xFFE3F2FD), // Light Blue
+                          ],
+                  ),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                    color: isDark
+                        ? Colors.white.withValues(alpha: 0.1)
+                        : const Color(0xFF9C27B0).withValues(alpha: 0.1),
+                    width: 1,
+                  ),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    ShaderMask(
+                      shaderCallback: (bounds) => LinearGradient(
+                        colors: isDark
+                            ? [
+                                const Color(0xFFE1BEE7), // Lighter Purple
+                                const Color(0xFFBBDEFB), // Lighter Blue
+                              ]
+                            : [
+                                const Color(0xFF7B1FA2), // Darker Purple
+                                const Color(0xFF1976D2), // Darker Blue
+                              ],
+                      ).createShader(bounds),
+                      child: const Icon(
+                        Icons.auto_awesome,
+                        size: 12,
+                        color: Colors.white, // Required for ShaderMask
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    ShaderMask(
+                      shaderCallback: (bounds) => LinearGradient(
+                        colors: isDark
+                            ? [
+                                const Color(0xFFE1BEE7),
+                                const Color(0xFFBBDEFB),
+                              ]
+                            : [
+                                const Color(0xFF7B1FA2),
+                                const Color(0xFF1976D2),
+                              ],
+                      ).createShader(bounds),
+                      child: const Text(
+                        'AI',
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w800,
+                          color: Colors.white, // Required for ShaderMask
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 12),
-          if (hasEnoughTasks) ...[
-            Text(
-              worstRate > 0.8
-                  ? 'You are incredibly consistent across all days!'
-                  : 'Warning: $worstDayName seems to be your kryptonite.',
-              style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                  color: isDark ? Colors.white : Colors.black87),
-            ),
-            const SizedBox(height: 6),
-            Text(
-              worstRate > 0.8
-                  ? 'Keep up the amazing work.'
-                  : 'You miss ${(100 - worstRate * 100).round()}% of habits on ${worstDayName}s. Plan ahead!',
-              style: TextStyle(
-                  fontSize: 14,
-                  color: isDark ? Colors.grey[400] : Colors.grey[600],
-                  height: 1.4),
-            ),
-          ] else ...[
+          if (!hasEnoughTasks) ...[
             Text(
               '🔒 Complete $tasksRemaining more ${tasksRemaining == 1 ? 'task' : 'tasks'} to unlock',
               style: TextStyle(
@@ -1162,6 +1372,71 @@ class _CoachOverviewScreenState extends State<CoachOverviewScreen> {
                   color: isDark ? Colors.grey[500] : Colors.grey[600],
                   fontStyle: FontStyle.italic,
                   height: 1.4),
+            ),
+          ] else if (_isLoadingSmartInsight) ...[
+            // Loading shimmer
+            Container(
+              height: 18,
+              width: double.infinity,
+              decoration: BoxDecoration(
+                color: isDark
+                    ? Colors.white.withValues(alpha: 0.1)
+                    : Colors.grey.withValues(alpha: 0.2),
+                borderRadius: BorderRadius.circular(4),
+              ),
+            ),
+            const SizedBox(height: 8),
+            Container(
+              height: 14,
+              width: 200,
+              decoration: BoxDecoration(
+                color: isDark
+                    ? Colors.white.withValues(alpha: 0.08)
+                    : Colors.grey.withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(4),
+              ),
+            ),
+          ] else if (_aiSmartInsight != null) ...[
+            // AI-generated insight
+            Text(
+              _aiSmartInsight!,
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+                color: isDark
+                    ? Colors.white.withValues(alpha: 0.9)
+                    : Colors.black87,
+                height: 1.4,
+                letterSpacing: 0.3,
+              ),
+            ),
+          ] else ...[
+            // Fallback to heuristic insight
+            Text(
+              worstRate > 0.8
+                  ? 'Consistency is your superpower! 💫'
+                  : 'Let\'s boost your ${worstDayName}s! 🚀',
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+                color: isDark
+                    ? Colors.white.withValues(alpha: 0.9)
+                    : Colors.black87,
+                height: 1.4,
+                letterSpacing: 0.3,
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              worstRate > 0.8
+                  ? 'You\'re crushing it across the board. Keep this momentum flowing into next week.'
+                  : 'Currently, ${worstDayName}s are a bit tricky. Try setting a reminder or starting small to turn it around.',
+              style: TextStyle(
+                fontSize: 14,
+                color: isDark ? Colors.grey[400] : Colors.grey[600],
+                letterSpacing: 0.3,
+                height: 1.4,
+              ),
             ),
           ],
         ],
@@ -1251,108 +1526,388 @@ class _CoachOverviewScreenState extends State<CoachOverviewScreen> {
     ).animate().fadeIn(delay: 400.ms);
   }
 
-  Widget _buildLeaderboardTeaser(BuildContext context, bool isDark) {
-    return FutureBuilder<int?>(
-      future: _getLeaderboardPercentile(),
-      builder: (context, snapshot) {
-        if (!snapshot.hasData || snapshot.data == null) {
-          return const SizedBox.shrink();
-        }
+  Widget _buildTeamsSection(BuildContext context, bool isDark) {
+    final teams = TeamService.instance.activeTeams;
 
-        final percentile = snapshot.data!;
-        final isTopPerformer = percentile <= 20;
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            const Color(0xFFFFA94A).withValues(alpha: 0.15),
+            const Color(0xFFFFA94A).withValues(alpha: 0.05),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: const Color(0xFFFFA94A).withValues(alpha: 0.3),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFFA94A).withValues(alpha: 0.2),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Text('🤝', style: TextStyle(fontSize: 20)),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'My Teams',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                        color: isDark ? Colors.white : Colors.black87,
+                      ),
+                    ),
+                    Text(
+                      teams.isEmpty
+                          ? 'Connect with your friend'
+                          : '${teams.length} active team${teams.length > 1 ? 's' : ''}',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: isDark ? Colors.white54 : Colors.black45,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              TextButton.icon(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const AccountabilityPartnersScreen(),
+                    ),
+                  );
+                },
+                icon: Icon(
+                  teams.isEmpty ? Icons.add : Icons.arrow_forward_ios,
+                  size: 16,
+                  color: const Color(0xFFFFA94A),
+                ),
+                label: Text(
+                  teams.isEmpty ? 'Connect' : 'View All',
+                  style: const TextStyle(
+                    color: Color(0xFFFFA94A),
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          if (teams.isNotEmpty) ...[
+            const SizedBox(height: 16),
+            // Team cards
+            ...teams.take(2).map((team) => Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: InkWell(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => TeamDashboardScreen(team: team),
+                        ),
+                      );
+                    },
+                    borderRadius: BorderRadius.circular(12),
+                    child: Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: isDark
+                            ? Colors.white.withValues(alpha: 0.05)
+                            : Colors.white.withValues(alpha: 0.7),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Row(
+                        children: [
+                          Text(team.teamEmoji,
+                              style: const TextStyle(fontSize: 28)),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  team.name,
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w600,
+                                    color:
+                                        isDark ? Colors.white : Colors.black87,
+                                  ),
+                                ),
+                                Text(
+                                  '${team.members.length} members · ${team.teamStreak} day streak',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: isDark
+                                        ? Colors.white54
+                                        : Colors.black45,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const Icon(
+                            Icons.chevron_right,
+                            color: Color(0xFFFFA94A),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                )),
+
+            if (teams.length > 2)
+              Center(
+                child: TextButton(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const AccountabilityPartnersScreen(),
+                      ),
+                    );
+                  },
+                  child: Text(
+                    '+${teams.length - 2} more teams',
+                    style: const TextStyle(color: Color(0xFFFFA94A)),
+                  ),
+                ),
+              ),
+          ] else if (_showTeamsPromo) ...[
+            const SizedBox(height: 12),
+            // Empty state with dismiss
+            Stack(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: isDark
+                        ? Colors.white.withValues(alpha: 0.05)
+                        : Colors.white.withValues(alpha: 0.7),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    children: [
+                      const Text('🎯', style: TextStyle(fontSize: 32)),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Habit challenges are better together!',
+                              style: TextStyle(
+                                fontWeight: FontWeight.w500,
+                                color: isDark ? Colors.white : Colors.black87,
+                              ),
+                            ),
+                            Text(
+                              'Connect with friends to track habits together',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: isDark ? Colors.white54 : Colors.black45,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Positioned(
+                  top: 0,
+                  right: 0,
+                  child: GestureDetector(
+                    onTap: () {
+                      HapticFeedback.lightImpact();
+                      _dismissTeamsPromo();
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.all(8),
+                      color: Colors.transparent, // Hit area
+                      child: Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: BoxDecoration(
+                          color: isDark ? Colors.black26 : Colors.white54,
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          Icons.close,
+                          size: 14,
+                          color: isDark ? Colors.white54 : Colors.black54,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ],
+      ),
+    ).animate().fadeIn(delay: 400.ms);
+  }
+
+  Widget _buildLeaderboardTeaser(BuildContext context, bool isDark) {
+    return FutureBuilder<Map<String, dynamic>?>(
+      future: _getGlobalRanking(),
+      builder: (context, snapshot) {
+        final rankData = snapshot.data;
+        final hasData = rankData != null;
+        final percentile = rankData?['percentile'] as int?;
+        final isTopPerformer = hasData && (percentile ?? 100) <= 20;
 
         return GestureDetector(
           onTap: () {
             HapticFeedback.lightImpact();
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(
-                    '🏆 You\'re in the top $percentile% of users this week!'),
-                backgroundColor: _primaryOrange,
-              ),
-            );
+            // Just refresh or show simple toast since there's no complex screen anymore?
+            // Or maybe open a simple dialog explaining the rank?
+            // User just said "remove the element... provide ranking of all other".
+            // Since there is no more full leaderboard screen, we might make this non-tappable
+            // or just a display card. But for visual consistency with the old one, we keep the look.
           },
           child: Container(
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
               gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
                 colors: isTopPerformer
                     ? [
-                        const Color(0xFFFFD700).withValues(alpha: 0.2),
-                        const Color(0xFFFFA500).withValues(alpha: 0.1)
+                        const Color(0xFFFFD700).withValues(alpha: 0.25),
+                        const Color(0xFFFFA500).withValues(alpha: 0.15),
                       ]
                     : [
-                        _primaryOrange.withValues(alpha: 0.1),
-                        _secondaryOrange.withValues(alpha: 0.05)
+                        const Color(0xFFFFA94A).withValues(alpha: 0.15),
+                        const Color(0xFFFF8A3D).withValues(alpha: 0.1),
                       ],
               ),
               borderRadius: BorderRadius.circular(20),
               border: Border.all(
                 color: isTopPerformer
-                    ? const Color(0xFFFFD700).withValues(alpha: 0.3)
-                    : _primaryOrange.withValues(alpha: 0.2),
+                    ? const Color(0xFFFFD700).withValues(alpha: 0.4)
+                    : const Color(0xFFFFA94A).withValues(alpha: 0.3),
+                width: 1.5,
               ),
+              boxShadow: [
+                BoxShadow(
+                  color: (isTopPerformer
+                          ? const Color(0xFFFFD700)
+                          : const Color(0xFFFFA94A))
+                      .withValues(alpha: 0.1),
+                  blurRadius: 15,
+                  offset: const Offset(0, 6),
+                ),
+              ],
             ),
             child: Row(
               children: [
                 Container(
-                  padding: const EdgeInsets.all(10),
+                  padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: isTopPerformer
-                        ? const Color(0xFFFFD700).withValues(alpha: 0.2)
-                        : _primaryOrange.withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(12),
+                    gradient: LinearGradient(
+                      colors: isTopPerformer
+                          ? [
+                              const Color(0xFFFFD700).withValues(alpha: 0.3),
+                              const Color(0xFFFFA500).withValues(alpha: 0.2),
+                            ]
+                          : [
+                              const Color(0xFFFFA94A).withValues(alpha: 0.3),
+                              const Color(0xFFFF8A3D).withValues(alpha: 0.2),
+                            ],
+                    ),
+                    borderRadius: BorderRadius.circular(14),
                   ),
                   child: Text(
-                    isTopPerformer ? '🏆' : '📊',
-                    style: const TextStyle(fontSize: 24),
+                    isTopPerformer ? '🏆' : '🌎',
+                    style: const TextStyle(fontSize: 28),
                   ),
                 ),
-                const SizedBox(width: 14),
+                const SizedBox(width: 16),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        isTopPerformer ? 'TOP PERFORMER!' : 'YOUR RANKING',
-                        style: TextStyle(
-                          fontSize: 10,
-                          fontWeight: FontWeight.bold,
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 3),
+                        decoration: BoxDecoration(
                           color: isTopPerformer
                               ? const Color(0xFFFFD700)
-                              : _primaryOrange,
-                          letterSpacing: 1,
+                              : const Color(0xFFFFA94A),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Text(
+                          'GLOBAL RANKING',
+                          style: TextStyle(
+                            fontSize: 9,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                            letterSpacing: 1,
+                          ),
                         ),
                       ),
-                      const SizedBox(height: 4),
-                      Text(
-                        'Top $percentile% of users',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: isDark ? Colors.white : Colors.black87,
+                      const SizedBox(height: 8),
+                      if (hasData && percentile != null) ...[
+                        Text(
+                          'Top $percentile% by Consistency',
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            color: isDark ? Colors.white : Colors.black87,
+                          ),
                         ),
-                      ),
-                      Text(
-                        'Based on weekly completion rate',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: isDark ? Colors.grey[400] : Colors.grey[600],
+                        const SizedBox(height: 2),
+                        Text(
+                          'You are more consistent than ${100 - percentile}% of others.',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: isDark ? Colors.white70 : Colors.black54,
+                          ),
                         ),
-                      ),
+                      ] else ...[
+                        Text(
+                          'Unlock Your Rank',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: isDark ? Colors.white : Colors.black87,
+                          ),
+                        ),
+                        Text(
+                          'Complete habits to see where you stand.',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: isDark ? Colors.white54 : Colors.black45,
+                          ),
+                        ),
+                      ],
                     ],
                   ),
                 ),
               ],
             ),
           ),
-        ).animate().fadeIn(delay: 600.ms).slideY(begin: 0.1);
+        );
       },
-    );
+    ).animate().fadeIn(delay: 350.ms).slideY(begin: 0.1);
   }
 
-  Future<int?> _getLeaderboardPercentile() async {
+  Future<Map<String, dynamic>?> _getGlobalRanking() async {
     try {
       final user = SupabaseService().currentUser;
       if (user == null) return null;
@@ -1368,7 +1923,6 @@ class _CoachOverviewScreenState extends State<CoachOverviewScreen> {
 
       for (int i = 0; i < 7; i++) {
         final date = DateTime(now.year, now.month, now.day - i);
-        // Date format must match what's in completionDates
         final dateStr =
             '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
 
@@ -1382,46 +1936,80 @@ class _CoachOverviewScreenState extends State<CoachOverviewScreen> {
 
       final userRate = totalPossible > 0 ? completed / totalPossible : 0.0;
 
-      // Try to use Supabase if table exists
       try {
+        // Update user stats
         await SupabaseService().client.from('user_stats').upsert({
           'user_id': user.id,
           'weekly_completion_rate': userRate,
           'updated_at': DateTime.now().toIso8601String(),
         }, onConflict: 'user_id');
 
-        // Get percentile
-        // Since we can't do complex queries easily without edge functions sometimes,
-        // we'll just get count of users with lower rate.
-        // For now, simpler approach: fetch all rates (limit 1000) and calculate locally
+        // Get all rates for ranking
         final response = await SupabaseService()
             .client
             .from('user_stats')
             .select('weekly_completion_rate')
             .order('weekly_completion_rate', ascending: false)
-            .limit(1000); // Limit to avoid massive payload
+            .limit(10000);
 
         final allRates = (response as List)
             .map((r) => (r['weekly_completion_rate'] as num).toDouble())
             .toList();
 
-        if (allRates.isEmpty) return 50;
-
-        // Find user's position
-        int betterThan = 0;
-        for (final rate in allRates) {
-          if (userRate > rate) betterThan++;
+        if (allRates.isEmpty) {
+          return {
+            'rank': 1,
+            'total': 1,
+            'percentile': 1,
+            'friendsRank': null,
+          };
         }
 
-        final percentile = 100 - ((betterThan / allRates.length) * 100).round();
-        return percentile.clamp(1, 99);
-      } catch (e) {
-        // Silently fail to local estimation if table/RPC doesn't exist
-        // debugPrint('Supabase leaderboard error: $e');
-      }
+        // Find position (rank)
+        int rank = 1;
+        for (final rate in allRates) {
+          if (rate > userRate) rank++;
+        }
 
-      // Fallback: Estimate percentile: higher rate = better percentile (lower number)
-      return (100 - (userRate * 90)).round().clamp(1, 99);
+        final totalUsers = allRates.length;
+        final percentile = ((rank / totalUsers) * 100).ceil().clamp(1, 99);
+
+        // Check friends ranking
+        String? friendsRankText;
+        final partners = AccountabilityService.instance.activePartners;
+        if (partners.isNotEmpty) {
+          final yourStreak =
+              habits.map((h) => h.streak).fold(0, (a, b) => a > b ? a : b);
+          int betterFriends = 0;
+          for (final partner in partners) {
+            if (partner.partnerCurrentStreak > yourStreak) betterFriends++;
+          }
+          if (betterFriends == 0) {
+            friendsRankText =
+                'Leading among ${partners.length} friend${partners.length > 1 ? 's' : ''}! 🔥';
+          } else {
+            friendsRankText =
+                '$betterFriends friend${betterFriends > 1 ? 's' : ''} ahead of you';
+          }
+        }
+
+        return {
+          'rank': rank,
+          'total': totalUsers,
+          'percentile': percentile,
+          'friendsRank': friendsRankText,
+        };
+      } catch (e) {
+        // Fallback
+        final estimatedPercentile =
+            (100 - (userRate * 90)).round().clamp(1, 99);
+        return {
+          'rank': estimatedPercentile * 10, // Rough estimate
+          'total': 1000,
+          'percentile': estimatedPercentile,
+          'friendsRank': null,
+        };
+      }
     } catch (e) {
       return null;
     }

@@ -25,25 +25,30 @@ class LogoutService {
     }
 
     // 1. Show Confirmation Dialog
+    // 1. Show Confirmation Dialog
     final result = await showDialog<String>(
       context: context,
-      builder: (ctx) => AlertDialog(
+      builder: (context) => AlertDialog(
         title: const Text('Log Out'),
         content: Text(isAuthenticated
             ? 'Do you want to backup your data before logging out?\n\nAll local data will be deleted from this device.'
             : 'All local data will be deleted from this device. Are you sure you want to reset and exit?'),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(ctx, 'cancel'),
+            onPressed: () => Navigator.pop(context, 'cancel'),
             child: const Text('Cancel'),
           ),
           if (isAuthenticated)
             TextButton(
-              onPressed: () => Navigator.pop(ctx, 'no'),
+              onPressed: () => Navigator.pop(context, 'no'),
               child: const Text('No, just logout'),
             ),
           FilledButton(
-            onPressed: () => Navigator.pop(ctx, 'yes'),
+            style: FilledButton.styleFrom(
+              backgroundColor: Colors.redAccent,
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () => Navigator.pop(context, 'yes'),
             child:
                 Text(isAuthenticated ? 'Yes, Backup & Logout' : 'Yes, Reset'),
           ),

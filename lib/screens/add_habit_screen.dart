@@ -124,7 +124,7 @@ class _AddHabitScreenState extends State<AddHabitScreen> {
                 padding:
                     const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF191919),
+                  color: isDark ? const Color(0xFF191919) : Colors.white,
                   borderRadius: BorderRadius.circular(20),
                   border: Border.all(
                     color: _primaryOrange, // "boundaries... light orange"
@@ -138,15 +138,16 @@ class _AddHabitScreenState extends State<AddHabitScreen> {
                     ),
                   ],
                 ),
-                child: const Row(
+                child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(Icons.auto_awesome, color: _primaryOrange, size: 16),
-                    SizedBox(width: 8),
+                    const Icon(Icons.auto_awesome,
+                        color: _primaryOrange, size: 16),
+                    const SizedBox(width: 8),
                     Text(
                       'Templates',
                       style: TextStyle(
-                        color: Colors.white,
+                        color: isDark ? Colors.white : Colors.black87,
                         fontWeight: FontWeight.bold,
                         fontSize: 13,
                       ),
@@ -271,7 +272,17 @@ class _AddHabitScreenState extends State<AddHabitScreen> {
                         return Container(
                           margin: const EdgeInsets.only(bottom: 12),
                           decoration: BoxDecoration(
-                            color: const Color(0xFF191919),
+                            color: isDark ? const Color(0xFF191919) : null,
+                            gradient: isDark
+                                ? null
+                                : LinearGradient(
+                                    begin: Alignment.topLeft,
+                                    end: Alignment.bottomRight,
+                                    colors: [
+                                      Colors.white,
+                                      _primaryOrange.withValues(alpha: 0.08),
+                                    ],
+                                  ),
                             borderRadius: BorderRadius.circular(20),
                             border: Border.all(
                               // "bowdaries of it should be light orange"
@@ -408,7 +419,7 @@ class _CustomHabitFormState extends State<_CustomHabitForm> {
   final TextEditingController _habitGoalCtrl = TextEditingController();
 
   // Goal AI suggestion state
-  bool _isLoadingGoalSuggestion = false;
+  final bool _isLoadingGoalSuggestion = false;
 
   // Frequency
   String _frequency = 'Daily'; // Daily, Weekly, Monthly
@@ -1077,12 +1088,22 @@ class _CustomHabitFormState extends State<_CustomHabitForm> {
                           controller: _goalValueCtrl,
                           keyboardType: TextInputType.number,
                           decoration: InputDecoration(
-                            hintText: 'e.g. 10000',
+                            hintText: _healthMetric?.name == 'distance'
+                                ? 'e.g. 5'
+                                : _healthMetric?.name == 'sleep'
+                                    ? 'e.g. 8'
+                                    : _healthMetric?.name == 'calories'
+                                        ? 'e.g. 500'
+                                        : 'e.g. 10000',
                             suffixText: _healthMetric?.name == 'steps'
                                 ? 'steps'
                                 : _healthMetric?.name == 'sleep'
-                                    ? 'hours'
-                                    : 'units',
+                                    ? 'hrs'
+                                    : _healthMetric?.name == 'distance'
+                                        ? 'km'
+                                        : _healthMetric?.name == 'calories'
+                                            ? 'kcal'
+                                            : 'units',
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
                             ),

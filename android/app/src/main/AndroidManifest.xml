@@ -1,4 +1,5 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
     package="com.example.streakoo">
 
     <!-- Notification Permissions for Android 13+ -->
@@ -7,6 +8,11 @@
     <!-- Exact Alarm Permissions for Android 12+ (required for scheduled notifications) -->
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
     <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
+    
+    <!-- Required for notifications to persist after reboot and for reliability -->
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <uses-permission android:name="android.permission.VIBRATE" />
     
     <!-- Health Connect Permissions -->
     <uses-permission android:name="android.permission.health.READ_STEPS" />
@@ -23,6 +29,11 @@
         android:label="Streakoo"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
+
+        <!-- Remove LiveActivity service that crashes on Android -->
+        <service
+            android:name="com.example.live_activities.LiveActivityFirebaseMessagingService"
+            tools:node="remove" />
         
         <!-- Required for FlutterLocalNotifications -->
         <uses-library
@@ -47,6 +58,19 @@
             <intent-filter>
                 <action android:name="androidx.health.ACTION_SHOW_PERMISSIONS_RATIONALE" />
             </intent-filter>
+            
+            <!-- Google Assistant App Actions -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="streakoo" android:host="habit" />
+            </intent-filter>
+
+            <!-- App Shortcuts (static) -->
+            <meta-data
+                android:name="android.app.shortcuts"
+                android:resource="@xml/shortcuts" />
 
         </activity>
 

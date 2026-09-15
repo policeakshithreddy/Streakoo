@@ -27,21 +27,27 @@ class _OnboardingTutorialState extends State<OnboardingTutorial> {
     ),
     OnboardingPage(
       emoji: '🔥',
+      title: 'Meet Your Flame',
+      description:
+          'Your animated flame companion evolves as you level up. Give it a name and watch it grow!',
+    ),
+    OnboardingPage(
+      emoji: '⚡',
       title: 'Build Streaks',
       description:
           'Maintain your daily streaks and watch your progress grow. Every day counts!',
     ),
     OnboardingPage(
-      emoji: '🛡️',
-      title: 'Streak Protection',
+      emoji: '🌸',
+      title: 'Seasonal Events',
       description:
-          'Use streak freezes to protect your progress when life gets busy.',
+          'Join Spring, Summer & Winter challenges for exclusive badges and up to 2x XP!',
     ),
     OnboardingPage(
       emoji: '🤖',
-      title: 'Meet Wind 🌬️',
+      title: 'Smart AI Features',
       description:
-          'Meet Wind, your personal habit guide. Get personalized insights and motivation.',
+          'AI predicts streak risks, suggests optimal times, and finds habit patterns for you.',
     ),
     OnboardingPage(
       emoji: '🏆',

@@ -1,4 +1,3 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
@@ -104,7 +103,7 @@ class _TemplateConfirmationPageState extends State<TemplateConfirmationPage> {
         template: template,
         goal: template.suggestedGoal,
         isLoading: template.suggestedGoal == null,
-      );
+      )..focusModeEnabled = template.defaultFocusDuration != null;
     }).toList();
   }
 
@@ -182,8 +181,11 @@ class _TemplateConfirmationPageState extends State<TemplateConfirmationPage> {
           reminderTime: item.reminderEnabled
               ? item.parsedData?.suggestedReminderTime
               : null,
-          focusModeDuration:
-              item.focusModeEnabled ? item.parsedData?.focusDuration : null,
+          focusModeDuration: item.focusModeEnabled
+              ? (item.parsedData?.focusDuration ??
+                  item.template.defaultFocusDuration ??
+                  25) // Default to 25 if manually enabled
+              : null,
         );
       }
     }
@@ -683,14 +685,14 @@ class _TemplateConfirmationPageState extends State<TemplateConfirmationPage> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         // Goal text
-                        Row(
+                        const Row(
                           children: [
                             Icon(
                               Icons.flag_outlined,
                               size: 14,
                               color: _accentColor,
                             ),
-                            const SizedBox(width: 6),
+                            SizedBox(width: 6),
                             Text(
                               'Goal',
                               style: TextStyle(
@@ -727,11 +729,14 @@ class _TemplateConfirmationPageState extends State<TemplateConfirmationPage> {
                         ),
 
                         // Auto-detected features
-                        if (parsed != null &&
-                            (parsed.hasHealthGoal || parsed.hasReminder)) ...[
+                        if ((parsed != null &&
+                                (parsed.hasHealthGoal ||
+                                    parsed.hasReminder ||
+                                    parsed.hasFocusDuration)) ||
+                            item.template.defaultFocusDuration != null) ...[
                           const SizedBox(height: 12),
                           Text(
-                            'Auto-detected:',
+                            'Smart Features:',
                             style: TextStyle(
                               fontSize: 11,
                               fontWeight: FontWeight.w600,
@@ -742,7 +747,7 @@ class _TemplateConfirmationPageState extends State<TemplateConfirmationPage> {
                           const SizedBox(height: 8),
 
                           // Health goal toggle
-                          if (parsed.hasHealthGoal)
+                          if (parsed != null && parsed.hasHealthGoal)
                             _buildToggleChip(
                               icon: Icons.trending_up,
                               label:
@@ -752,11 +757,13 @@ class _TemplateConfirmationPageState extends State<TemplateConfirmationPage> {
                               isDark: isDark,
                             ),
 
-                          if (parsed.hasHealthGoal && parsed.hasReminder)
+                          if (parsed != null &&
+                              parsed.hasHealthGoal &&
+                              parsed.hasReminder)
                             const SizedBox(height: 8),
 
                           // Reminder toggle
-                          if (parsed.hasReminder)
+                          if (parsed != null && parsed.hasReminder)
                             _buildToggleChip(
                               icon: Icons.alarm,
                               label:
@@ -766,16 +773,20 @@ class _TemplateConfirmationPageState extends State<TemplateConfirmationPage> {
                               isDark: isDark,
                             ),
 
-                          if ((parsed.hasHealthGoal || parsed.hasReminder) &&
-                              parsed.hasFocusDuration)
+                          if ((parsed != null &&
+                                  (parsed.hasHealthGoal ||
+                                      parsed.hasReminder)) &&
+                              (parsed.hasFocusDuration ||
+                                  item.template.defaultFocusDuration != null))
                             const SizedBox(height: 8),
 
                           // Focus mode toggle
-                          if (parsed.hasFocusDuration)
+                          if ((parsed?.hasFocusDuration ?? false) ||
+                              item.template.defaultFocusDuration != null)
                             _buildToggleChip(
                               icon: Icons.timer_outlined,
                               label:
-                                  'Focus Mode: ${parsed.focusDuration} min timer',
+                                  'Focus Mode: ${(parsed?.hasFocusDuration ?? false) ? parsed!.focusDuration : item.template.defaultFocusDuration} min timer',
                               isEnabled: item.focusModeEnabled,
                               onToggle: () => _toggleFocusMode(index),
                               isDark: isDark,

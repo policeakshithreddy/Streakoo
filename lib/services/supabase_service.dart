@@ -295,6 +295,10 @@ class SupabaseService {
         'challenge_target_days': habit.challengeTargetDays,
         'challenge_progress': habit.challengeProgress,
         'challenge_completed': habit.challengeCompleted,
+
+        // Goal and Focus Mode
+        'habit_goal': habit.habitGoal,
+        'focus_mode_duration': habit.focusModeDuration,
       }).timeout(const Duration(seconds: 10));
       // debugPrint('✅ Synced habit "${habit.name}"');
     } catch (e) {
@@ -314,8 +318,23 @@ class SupabaseService {
         'total_xp': totalXP,
       }).timeout(const Duration(seconds: 5));
     } catch (e) {
-      // Silent fail (or log if needed)
-      // debugPrint('⚠️ Failed to sync user level: $e');
+      debugPrint('⚠️ Failed to sync user level: $e');
+    }
+  }
+
+  Future<void> upsertAchievements(
+      List<Map<String, dynamic>> achievements) async {
+    if (!isAuthenticated || achievements.isEmpty) return;
+    try {
+      final userId = currentUser!.id;
+      final data = achievements.map((a) => {...a, 'user_id': userId}).toList();
+
+      await _client
+          .from('user_achievements')
+          .upsert(data)
+          .timeout(const Duration(seconds: 10));
+    } catch (e) {
+      debugPrint('⚠️ Failed to sync achievements: $e');
     }
   }
 
@@ -414,6 +433,10 @@ class SupabaseService {
             'challenge_target_days': h.challengeTargetDays,
             'challenge_progress': h.challengeProgress,
             'challenge_completed': h.challengeCompleted,
+
+            // Goal and Focus Mode
+            'habit_goal': h.habitGoal,
+            'focus_mode_duration': h.focusModeDuration,
           };
         }).toList();
 
@@ -597,23 +620,47 @@ class SupabaseService {
 
     final userId = currentUser!.id;
 
-    final response = await _client.from('challenges').select().or(
-        'creator_id.eq.$userId,participant_emails.cs.{${currentUser!.email}}');
+    try {
+      final response = await _client.from('challenges').select().or(
+          'creator_id.eq.$userId,participant_emails.cs.{${currentUser!.email}}');
 
-    return (response as List).cast<Map<String, dynamic>>();
+      return (response as List).cast<Map<String, dynamic>>();
+    } on PostgrestException catch (e) {
+      if (e.code == 'PGRST204' || e.code == '404') {
+        debugPrint('⚠️ challenges table not found in database.');
+        return [];
+      }
+      debugPrint('❌ Error fetching challenges: ${e.message}');
+      return [];
+    } catch (e) {
+      debugPrint('❌ Error fetching challenges: $e');
+      return [];
+    }
   }
 
   Future<List<Map<String, dynamic>>> fetchLeaderboard(
       String challengeId) async {
     if (!isAuthenticated) return [];
 
-    final response = await _client
-        .from('challenge_progress')
-        .select('*, user:user_id(email)')
-        .eq('challenge_id', challengeId)
-        .order('progress', ascending: false);
+    try {
+      final response = await _client
+          .from('challenge_progress')
+          .select('*, user:user_id(email)')
+          .eq('challenge_id', challengeId)
+          .order('progress', ascending: false);
 
-    return (response as List).cast<Map<String, dynamic>>();
+      return (response as List).cast<Map<String, dynamic>>();
+    } on PostgrestException catch (e) {
+      if (e.code == 'PGRST204' || e.code == '404') {
+        debugPrint('⚠️ challenge_progress table not found in database.');
+        return [];
+      }
+      debugPrint('❌ Error fetching leaderboard: ${e.message}');
+      return [];
+    } catch (e) {
+      debugPrint('❌ Error fetching leaderboard: $e');
+      return [];
+    }
   }
 
   // ============ REAL-TIME SYNC ============
@@ -673,7 +720,7 @@ class SupabaseService {
   // ============ HEALTH CHALLENGE SYNC ============
 
   Future<void> syncHealthChallenge(Map<String, dynamic> challengeData) async {
-    if (!isAuthenticated) throw 'User not authenticated';
+    if (!isAuthenticated) return;
 
     final userId = currentUser!.id;
     final challengeId = challengeData['id'];
@@ -757,7 +804,7 @@ class SupabaseService {
   }
 
   Future<void> deleteHealthChallenge(String challengeId) async {
-    if (!isAuthenticated) throw 'User not authenticated';
+    if (!isAuthenticated) return;
 
     final userId = currentUser!.id;
 
@@ -834,6 +881,67 @@ class SupabaseService {
     } catch (e) {
       debugPrint('❌ Error checking existing data: $e');
       return false;
+    }
+  }
+
+  // ============ FCM TOKEN MANAGEMENT ============
+
+  /// Save FCM token to database for server-side push notifications
+  Future<void> saveFcmToken({
+    required String token,
+    required String deviceType,
+  }) async {
+    if (!isAuthenticated) {
+      debugPrint('⚠️ Cannot save FCM token: User not authenticated');
+      return;
+    }
+
+    final userId = currentUser!.id;
+
+    try {
+      await _client.from('fcm_tokens').upsert({
+        'user_id': userId,
+        'token': token,
+        'device_type': deviceType,
+        'updated_at': DateTime.now().toIso8601String(),
+      }, onConflict: 'token');
+
+      debugPrint('✅ FCM token saved to Supabase');
+    } on PostgrestException catch (e) {
+      if (e.code == 'PGRST205' || e.code == '42P01') {
+        debugPrint(
+            '⚠️ fcm_tokens table not found. Run the SQL migration first.');
+      } else {
+        debugPrint('❌ Failed to save FCM token: ${e.message}');
+      }
+    } catch (e) {
+      debugPrint('❌ Failed to save FCM token: $e');
+    }
+  }
+
+  /// Remove FCM token from database (on logout)
+  Future<void> removeFcmToken(String token) async {
+    if (!isAuthenticated) return;
+
+    try {
+      await _client.from('fcm_tokens').delete().eq('token', token);
+      debugPrint('✅ FCM token removed from Supabase');
+    } catch (e) {
+      debugPrint('⚠️ Failed to remove FCM token: $e');
+    }
+  }
+
+  /// Remove all FCM tokens for current user (on account delete)
+  Future<void> removeAllFcmTokens() async {
+    if (!isAuthenticated) return;
+
+    final userId = currentUser!.id;
+
+    try {
+      await _client.from('fcm_tokens').delete().eq('user_id', userId);
+      debugPrint('✅ All FCM tokens removed for user');
+    } catch (e) {
+      debugPrint('⚠️ Failed to remove FCM tokens: $e');
     }
   }
 }

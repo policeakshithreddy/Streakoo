@@ -190,13 +190,13 @@ class _AiGoalSuggestionDialogState extends State<AiGoalSuggestionDialog> {
                 // Header with gradient
                 Container(
                   padding: const EdgeInsets.all(24),
-                  decoration: BoxDecoration(
+                  decoration: const BoxDecoration(
                     gradient: LinearGradient(
                       colors: _primaryGradient,
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                     ),
-                    borderRadius: const BorderRadius.vertical(
+                    borderRadius: BorderRadius.vertical(
                       top: Radius.circular(28),
                     ),
                   ),
@@ -318,7 +318,7 @@ class _AiGoalSuggestionDialogState extends State<AiGoalSuggestionDialog> {
     return Column(
       children: [
         const SizedBox(height: 20),
-        SizedBox(
+        const SizedBox(
           width: 60,
           height: 60,
           child: CircularProgressIndicator(
@@ -372,7 +372,7 @@ class _AiGoalSuggestionDialogState extends State<AiGoalSuggestionDialog> {
       children: [
         Row(
           children: [
-            Icon(
+            const Icon(
               Icons.lightbulb_outline,
               size: 18,
               color: _accentColor,
@@ -426,7 +426,7 @@ class _AiGoalSuggestionDialogState extends State<AiGoalSuggestionDialog> {
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(16),
-                      borderSide: BorderSide(color: _accentColor, width: 2),
+                      borderSide: const BorderSide(color: _accentColor, width: 2),
                     ),
                     contentPadding: const EdgeInsets.all(16),
                   ),
@@ -534,7 +534,7 @@ class _AiGoalSuggestionDialogState extends State<AiGoalSuggestionDialog> {
           flex: 2,
           child: Container(
             decoration: BoxDecoration(
-              gradient: LinearGradient(colors: _primaryGradient),
+              gradient: const LinearGradient(colors: _primaryGradient),
               borderRadius: BorderRadius.circular(14),
               boxShadow: [
                 BoxShadow(

@@ -3,34 +3,19 @@ import 'dart:async';
 import '../services/health_service.dart';
 import '../state/app_state.dart';
 import '../models/habit.dart';
+import '../services/smart_notification_service.dart';
 
 /// Service to automatically check and complete health-tracked habits
 class HealthCheckerService {
   HealthCheckerService._();
   static final HealthCheckerService instance = HealthCheckerService._();
 
-  Timer? _periodicTimer;
   final HealthService _healthService = HealthService.instance;
 
-  /// Start periodic health data checking (every 15 minutes)
-  void startPeriodicCheck(AppState appState) {
-    // Stop any existing timer
-    stopPeriodicCheck();
-
-    // Check immediately
-    checkAndCompleteHabits(appState);
-
-    // Then check every 15 minutes
-    _periodicTimer = Timer.periodic(
-      const Duration(minutes: 15),
-      (_) => checkAndCompleteHabits(appState),
-    );
-  }
-
-  /// Stop periodic checking
-  void stopPeriodicCheck() {
-    _periodicTimer?.cancel();
-    _periodicTimer = null;
+  /// Check for health data updates immediately
+  /// Call this when app starts or resumes
+  Future<void> checkHealthHabits(AppState appState) async {
+    await checkAndCompleteHabits(appState);
   }
 
   /// Check all health-tracked habits and auto-complete if goal is met
@@ -67,8 +52,12 @@ class HealthCheckerService {
               '✅ Health goal met for "${habit.name}": $targetValue ${_getMetricUnit(habit.healthMetric!)}',
             );
 
+            // Trigger notification BEFORE completing (so we have the habit data)
+            await SmartNotificationService.instance
+                .sendHealthGoalMetNotification(habit);
+
             // Auto-complete the habit
-            appState.completeHabit(habit);
+            await appState.completeHabit(habit, isAiTriggered: true);
 
             // Note: The celebration will be triggered in completeHabit
           }
@@ -115,10 +104,9 @@ class HealthCheckerService {
         return 'hours';
       case HealthMetricType.distance:
         return 'km';
+
       case HealthMetricType.calories:
         return 'cal';
-      case HealthMetricType.heartRate:
-        return 'bpm';
     }
   }
 
@@ -133,8 +121,6 @@ class HealthCheckerService {
         return 'Distance';
       case HealthMetricType.calories:
         return 'Calories';
-      case HealthMetricType.heartRate:
-        return 'Heart Rate';
     }
   }
 }

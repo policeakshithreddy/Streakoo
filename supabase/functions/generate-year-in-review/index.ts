@@ -1,4 +1,3 @@
-import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 // Interface definitions
@@ -24,7 +23,23 @@ interface YearInReviewData {
   perfect_days: number
 }
 
-serve(async (req) => {
+Deno.serve(async (req) => {
+  // Handle CORS preflight
+  if (req.method === 'OPTIONS') {
+    return new Response('ok', {
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'POST, OPTIONS',
+        'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+      }
+    })
+  }
+
+  const corsHeaders = {
+    'Content-Type': 'application/json',
+    'Access-Control-Allow-Origin': '*',
+  }
+
   try {
     // Parse request body
     const { year } = await req.json()
@@ -32,7 +47,7 @@ serve(async (req) => {
     if (!year || typeof year !== 'number') {
       return new Response(
         JSON.stringify({ error: 'Year is required and must be a number' }),
-        { status: 400, headers: { 'Content-Type': 'application/json' } }
+        { status: 400, headers: corsHeaders }
       )
     }
 
@@ -41,7 +56,7 @@ serve(async (req) => {
     if (!authHeader) {
       return new Response(
         JSON.stringify({ error: 'Missing authorization header' }),
-        { status: 401, headers: { 'Content-Type': 'application/json' } }
+        { status: 401, headers: corsHeaders }
       )
     }
 
@@ -65,7 +80,7 @@ serve(async (req) => {
     if (userError || !user) {
       return new Response(
         JSON.stringify({ error: 'Unauthorized' }),
-        { status: 401, headers: { 'Content-Type': 'application/json' } }
+        { status: 401, headers: corsHeaders }
       )
     }
 
@@ -84,7 +99,7 @@ serve(async (req) => {
     if (!habits || habits.length === 0) {
       return new Response(
         JSON.stringify({ error: 'No habits found for user' }),
-        { status: 404, headers: { 'Content-Type': 'application/json' } }
+        { status: 404, headers: corsHeaders }
       )
     }
 
@@ -129,13 +144,13 @@ serve(async (req) => {
 
     return new Response(
       JSON.stringify({ success: true, data: reviewData }),
-      { status: 200, headers: { 'Content-Type': 'application/json' } }
+      { status: 200, headers: corsHeaders }
     )
   } catch (error) {
     console.error('❌ Error generating Year in Review:', error)
     return new Response(
-      JSON.stringify({ error: error.message }),
-      { status: 500, headers: { 'Content-Type': 'application/json' } }
+      JSON.stringify({ error: (error as Error).message }),
+      { status: 500, headers: corsHeaders }
     )
   }
 })

@@ -8,7 +8,6 @@ enum HealthMetricType {
   sleep,
   distance,
   calories,
-  heartRate,
 }
 
 class HealthService {
@@ -75,19 +74,30 @@ class HealthService {
   Future<bool> hasHealthDataAccess() async {
     if (_useMockData) return true;
 
-    final types = [
-      HealthDataType.STEPS,
-      HealthDataType.SLEEP_SESSION,
-      HealthDataType.SLEEP_IN_BED,
-      HealthDataType.SLEEP_ASLEEP,
-      HealthDataType.SLEEP_LIGHT,
-      HealthDataType.SLEEP_DEEP,
-      HealthDataType.SLEEP_REM,
-      HealthDataType.DISTANCE_DELTA,
-      HealthDataType.ACTIVE_ENERGY_BURNED,
-    ];
-
     try {
+      // Check for individual critical permissions rather than all at once
+      // This prevents the "not connected" state if user denies one minor permission
+      final stepsPermission =
+          await _health.hasPermissions([HealthDataType.STEPS]);
+      if (stepsPermission == true) {
+        _isAuthorized = true;
+        return true;
+      }
+
+      final sleepPermission =
+          await _health.hasPermissions([HealthDataType.SLEEP_SESSION]);
+      if (sleepPermission == true) {
+        _isAuthorized = true;
+        return true;
+      }
+
+      // If neither specific check passed, try a broad check but don't fail hard
+      final types = [
+        HealthDataType.STEPS,
+        HealthDataType.SLEEP_SESSION,
+        HealthDataType.ACTIVE_ENERGY_BURNED,
+      ];
+
       final hasPermissions = await _health.hasPermissions(types);
       _isAuthorized = hasPermissions ?? false;
       return _isAuthorized;
@@ -107,14 +117,12 @@ class HealthService {
     final types = [
       HealthDataType.STEPS,
       HealthDataType.SLEEP_SESSION,
-      HealthDataType.SLEEP_IN_BED,
       HealthDataType.SLEEP_ASLEEP,
       HealthDataType.SLEEP_LIGHT,
       HealthDataType.SLEEP_DEEP,
       HealthDataType.SLEEP_REM,
       HealthDataType.DISTANCE_DELTA,
       HealthDataType.ACTIVE_ENERGY_BURNED,
-      HealthDataType.HEART_RATE,
     ];
 
     try {
@@ -130,8 +138,18 @@ class HealthService {
   Future<int> getStepCount(DateTime date) async {
     if (_useMockData) return 8542; // Mock steps
 
+    // Don't force requestPermissions here, check if we have access first
+    // to avoid jarring popups if user already connected
     if (!_isAuthorized) {
-      await requestPermissions();
+      final hasAccess = await hasHealthDataAccess();
+      if (!hasAccess) {
+        // Only request if we really don't have access
+        try {
+          await requestPermissions();
+        } catch (e) {
+          debugPrint('Failed to request permissions in getStepCount: $e');
+        }
+      }
     }
 
     try {
@@ -144,8 +162,11 @@ class HealthService {
         endTime: endOfDay,
       );
 
+      // Remove potential duplicates by overlapping time
+      final uniqueData = _health.removeDuplicates(healthData);
+
       int totalSteps = 0;
-      for (var data in healthData) {
+      for (var data in uniqueData) {
         if (data.value is NumericHealthValue) {
           totalSteps += (data.value as NumericHealthValue).numericValue.toInt();
         }
@@ -163,58 +184,72 @@ class HealthService {
     if (_useMockData) return 7.5; // Mock sleep hours
 
     if (!_isAuthorized) {
-      await requestPermissions();
+      final hasAccess = await hasHealthDataAccess();
+      if (!hasAccess) {
+        try {
+          await requestPermissions();
+        } catch (e) {
+          debugPrint('Failed to request permissions in getSleepHours: $e');
+        }
+      }
     }
 
     try {
-      // For sleep, we need to look at the previous night's data
-      // Sleep from date-1 evening to date morning
-      final sleepStart = DateTime(date.year, date.month, date.day - 1, 18, 0);
+      // Sleep window: Noon previous day to Noon current day
+      // This captures the entire night's sleep session
+      final sleepStart = DateTime(date.year, date.month, date.day - 1, 12, 0);
       final sleepEnd = DateTime(date.year, date.month, date.day, 12, 0);
 
-      // Try multiple sleep data types for better compatibility
-      final sleepTypes = [
-        HealthDataType.SLEEP_SESSION,
-        HealthDataType.SLEEP_IN_BED,
+      debugPrint('Fetching sleep data from $sleepStart to $sleepEnd');
+
+      // 1. Try fetching SLEEP_SESSION first (Health Connect / Apple Health standard)
+      final sessionData = await _health.getHealthDataFromTypes(
+        types: [HealthDataType.SLEEP_SESSION],
+        startTime: sleepStart,
+        endTime: sleepEnd,
+      );
+
+      final uniqueSessions = _health.removeDuplicates(sessionData);
+
+      if (uniqueSessions.isNotEmpty) {
+        double totalMinutes = 0;
+        for (var data in uniqueSessions) {
+          if (data.value is NumericHealthValue) {
+            totalMinutes += (data.value as NumericHealthValue).numericValue;
+          }
+        }
+        final hours = totalMinutes / 60.0;
+        debugPrint('Found SLEEP_SESSION data: $hours hours');
+        return hours;
+      }
+
+      // 2. Fallback: Sum up detailed stages if no sessions found
+      // (Some older Android setups or specific apps might only write stages)
+      final stageTypes = [
         HealthDataType.SLEEP_ASLEEP,
         HealthDataType.SLEEP_LIGHT,
         HealthDataType.SLEEP_DEEP,
         HealthDataType.SLEEP_REM,
       ];
 
-      double totalMinutes = 0;
-      Set<String> processedIntervals = {};
+      final stageData = await _health.getHealthDataFromTypes(
+        types: stageTypes,
+        startTime: sleepStart,
+        endTime: sleepEnd,
+      );
 
-      for (final sleepType in sleepTypes) {
-        try {
-          final healthData = await _health.getHealthDataFromTypes(
-            types: [sleepType],
-            startTime: sleepStart,
-            endTime: sleepEnd,
-          );
+      final uniqueStages = _health.removeDuplicates(stageData);
 
-          for (var data in healthData) {
-            // Create a unique key for this time interval to avoid double counting
-            final intervalKey =
-                '${data.dateFrom.millisecondsSinceEpoch}-${data.dateTo.millisecondsSinceEpoch}';
-
-            if (!processedIntervals.contains(intervalKey)) {
-              if (data.value is NumericHealthValue) {
-                totalMinutes += (data.value as NumericHealthValue).numericValue;
-                processedIntervals.add(intervalKey);
-              }
-            }
-          }
-        } catch (e) {
-          // Some sleep types might not be available on all devices
-          debugPrint('Sleep type $sleepType not available: $e');
+      double totalStageMinutes = 0;
+      for (var data in uniqueStages) {
+        if (data.value is NumericHealthValue) {
+          totalStageMinutes += (data.value as NumericHealthValue).numericValue;
         }
       }
 
-      final hours = totalMinutes / 60.0;
-      debugPrint(
-          'Sleep hours calculated: $hours from ${processedIntervals.length} intervals');
-      return hours;
+      final stageHours = totalStageMinutes / 60.0;
+      debugPrint('Found staged sleep data: $stageHours hours');
+      return stageHours;
     } catch (e) {
       debugPrint('Error fetching sleep data: $e');
       return 0.0;
@@ -298,9 +333,6 @@ class HealthService {
         return await getDistance(today);
       case HealthMetricType.calories:
         return await getCalories(today);
-      case HealthMetricType.heartRate:
-        // Heart rate needs different handling (average)
-        return 0.0;
     }
   }
 
@@ -334,12 +366,6 @@ class HealthService {
   bool isValidCalories(double? calories) {
     if (calories == null) return false;
     return calories >= 0 && calories <= 10000;
-  }
-
-  /// Validate heart rate is within reasonable range (30-220 bpm)
-  bool isValidHeartRate(int? bpm) {
-    if (bpm == null) return false;
-    return bpm >= 30 && bpm <= 220;
   }
 
   // ========== QUICK ACCESS METHODS FOR AI COACH ==========
@@ -377,46 +403,6 @@ class HealthService {
     }
   }
 
-  /// Get today's average heart rate
-  Future<int?> getTodayHeartRate() async {
-    if (_useMockData) return 72; // Mock heart rate
-
-    if (!_isAuthorized) {
-      await requestPermissions();
-    }
-
-    try {
-      final startOfDay = DateTime(
-        DateTime.now().year,
-        DateTime.now().month,
-        DateTime.now().day,
-      );
-      final endOfDay = startOfDay.add(const Duration(days: 1));
-
-      final healthData = await _health.getHealthDataFromTypes(
-        types: [HealthDataType.HEART_RATE],
-        startTime: startOfDay,
-        endTime: endOfDay,
-      );
-
-      if (healthData.isEmpty) return null;
-
-      double totalHeartRate = 0;
-      int count = 0;
-
-      for (var data in healthData) {
-        if (data.value is NumericHealthValue) {
-          totalHeartRate += (data.value as NumericHealthValue).numericValue;
-          count++;
-        }
-      }
-
-      return count > 0 ? (totalHeartRate / count).round() : null;
-    } catch (e) {
-      debugPrint('Error fetching heart rate: $e');
-      return null;
-    }
-  }
   // ========== HEALTH CONNECT HELPERS ==========
 
   /// Check Health Connect SDK status (Android only)

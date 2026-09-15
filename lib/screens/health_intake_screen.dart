@@ -152,8 +152,7 @@ class _HealthIntakeScreenState extends State<HealthIntakeScreen> {
         return HealthMetricType.distance;
       case 'calories':
         return HealthMetricType.calories;
-      case 'heartRate':
-        return HealthMetricType.heartRate;
+
       default:
         return null;
     }

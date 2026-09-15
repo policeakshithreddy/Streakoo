@@ -33,8 +33,14 @@ class _WeeklyTrendChartState extends State<WeeklyTrendChart> {
     final minScore = widget.weeklyScores.reduce((a, b) => a < b ? a : b);
     final range = maxScore - minScore;
 
-    // Day labels
-    final days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    // Generate day labels dynamically based on actual dates (past 7 days)
+    final now = DateTime.now();
+    final dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    final days = List.generate(widget.weeklyScores.length, (i) {
+      final date =
+          now.subtract(Duration(days: widget.weeklyScores.length - 1 - i));
+      return dayNames[date.weekday - 1]; // weekday is 1-7 (Mon-Sun)
+    });
 
     return Container(
       padding: const EdgeInsets.all(20),
@@ -101,7 +107,7 @@ class _WeeklyTrendChartState extends State<WeeklyTrendChart> {
 
           // Chart
           SizedBox(
-            height: 120,
+            height: 200,
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.end,
               mainAxisAlignment: MainAxisAlignment.spaceBetween,

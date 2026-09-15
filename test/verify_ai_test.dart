@@ -1,3 +1,4 @@
+// ignore_for_file: avoid_print
 import 'package:flutter_test/flutter_test.dart';
 import 'package:streakoo/config/app_config.dart';
 import 'package:streakoo/services/groq_ai_service.dart';

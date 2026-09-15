@@ -119,7 +119,15 @@ class _FocusTaskManagerScreenState extends State<FocusTaskManagerScreen> {
           if (_hasChanges)
             TextButton(
               onPressed: _saveChanges,
-              child: const Text('Save', style: TextStyle(color: Colors.white)),
+              child: Text(
+                'Save',
+                style: TextStyle(
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? Colors.white
+                      : const Color(0xFFFFA94A), // Orange for light theme
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
             ),
         ],
       ),

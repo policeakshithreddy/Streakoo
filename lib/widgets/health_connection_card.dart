@@ -60,7 +60,7 @@ class _HealthConnectionCardState extends State<HealthConnectionCard>
     // If user just connected (wasn't connected before, now is), auto-sync
     if (!wasConnected && _isConnected && mounted) {
       final appState = context.read<AppState>();
-      HealthCheckerService.instance.startPeriodicCheck(appState);
+      HealthCheckerService.instance.checkHealthHabits(appState);
 
       // Show success message
       ScaffoldMessenger.of(context).showSnackBar(
@@ -141,7 +141,7 @@ class _HealthConnectionCardState extends State<HealthConnectionCard>
       _checkConnection();
       if (mounted) {
         final appState = context.read<AppState>();
-        HealthCheckerService.instance.startPeriodicCheck(appState);
+        HealthCheckerService.instance.checkHealthHabits(appState);
       }
     }
   }
@@ -176,7 +176,7 @@ class _HealthConnectionCardState extends State<HealthConnectionCard>
         _lastSyncTime = null;
       });
 
-      HealthCheckerService.instance.stopPeriodicCheck();
+      // HealthCheckerService.instance.stopPeriodicCheck(); // Periodic check removed
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -418,7 +418,7 @@ class _HealthConnectionCardState extends State<HealthConnectionCard>
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      'Health-tracked habits will automatically complete when you reach your goals. Data syncs every 15 minutes.',
+                      'Health-tracked habits will automatically complete when you reach your goals. Data syncs when you open the app.',
                       style: TextStyle(
                         fontSize: 13,
                         color: Theme.of(context)
@@ -506,7 +506,10 @@ class _HealthConnectionCardState extends State<HealthConnectionCard>
             text,
             style: TextStyle(
               fontSize: 14,
-              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.8),
+              color: Theme.of(context)
+                  .colorScheme
+                  .onSurface
+                  .withValues(alpha: 0.8),
             ),
           ),
         ),

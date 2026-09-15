@@ -7,9 +7,11 @@ import 'package:flutter_animate/flutter_animate.dart';
 
 import 'dart:io';
 
+import 'package:provider/provider.dart';
 import 'package:live_activities/live_activities.dart';
 
 import '../models/habit.dart';
+import '../state/app_state.dart';
 
 /// Full-screen Focus Mode for distraction-free habit completion
 class FocusModeScreen extends StatefulWidget {
@@ -37,6 +39,12 @@ class _FocusModeScreenState extends State<FocusModeScreen>
   bool _isCompleted = false;
   bool _isPomodoroMode = false;
   int _pomodoroRound = 0;
+
+  // Auto-complete logic
+  Timer? _autoCompleteTimer;
+  int _autoCompleteSeconds = 5;
+  bool _showAutoCompleteCountdown = false;
+  bool _autoMarkedComplete = false;
 
   final _liveActivities = LiveActivities();
   String? _activityId;
@@ -83,6 +91,7 @@ class _FocusModeScreenState extends State<FocusModeScreen>
   void dispose() {
     _endLiveActivity();
     _timer?.cancel();
+    _autoCompleteTimer?.cancel();
     _pulseController.dispose();
     _breathController.dispose();
     _particleController.dispose();
@@ -122,14 +131,60 @@ class _FocusModeScreenState extends State<FocusModeScreen>
     HapticFeedback.heavyImpact();
     _endLiveActivity();
     _timer?.cancel();
+
+    // Start auto-complete countdown
     setState(() {
       _isRunning = false;
+      _showAutoCompleteCountdown = true;
+      _autoCompleteSeconds = 5;
+    });
+
+    _autoCompleteTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (_autoCompleteSeconds > 1) {
+        setState(() => _autoCompleteSeconds--);
+        HapticFeedback.lightImpact();
+      } else {
+        _confirmAutoComplete();
+      }
+    });
+  }
+
+  void _confirmAutoComplete() {
+    _autoCompleteTimer?.cancel();
+
+    // Mark habit as complete in AppState
+    // Use isAiTriggered: true because Focus Mode completion is verified (user completed timer)
+    // This bypasses manual completion restrictions for health-tracked habits
+    if (mounted) {
+      context.read<AppState>().completeHabit(widget.habit, isAiTriggered: true);
+    }
+
+    setState(() {
+      _showAutoCompleteCountdown = false;
       _isCompleted = true;
+      _autoMarkedComplete = true;
 
       if (_isPomodoroMode) {
         _pomodoroRound++;
       }
     });
+
+    HapticFeedback.heavyImpact();
+    widget.onComplete?.call();
+  }
+
+  void _cancelAutoComplete() {
+    _autoCompleteTimer?.cancel();
+    setState(() {
+      _showAutoCompleteCountdown = false;
+      _isCompleted = true; // Show completed state but don't mark as done
+      _autoMarkedComplete = false;
+
+      if (_isPomodoroMode) {
+        _pomodoroRound++;
+      }
+    });
+    HapticFeedback.selectionClick();
     widget.onComplete?.call();
   }
 
@@ -154,39 +209,41 @@ class _FocusModeScreenState extends State<FocusModeScreen>
     });
   }
 
-  String get _formattedTime {
-    final minutes = _remainingSeconds ~/ 60;
-    final seconds = _remainingSeconds % 60;
-    return '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
-  }
-
   double get _progress {
     final total = _selectedDuration * 60;
     return 1 - (_remainingSeconds / total);
   }
 
   Color get _primaryGradientColor {
-    if (_isCompleted) return const Color(0xFF4CAF50);
-    if (_progress < 0.5) return const Color(0xFF667EEA);
-    return const Color(0xFFFF6B9D);
+    if (_isCompleted) return const Color(0xFF4CAF50); // Keep green for success
+    if (_progress < 0.5) return const Color(0xFFFFA94A); // Orange - app primary
+    return const Color(0xFFFF6B6B); // Coral for second half
   }
 
   Color get _secondaryGradientColor {
     if (_isCompleted) return const Color(0xFF66BB6A);
-    if (_progress < 0.5) return const Color(0xFF764BA2);
-    return const Color(0xFFFFC371);
+    if (_progress < 0.5) return const Color(0xFF1FD1A5); // Teal - app secondary
+    return const Color(0xFFFFA94A); // Orange for second half
   }
+
+  // Theme helper getters
+  bool get _isDark => Theme.of(context).brightness == Brightness.dark;
+
+  Color get _bgColor => _isDark ? Colors.black : const Color(0xFFF8F9FA);
+  Color get _textColor => _isDark ? Colors.white : const Color(0xFF1A1A1A);
+  Color get _subtextColor =>
+      _isDark ? Colors.white.withValues(alpha: 0.6) : const Color(0xFF666666);
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: _bgColor,
       body: SafeArea(
         child: Stack(
           children: [
             // Animated background with particles
             _buildAnimatedBackground(),
-            _buildParticles(),
+            _buildParticles(), // Show particles in both themes
 
             // Main content
             Center(
@@ -206,10 +263,10 @@ class _FocusModeScreenState extends State<FocusModeScreen>
                       // Habit name
                       Text(
                         widget.habit.name,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 28,
                           fontWeight: FontWeight.bold,
-                          color: Colors.white,
+                          color: _textColor,
                           letterSpacing: -0.5,
                         ),
                         textAlign: TextAlign.center,
@@ -223,7 +280,7 @@ class _FocusModeScreenState extends State<FocusModeScreen>
                             : 'Focus Time',
                         style: TextStyle(
                           fontSize: 14,
-                          color: Colors.white.withValues(alpha: 0.6),
+                          color: _subtextColor,
                           letterSpacing: 2,
                           fontWeight: FontWeight.w500,
                         ),
@@ -260,7 +317,11 @@ class _FocusModeScreenState extends State<FocusModeScreen>
               right: 16,
               child: IconButton(
                 onPressed: () => _showExitConfirmation(),
-                icon: const Icon(Icons.close, color: Colors.white54, size: 28),
+                icon: Icon(
+                  Icons.close,
+                  color: _isDark ? Colors.white54 : Colors.black45,
+                  size: 28,
+                ),
               ),
             ),
 
@@ -270,6 +331,9 @@ class _FocusModeScreenState extends State<FocusModeScreen>
               left: 16,
               child: _buildPomodoroToggle(),
             ),
+
+            // Auto-complete Countdown Overlay
+            if (_showAutoCompleteCountdown) _buildAutoCompleteOverlay(),
           ],
         ),
       ),
@@ -351,11 +415,17 @@ class _FocusModeScreenState extends State<FocusModeScreen>
             gradient: RadialGradient(
               center: Alignment.center,
               radius: 1.5 + (_breathController.value * 0.3),
-              colors: [
-                const Color(0xFF1A1A2E),
-                const Color(0xFF16213E),
-                Colors.black,
-              ],
+              colors: _isDark
+                  ? [
+                      const Color(0xFF1A1A1A),
+                      const Color(0xFF0D0D0D).withValues(alpha: 0.95),
+                      Colors.black,
+                    ]
+                  : [
+                      Colors.white,
+                      const Color(0xFFF0F0F0),
+                      const Color(0xFFE8E8E8),
+                    ],
             ),
           ),
         );
@@ -368,7 +438,7 @@ class _FocusModeScreenState extends State<FocusModeScreen>
       animation: _particleController,
       builder: (context, child) {
         return CustomPaint(
-          painter: _ParticlePainter(_particleController.value),
+          painter: _ParticlePainter(_particleController.value, _isDark),
           child: Container(),
         );
       },
@@ -406,6 +476,15 @@ class _FocusModeScreenState extends State<FocusModeScreen>
   }
 
   Widget _buildPremiumTimerCircle() {
+    // Calculate responsive size based on screen dimensions
+    final screenSize = MediaQuery.of(context).size;
+    final minDimension = screenSize.width < screenSize.height
+        ? screenSize.width
+        : screenSize.height;
+    // Use 70% of min dimension, but cap between 250-400px
+    final timerSize = (minDimension * 0.65).clamp(250.0, 400.0);
+    final arcSize = timerSize - 20; // Arc slightly smaller than container
+
     return AnimatedBuilder(
       animation: Listenable.merge([_pulseController, _glowController]),
       builder: (context, child) {
@@ -415,8 +494,8 @@ class _FocusModeScreenState extends State<FocusModeScreen>
         return Transform.scale(
           scale: scale,
           child: Container(
-            width: 300,
-            height: 300,
+            width: timerSize,
+            height: timerSize,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               boxShadow: [
@@ -432,16 +511,18 @@ class _FocusModeScreenState extends State<FocusModeScreen>
               children: [
                 // Background circle with gradient
                 Container(
-                  width: 300,
-                  height: 300,
+                  width: timerSize,
+                  height: timerSize,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     gradient: LinearGradient(
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                       colors: [
-                        Colors.white.withValues(alpha: 0.05),
-                        Colors.white.withValues(alpha: 0.02),
+                        (_isDark ? Colors.white : Colors.black)
+                            .withValues(alpha: 0.05),
+                        (_isDark ? Colors.white : Colors.black)
+                            .withValues(alpha: 0.02),
                       ],
                     ),
                   ),
@@ -449,8 +530,8 @@ class _FocusModeScreenState extends State<FocusModeScreen>
 
                 // Premium gradient progress arc
                 SizedBox(
-                  width: 280,
-                  height: 280,
+                  width: arcSize,
+                  height: arcSize,
                   child: CustomPaint(
                     painter: _GradientArcPainter(
                       progress: _progress,
@@ -460,26 +541,28 @@ class _FocusModeScreenState extends State<FocusModeScreen>
                   ),
                 ),
 
-                // Time display
+                // Apple-style time display with individual digit animations
                 Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Text(
-                      _isCompleted ? '✓' : _formattedTime,
-                      style: TextStyle(
-                        fontSize: _isCompleted ? 90 : 64,
-                        fontWeight: FontWeight.w200,
-                        color: Colors.white,
-                        fontFeatures: const [FontFeature.tabularFigures()],
-                      ),
-                    ),
+                    if (_isCompleted)
+                      Text(
+                        '✓',
+                        style: TextStyle(
+                          fontSize: timerSize * 0.3,
+                          fontWeight: FontWeight.w200,
+                          color: _textColor,
+                        ),
+                      ).animate().scale(curve: Curves.elasticOut)
+                    else
+                      _buildAppleStyleTimer(),
                     if (!_isCompleted) const SizedBox(height: 8),
                     if (!_isCompleted)
                       Text(
                         _isRunning ? 'Stay focused' : 'Ready to begin?',
                         style: TextStyle(
                           fontSize: 14,
-                          color: Colors.white.withValues(alpha: 0.6),
+                          color: _subtextColor,
                           fontWeight: FontWeight.w500,
                         ),
                       ),
@@ -490,6 +573,85 @@ class _FocusModeScreenState extends State<FocusModeScreen>
           ),
         );
       },
+    );
+  }
+
+  /// Build Apple-style animated timer with individual digit animations
+  Widget _buildAppleStyleTimer() {
+    final minutes = _remainingSeconds ~/ 60;
+    final seconds = _remainingSeconds % 60;
+
+    // Split into individual digits
+    final minTens = minutes ~/ 10;
+    final minOnes = minutes % 10;
+    final secTens = seconds ~/ 10;
+    final secOnes = seconds % 10;
+
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        // Minutes tens digit
+        _buildAnimatedDigit(minTens, 'min_tens'),
+        // Minutes ones digit
+        _buildAnimatedDigit(minOnes, 'min_ones'),
+        // Colon separator
+        Text(
+          ':',
+          style: TextStyle(
+            fontSize: 56,
+            fontWeight: FontWeight.w200,
+            color: _textColor.withValues(alpha: 0.8),
+          ),
+        ),
+        // Seconds tens digit
+        _buildAnimatedDigit(secTens, 'sec_tens'),
+        // Seconds ones digit
+        _buildAnimatedDigit(secOnes, 'sec_ones'),
+      ],
+    );
+  }
+
+  /// Build an individual animated digit with smooth scale + fade transition
+  Widget _buildAnimatedDigit(int digit, String keyPrefix) {
+    return SizedBox(
+      width: 40, // Fixed width for consistent spacing
+      child: AnimatedSwitcher(
+        duration: const Duration(milliseconds: 300),
+        switchInCurve: Curves.easeOutCubic,
+        switchOutCurve: Curves.easeInCubic,
+        transitionBuilder: (Widget child, Animation<double> animation) {
+          // Smoother scale + fade animation (Apple-style)
+          return ScaleTransition(
+            scale: Tween<double>(begin: 0.7, end: 1.0).animate(
+              CurvedAnimation(parent: animation, curve: Curves.easeOutCubic),
+            ),
+            child: FadeTransition(
+              opacity: animation,
+              child: child,
+            ),
+          );
+        },
+        layoutBuilder: (Widget? currentChild, List<Widget> previousChildren) {
+          return Stack(
+            alignment: Alignment.center,
+            children: [
+              ...previousChildren,
+              if (currentChild != null) currentChild,
+            ],
+          );
+        },
+        child: Text(
+          digit.toString(),
+          key: ValueKey('${keyPrefix}_$digit'),
+          style: TextStyle(
+            fontSize: 64,
+            fontWeight: FontWeight.w200,
+            color: _textColor,
+            fontFeatures: const [FontFeature.tabularFigures()],
+          ),
+        ),
+      ),
     );
   }
 
@@ -507,7 +669,7 @@ class _FocusModeScreenState extends State<FocusModeScreen>
           'Quick Presets',
           style: TextStyle(
             fontSize: 12,
-            color: Colors.white.withValues(alpha: 0.5),
+            color: _subtextColor,
             letterSpacing: 1.5,
             fontWeight: FontWeight.w600,
           ),
@@ -537,19 +699,24 @@ class _FocusModeScreenState extends State<FocusModeScreen>
                             ],
                           )
                         : null,
-                    color:
-                        isSelected ? null : Colors.white.withValues(alpha: 0.1),
+                    color: isSelected
+                        ? null
+                        : (_isDark
+                            ? Colors.white.withValues(alpha: 0.1)
+                            : Colors.black.withValues(alpha: 0.05)),
                     borderRadius: BorderRadius.circular(20),
                     border: Border.all(
                       color: isSelected
                           ? Colors.transparent
-                          : Colors.white.withValues(alpha: 0.2),
+                          : (_isDark
+                              ? Colors.white.withValues(alpha: 0.2)
+                              : Colors.black.withValues(alpha: 0.1)),
                     ),
                   ),
                   child: Text(
                     label,
                     style: TextStyle(
-                      color: Colors.white,
+                      color: isSelected ? Colors.white : _textColor,
                       fontWeight:
                           isSelected ? FontWeight.bold : FontWeight.w500,
                       fontSize: 14,
@@ -599,9 +766,9 @@ class _FocusModeScreenState extends State<FocusModeScreen>
   Widget _buildCompletedState() {
     return Column(
       children: [
-        const Text(
-          '🎉 Excellent Focus!',
-          style: TextStyle(
+        Text(
+          _autoMarkedComplete ? '🎉 Marked Complete!' : '🎉 Session Finished',
+          style: const TextStyle(
             fontSize: 28,
             fontWeight: FontWeight.bold,
             color: Colors.white,
@@ -734,31 +901,188 @@ class _FocusModeScreenState extends State<FocusModeScreen>
       return;
     }
 
+    // If countdown is showing, just cancel it and exit
+    if (_showAutoCompleteCountdown) {
+      _autoCompleteTimer?.cancel();
+      Navigator.pop(context);
+      return;
+    }
+
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF1A1A2E),
+      builder: (ctx) => AlertDialog(
+        backgroundColor: _isDark ? const Color(0xFF191919) : Colors.white,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text('Exit Focus Mode?',
-            style: TextStyle(color: Colors.white)),
-        content: const Text(
+        title: Text(
+          'Exit Focus Mode?',
+          style: TextStyle(color: _textColor),
+        ),
+        content: Text(
           'Your progress will be lost.',
-          style: TextStyle(color: Colors.white70),
+          style: TextStyle(color: _subtextColor),
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
-            child:
-                const Text('Stay', style: TextStyle(color: Color(0xFF667EEA))),
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text(
+              'Stay',
+              style: TextStyle(color: Color(0xFFFFA94A)),
+            ),
           ),
           TextButton(
             onPressed: () {
-              Navigator.pop(context); // Close dialog
-              Navigator.pop(context); // Close focus mode
+              Navigator.pop(ctx);
+              Navigator.pop(context);
             },
-            child: const Text('Exit', style: TextStyle(color: Colors.red)),
+            child:
+                const Text('Exit', style: TextStyle(color: Colors.redAccent)),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildAutoCompleteOverlay() {
+    return Container(
+      color: Colors.black.withValues(alpha: 0.9),
+      child: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'Marking Complete In',
+              style: TextStyle(
+                color: Colors.white.withValues(alpha: 0.8),
+                fontSize: 18,
+                fontWeight: FontWeight.w500,
+                letterSpacing: 1,
+              ),
+            ).animate().fadeIn(duration: 300.ms),
+            const SizedBox(height: 30),
+            // Animated countdown circle with progress ring
+            SizedBox(
+              width: 160,
+              height: 160,
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  // Progress ring background
+                  Container(
+                    width: 160,
+                    height: 160,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: Colors.white.withValues(alpha: 0.1),
+                        width: 6,
+                      ),
+                    ),
+                  ),
+                  // Animated progress ring
+                  TweenAnimationBuilder<double>(
+                    tween: Tween(begin: 0, end: (5 - _autoCompleteSeconds) / 5),
+                    duration: const Duration(milliseconds: 900),
+                    curve: Curves.easeInOutCubic,
+                    builder: (context, value, child) {
+                      return SizedBox(
+                        width: 160,
+                        height: 160,
+                        child: CircularProgressIndicator(
+                          value: value,
+                          strokeWidth: 6,
+                          strokeCap: StrokeCap.round,
+                          backgroundColor: Colors.transparent,
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                            Color.lerp(
+                              const Color(0xFF4CAF50),
+                              const Color(0xFF81C784),
+                              value,
+                            )!,
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                  // Inner glow circle
+                  Container(
+                    width: 130,
+                    height: 130,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: RadialGradient(
+                        colors: [
+                          const Color(0xFF4CAF50).withValues(alpha: 0.15),
+                          Colors.transparent,
+                        ],
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: const Color(0xFF4CAF50).withValues(alpha: 0.3),
+                          blurRadius: 40,
+                          spreadRadius: 10,
+                        ),
+                      ],
+                    ),
+                  ),
+                  // Countdown number with enhanced animation
+                  AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 400),
+                    transitionBuilder:
+                        (Widget child, Animation<double> animation) {
+                      return ScaleTransition(
+                        scale: CurvedAnimation(
+                          parent: animation,
+                          curve: Curves.elasticOut,
+                        ),
+                        child: FadeTransition(
+                          opacity: animation,
+                          child: child,
+                        ),
+                      );
+                    },
+                    child: Text(
+                      '$_autoCompleteSeconds',
+                      key: ValueKey(_autoCompleteSeconds),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 72,
+                        fontWeight: FontWeight.w300,
+                        fontFeatures: [FontFeature.tabularFigures()],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            )
+                .animate(
+                  onPlay: (controller) => controller.repeat(reverse: true),
+                )
+                .scale(
+                  begin: const Offset(1, 1),
+                  end: const Offset(1.03, 1.03),
+                  duration: 800.ms,
+                  curve: Curves.easeInOut,
+                ),
+            const SizedBox(height: 50),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                _buildActionButton(
+                  'Cancel',
+                  Icons.close_rounded,
+                  _cancelAutoComplete,
+                ).animate().fadeIn(delay: 200.ms).slideX(begin: -0.2),
+                const SizedBox(width: 20),
+                _buildActionButton(
+                  'Complete Now',
+                  Icons.check_rounded,
+                  _confirmAutoComplete,
+                  isPrimary: true,
+                ).animate().fadeIn(delay: 300.ms).slideX(begin: 0.2),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -833,13 +1157,17 @@ class _GradientArcPainter extends CustomPainter {
 // Custom painter for particle effect
 class _ParticlePainter extends CustomPainter {
   final double animationValue;
+  final bool isDark;
 
-  _ParticlePainter(this.animationValue);
+  _ParticlePainter(this.animationValue, this.isDark);
 
   @override
   void paint(Canvas canvas, Size size) {
+    final baseColor = isDark
+        ? Colors.white
+        : const Color(0xFF191919); // Dark particles for light theme
     final paint = Paint()
-      ..color = Colors.white.withValues(alpha: 0.3)
+      ..color = baseColor.withValues(alpha: 0.3)
       ..style = PaintingStyle.fill;
 
     // Draw floating particles
@@ -848,14 +1176,15 @@ class _ParticlePainter extends CustomPainter {
       final y = (size.height * (i * 0.07 + animationValue * 0.2)) % size.height;
       final radius = 1.0 + (i % 3);
 
-      paint.color = Colors.white.withValues(alpha: 0.1 + (i % 5) * 0.05);
+      paint.color = baseColor.withValues(alpha: 0.1 + (i % 5) * 0.05);
       canvas.drawCircle(Offset(x, y), radius, paint);
     }
   }
 
   @override
   bool shouldRepaint(_ParticlePainter oldDelegate) {
-    return oldDelegate.animationValue != animationValue;
+    return oldDelegate.animationValue != animationValue ||
+        oldDelegate.isDark != isDark;
   }
 }
 
@@ -880,7 +1209,7 @@ class FocusModeButton extends StatelessWidget {
           MaterialPageRoute(
             builder: (_) => FocusModeScreen(
               habit: habit,
-              durationMinutes: defaultDuration,
+              durationMinutes: habit.focusModeDuration ?? defaultDuration,
             ),
           ),
         );
@@ -889,12 +1218,12 @@ class FocusModeButton extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
           gradient: const LinearGradient(
-            colors: [Color(0xFF667EEA), Color(0xFF764BA2)],
+            colors: [Color(0xFFFFA94A), Color(0xFF1FD1A5)], // App theme colors
           ),
           borderRadius: BorderRadius.circular(20),
           boxShadow: [
             BoxShadow(
-              color: const Color(0xFF667EEA).withValues(alpha: 0.3),
+              color: const Color(0xFFFFA94A).withValues(alpha: 0.3),
               blurRadius: 8,
               offset: const Offset(0, 2),
             ),

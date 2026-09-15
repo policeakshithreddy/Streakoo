@@ -1,20 +1,38 @@
 import 'package:flutter/foundation.dart';
 import '../models/habit.dart';
+import 'supabase_service.dart';
 
-/// Future-ready cloud sync service.
-/// Currently does nothing except log calls.
+/// Cloud sync service connecting habit operations to Supabase.
 class CloudSyncService {
-  static Future<void> pushHabits(List<Habit> habits) async {
-    debugPrint(
-      '[CloudSync] pushHabits called with ${habits.length} habits (stub).',
-    );
+  static final SupabaseService _supabase = SupabaseService();
 
-    // TODO: integrate Supabase/Firebase/Appwrite here.
+  static Future<void> pushHabits(List<Habit> habits) async {
+    if (!_supabase.isAuthenticated) {
+      debugPrint('[CloudSync] User not authenticated. Skipping push.');
+      return;
+    }
+
+    try {
+      await _supabase.syncHabitsToCloud(habits);
+      debugPrint('[CloudSync] Successfully pushed ${habits.length} habits to Supabase.');
+    } catch (e) {
+      debugPrint('[CloudSync] Error pushing habits to Supabase: $e');
+    }
   }
 
   static Future<List<Habit>> pullHabits() async {
-    debugPrint('[CloudSync] pullHabits called (stub).');
-    // TODO: download from cloud later.
-    return [];
+    if (!_supabase.isAuthenticated) {
+      debugPrint('[CloudSync] User not authenticated. Returning empty list.');
+      return [];
+    }
+
+    try {
+      final habits = await _supabase.fetchHabitsFromCloud();
+      debugPrint('[CloudSync] Successfully pulled ${habits.length} habits from Supabase.');
+      return habits;
+    } catch (e) {
+      debugPrint('[CloudSync] Error pulling habits from Supabase: $e');
+      return [];
+    }
   }
 }

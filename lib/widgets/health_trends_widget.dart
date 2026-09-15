@@ -5,6 +5,8 @@ class HealthTrendsWidget extends StatelessWidget {
   final int previousStepsAvg;
   final double currentSleepAvg;
   final double previousSleepAvg;
+  final double currentCaloriesAvg;
+  final double previousCaloriesAvg;
   final bool embedded;
 
   const HealthTrendsWidget({
@@ -13,6 +15,8 @@ class HealthTrendsWidget extends StatelessWidget {
     required this.previousStepsAvg,
     required this.currentSleepAvg,
     required this.previousSleepAvg,
+    required this.currentCaloriesAvg,
+    required this.previousCaloriesAvg,
     this.embedded = false,
   });
 
@@ -27,6 +31,10 @@ class HealthTrendsWidget extends StatelessWidget {
         : 0;
 
     final sleepDiff = currentSleepAvg - previousSleepAvg;
+    final caloriesDiff = currentCaloriesAvg - previousCaloriesAvg;
+    final caloriesPercent = previousCaloriesAvg > 0
+        ? ((caloriesDiff / previousCaloriesAvg) * 100).round()
+        : 0;
 
     // Determine primary insight
     String title = 'Health Trends';
@@ -40,6 +48,12 @@ class HealthTrendsWidget extends StatelessWidget {
           'You\'re walking $stepsPercent% more than last week! Great job staying active.';
       icon = Icons.trending_up;
       color = Colors.green;
+    } else if (caloriesDiff > 100) {
+      title = 'Burning More Calories';
+      message =
+          'You\'re burning $caloriesPercent% more calories this week! Keep up the great work.';
+      icon = Icons.local_fire_department;
+      color = Colors.deepOrange;
     } else if (stepsDiff < -1000) {
       title = 'Step Count Down';
       message =
@@ -52,6 +66,12 @@ class HealthTrendsWidget extends StatelessWidget {
           'You\'re averaging ${sleepDiff.toStringAsFixed(1)}h more sleep this week.';
       icon = Icons.bedtime;
       color = const Color(0xFF5E35B1); // Deep purple
+    } else if (caloriesDiff < -100) {
+      title = 'Activity Decreased';
+      message =
+          'Your calorie burn is down ${caloriesPercent.abs()}%. Try to add more movement to your day.';
+      icon = Icons.trending_down;
+      color = Colors.orange;
     }
 
     return Container(
@@ -98,16 +118,22 @@ class HealthTrendsWidget extends StatelessWidget {
           ),
           const SizedBox(height: 16),
           // Mini stats row
-          Row(
+          Wrap(
+            spacing: 24,
+            runSpacing: 12,
             children: [
               _buildMiniStat(context, 'Avg Steps', currentStepsAvg.toString(),
                   stepsDiff > 0 ? Colors.green : Colors.orange),
-              const SizedBox(width: 24),
               _buildMiniStat(
                   context,
                   'Avg Sleep',
                   '${currentSleepAvg.toStringAsFixed(1)}h',
                   sleepDiff >= 0 ? const Color(0xFF5E35B1) : Colors.grey),
+              _buildMiniStat(
+                  context,
+                  'Avg Calories',
+                  '${currentCaloriesAvg.toInt()} cal',
+                  caloriesDiff >= 0 ? Colors.deepOrange : Colors.grey),
             ],
           ),
         ],

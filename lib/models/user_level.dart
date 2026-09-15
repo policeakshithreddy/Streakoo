@@ -14,6 +14,17 @@ class UserLevel {
   // XP needed for next level: level * 100
   int get xpToNextLevel => level * 100;
 
+  // Total XP accumulated across all levels
+  int get totalXP {
+    // Sum of XP for all completed levels + current level XP
+    // Levels 1..(level-1) each needed i*100 XP
+    int total = 0;
+    for (int i = 1; i < level; i++) {
+      total += i * 100;
+    }
+    return total + currentXP;
+  }
+
   double get progress => currentXP / xpToNextLevel;
   double get progressToNextLevel => progress;
 
@@ -28,6 +39,19 @@ class UserLevel {
   void addXP(int amount) {
     currentXP += amount;
     checkLevelUp();
+  }
+
+  /// Remove XP (for undo operations). Handles level down if needed.
+  /// Preserves unlocked avatars and current avatar selection.
+  void removeXP(int amount) {
+    currentXP -= amount;
+    // Handle level down if XP goes negative
+    while (currentXP < 0 && level > 1) {
+      level--;
+      currentXP += level * 100; // Add previous level's XP requirement
+    }
+    // Clamp to 0 minimum (can't go negative at level 1)
+    if (currentXP < 0) currentXP = 0;
   }
 
   bool checkLevelUp() {

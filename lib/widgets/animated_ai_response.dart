@@ -369,7 +369,9 @@ class _AnimatedAIResponseState extends State<AnimatedAIResponse>
       key: const ValueKey('result'),
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: theme.colorScheme.surface,
+        color: theme.brightness == Brightness.dark
+            ? theme.colorScheme.surface
+            : Colors.white,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
           color: theme.colorScheme.primary.withValues(alpha: 0.3),
@@ -648,7 +650,9 @@ class AnimatedInsightCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: cardColor.withValues(alpha: 0.1),
+        color: theme.brightness == Brightness.dark
+            ? cardColor.withValues(alpha: 0.1)
+            : Colors.white,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
           color: cardColor.withValues(alpha: 0.3),

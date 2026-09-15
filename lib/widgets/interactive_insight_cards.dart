@@ -50,13 +50,17 @@ class _InteractiveInsightCardState extends State<InteractiveInsightCard> {
           ),
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: widget.color.withValues(alpha: 0.4),
+            color: widget.isDark
+                ? widget.color.withValues(alpha: 0.4)
+                : widget.color.withValues(alpha: 0.3),
             width: _isExpanded ? 2 : 1,
           ),
           boxShadow: _isExpanded
               ? [
                   BoxShadow(
-                    color: widget.color.withValues(alpha: 0.3),
+                    color: widget.isDark
+                        ? widget.color.withValues(alpha: 0.3)
+                        : Colors.black.withValues(alpha: 0.05),
                     blurRadius: 20,
                     offset: const Offset(0, 10),
                   )
@@ -249,12 +253,16 @@ class PredictiveInsightCard extends StatelessWidget {
         ),
         borderRadius: BorderRadius.circular(24),
         border: Border.all(
-          color: trendColor.withValues(alpha: 0.3),
+          color: isDark
+              ? trendColor.withValues(alpha: 0.3)
+              : trendColor.withValues(alpha: 0.3),
           width: 2,
         ),
         boxShadow: [
           BoxShadow(
-            color: trendColor.withValues(alpha: 0.2),
+            color: isDark
+                ? trendColor.withValues(alpha: 0.2)
+                : Colors.black.withValues(alpha: 0.05),
             blurRadius: 20,
             offset: const Offset(0, 10),
           ),

@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <!-- Siri Shortcuts Support -->
+    <key>NSUserActivityTypes</key>
+    <array>
+        <string>CompleteHabitIntent</string>
+        <string>ViewStreakIntent</string>
+    </array>
+    
+    <!-- Description for Siri -->
+    <key>INIntentsSupported</key>
+    <array>
+        <string>CompleteHabitIntent</string>
+    </array>
+</dict>
+</plist>

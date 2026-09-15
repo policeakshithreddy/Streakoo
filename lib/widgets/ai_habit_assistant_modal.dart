@@ -76,11 +76,6 @@ class _AiHabitAssistantModalState extends State<AiHabitAssistantModal>
 
     if (!mounted) return;
 
-    setState(() {
-      _isAnalyzing = false;
-      _isTyping = true;
-    });
-
     // Initial prompt
     final systemPrompt =
         '''You are an expert ${widget.category} coach. Analyze the user's intent to start "${widget.habitName}".
@@ -92,8 +87,12 @@ If you suggest a time, mention it like "at 7:00 AM" or "at 20:00".''';
     final initialUserMsg =
         'I want to start a habit called "${widget.habitName}" in the ${widget.category} category. Suggest a good goal and time.';
 
-    _messages.add({'role': 'system', 'content': systemPrompt});
-    _messages.add({'role': 'user', 'content': initialUserMsg});
+    setState(() {
+      _messages.add({'role': 'system', 'content': systemPrompt});
+      _messages.add({'role': 'user', 'content': initialUserMsg});
+      _isAnalyzing = false;
+      _isTyping = true;
+    });
 
     try {
       final response = await GroqAIService.instance.generateChatResponse(
@@ -175,7 +174,7 @@ If you suggest a time, mention it like "at 7:00 AM" or "at 20:00".''';
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final primaryColor = const Color(0xFFFFA94A); // Brand Orange
+    const primaryColor = Color(0xFFFFA94A); // Brand Orange
 
     return Container(
       height: MediaQuery.of(context).size.height * 0.75, // 75% height
@@ -202,7 +201,7 @@ If you suggest a time, mention it like "at 7:00 AM" or "at 20:00".''';
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child:
-                      Icon(Icons.auto_awesome, color: primaryColor, size: 20),
+                      const Icon(Icons.auto_awesome, color: primaryColor, size: 20),
                 ),
                 const SizedBox(width: 12),
                 Column(
@@ -251,7 +250,7 @@ If you suggest a time, mention it like "at 7:00 AM" or "at 20:00".''';
                               shape: BoxShape.circle,
                               color: primaryColor.withValues(alpha: 0.1),
                             ),
-                            child: Icon(Icons.psychology,
+                            child: const Icon(Icons.psychology,
                                 size: 40, color: primaryColor),
                           ),
                         ),
@@ -279,11 +278,11 @@ If you suggest a time, mention it like "at 7:00 AM" or "at 20:00".''';
                 : ListView.builder(
                     controller: _scrollController,
                     padding: const EdgeInsets.all(16),
-                    itemCount: _messages.length -
-                        2 +
-                        (_isTyping
-                            ? 1
-                            : 0), // Skip first 2 (system + initial prompt)
+                    itemCount:
+                        (_messages.length > 2 ? _messages.length - 2 : 0) +
+                            (_isTyping
+                                ? 1
+                                : 0), // Skip first 2 (system + initial prompt)
                     itemBuilder: (context, index) {
                       if (_isTyping && index == _messages.length - 2) {
                         return Padding(
@@ -294,7 +293,7 @@ If you suggest a time, mention it like "at 7:00 AM" or "at 20:00".''';
                                 radius: 14,
                                 backgroundColor:
                                     primaryColor.withValues(alpha: 0.1),
-                                child: Icon(Icons.auto_awesome,
+                                child: const Icon(Icons.auto_awesome,
                                     size: 14, color: primaryColor),
                               ),
                               const SizedBox(width: 8),
@@ -378,11 +377,11 @@ If you suggest a time, mention it like "at 7:00 AM" or "at 20:00".''';
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
+                  const Row(
                     children: [
                       Icon(Icons.lightbulb_rounded,
                           color: primaryColor, size: 18),
-                      const SizedBox(width: 8),
+                      SizedBox(width: 8),
                       Text(
                         'AI Suggestion',
                         style: TextStyle(
@@ -403,15 +402,23 @@ If you suggest a time, mention it like "at 7:00 AM" or "at 20:00".''';
 
                   // Display parsed goals
                   if (_lastParsedData!.hasHealthGoal)
-                    Text(
-                      '🎯 Goal: ${_lastParsedData!.healthGoalValue!.toInt()} ${_lastParsedData!.healthMetric!.name}',
-                      style: TextStyle(
-                          fontSize: 14, color: theme.colorScheme.onSurface),
+                    Builder(
+                      builder: (context) {
+                        String unit = _lastParsedData!.healthMetric!.name;
+                        if (unit == 'distance') unit = 'km';
+                        if (unit == 'calories') unit = 'kcal';
+                        if (unit == 'sleep') unit = 'hrs';
+                        return Text(
+                          '🎯 Goal: ${_lastParsedData!.healthGoalValue!.toInt()} $unit',
+                          style: TextStyle(
+                              fontSize: 14, color: theme.colorScheme.onSurface),
+                        );
+                      },
                     )
                   else
                     // Fallback to text if structured data is weak but text exists
                     Text(
-                      '🎯 Goal: ${_messages.last['role'] == 'assistant' ? _messages.last['content']!.split('\n').first : "Custom Goal"}',
+                      '🎯 Goal: ${_messages.isNotEmpty && _messages.last['role'] == 'assistant' ? _messages.last['content']!.split('\n').first : "Custom Goal"}',
                       // Simple heuristic to show top line as goal summary
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
@@ -449,7 +456,7 @@ If you suggest a time, mention it like "at 7:00 AM" or "at 20:00".''';
                         elevation: 0,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
-                          side: BorderSide(
+                          side: const BorderSide(
                               color: primaryColor), // requested orange border
                         ),
                       ),

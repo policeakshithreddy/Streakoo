@@ -2,19 +2,30 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'info_screen.dart';
 
 import '../state/app_state.dart';
 import '../services/supabase_service.dart';
+import '../services/tour_service.dart';
 import '../widgets/health_connection_card.dart';
 import 'auth_screen.dart';
 import 'profile_screen.dart';
+
 import '../services/logout_service.dart';
 import 'welcome_screen.dart';
 import 'habit_chains_screen.dart';
+import 'accountability_partners_screen.dart';
+import '../services/fcm_notification_service.dart';
+import '../services/smart_notification_service.dart';
 
-class SettingsScreen extends StatelessWidget {
+class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
 
+  @override
+  State<SettingsScreen> createState() => _SettingsScreenState();
+}
+
+class _SettingsScreenState extends State<SettingsScreen> {
   // App theme colors
   static const _primaryOrange = Color(0xFFFFA94A);
   static const _secondaryTeal = Color(0xFF1FD1A5);
@@ -98,9 +109,11 @@ class SettingsScreen extends StatelessWidget {
     Color? iconColor,
     bool showArrow = true,
     Widget? trailing,
+    Key? tileKey,
   }) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
+      key: tileKey,
       margin: const EdgeInsets.only(bottom: 8),
       decoration: BoxDecoration(
         color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
@@ -176,7 +189,7 @@ class SettingsScreen extends StatelessWidget {
         elevation: 0,
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -336,11 +349,230 @@ class SettingsScreen extends StatelessWidget {
 
             const SizedBox(height: 8),
 
+            // Notifications Section
+            _buildSectionHeader(context, 'Notifications',
+                    Icons.notifications_rounded, Colors.amber)
+                .animate()
+                .fadeIn(duration: 300.ms, delay: 260.ms)
+                .slideX(begin: -0.1, end: 0),
+            Container(
+              margin: const EdgeInsets.only(bottom: 16),
+              decoration: BoxDecoration(
+                color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: isDark
+                      ? Colors.white.withValues(alpha: 0.1)
+                      : Colors.grey.withValues(alpha: 0.15),
+                ),
+              ),
+              child: Column(
+                children: [
+                  SwitchListTile(
+                    secondary: Container(
+                      width: 36,
+                      height: 36,
+                      decoration: BoxDecoration(
+                        color:
+                            Colors.amber.withValues(alpha: isDark ? 0.2 : 0.12),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: const Icon(Icons.wb_sunny_rounded,
+                          color: Colors.amber, size: 20),
+                    ),
+                    title: Text(
+                      'Morning Motivational Quotes',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w500,
+                        color: isDark ? Colors.white : Colors.black87,
+                      ),
+                    ),
+                    subtitle: Text(
+                      '7-8 AM daily inspiration',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: isDark ? Colors.grey[400] : Colors.grey[600],
+                      ),
+                    ),
+                    value: appState.morningQuotesEnabled,
+                    onChanged: (value) =>
+                        appState.setMorningQuotesEnabled(value),
+                    activeTrackColor: _primaryOrange,
+                  ),
+                  Divider(
+                      height: 1,
+                      color: isDark
+                          ? Colors.white.withValues(alpha: 0.05)
+                          : Colors.grey.withValues(alpha: 0.1)),
+                  SwitchListTile(
+                    secondary: Container(
+                      width: 36,
+                      height: 36,
+                      decoration: BoxDecoration(
+                        color: Colors.redAccent
+                            .withValues(alpha: isDark ? 0.2 : 0.12),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: const Icon(Icons.local_fire_department_rounded,
+                          color: Colors.redAccent, size: 20),
+                    ),
+                    title: Text(
+                      'Streak-at-Risk Alerts',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w500,
+                        color: isDark ? Colors.white : Colors.black87,
+                      ),
+                    ),
+                    subtitle: Text(
+                      '8 PM reminder if habits incomplete',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: isDark ? Colors.grey[400] : Colors.grey[600],
+                      ),
+                    ),
+                    value: appState.streakAlertsEnabled,
+                    onChanged: (value) =>
+                        appState.setStreakAlertsEnabled(value),
+                    activeTrackColor: _primaryOrange,
+                  ),
+                  Divider(
+                      height: 1,
+                      color: isDark
+                          ? Colors.white.withValues(alpha: 0.05)
+                          : Colors.grey.withValues(alpha: 0.1)),
+                  SwitchListTile(
+                    secondary: Container(
+                      width: 36,
+                      height: 36,
+                      decoration: BoxDecoration(
+                        color: _secondaryTeal.withValues(
+                            alpha: isDark ? 0.2 : 0.12),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: const Icon(Icons.emoji_events_rounded,
+                          color: _secondaryTeal, size: 20),
+                    ),
+                    title: Text(
+                      'Milestone Celebrations',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w500,
+                        color: isDark ? Colors.white : Colors.black87,
+                      ),
+                    ),
+                    subtitle: Text(
+                      'Celebrate 7, 14, 21, 30+ day streaks',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: isDark ? Colors.grey[400] : Colors.grey[600],
+                      ),
+                    ),
+                    value: appState.milestoneCelebrationEnabled,
+                    onChanged: (value) =>
+                        appState.setMilestoneCelebrationEnabled(value),
+                    activeTrackColor: _primaryOrange,
+                  ),
+                ],
+              ),
+            )
+                .animate()
+                .fadeIn(duration: 300.ms, delay: 265.ms)
+                .slideX(begin: 0.1, end: 0),
+
+            const SizedBox(height: 8),
+
+            // App Info Section
+            _buildSectionHeader(
+                    context, 'App Info', Icons.info_outline, Colors.blue)
+                .animate()
+                .fadeIn(duration: 300.ms, delay: 270.ms)
+                .slideX(begin: -0.1, end: 0),
+            _buildSettingsTile(
+              context: context,
+              icon: Icons.sync,
+              title: 'Sync Notifications',
+              subtitle: 'Fix push notification connection',
+              onTap: () async {
+                final messenger = ScaffoldMessenger.of(context);
+                try {
+                  // Call exposed method from imported service
+                  await FCMNotificationService.instance.forceSyncToken();
+                  messenger.showSnackBar(
+                    const SnackBar(
+                        content: Text('✅ Notification Token Synced!')),
+                  );
+                } catch (e) {
+                  messenger.showSnackBar(
+                    SnackBar(content: Text('❌ Sync failed: $e')),
+                  );
+                }
+              },
+              iconColor: Colors.blue,
+              showArrow: false,
+            )
+                .animate()
+                .fadeIn(duration: 300.ms, delay: 275.ms)
+                .slideX(begin: 0.1, end: 0),
+            _buildSettingsTile(
+              context: context,
+              icon: Icons.notifications_active,
+              title: 'Test Notification',
+              subtitle: 'Check if local notifications work',
+              onTap: () async {
+                final messenger = ScaffoldMessenger.of(context);
+                try {
+                  final success = await SmartNotificationService.instance
+                      .sendTestNotification();
+                  if (success) {
+                    messenger.showSnackBar(
+                      const SnackBar(
+                          content: Text(
+                              '✅ Test notification sent! Check your notifications.')),
+                    );
+                  } else {
+                    messenger.showSnackBar(
+                      const SnackBar(
+                          content:
+                              Text('❌ Notification service not initialized')),
+                    );
+                  }
+                } catch (e) {
+                  messenger.showSnackBar(
+                    SnackBar(content: Text('❌ Error: $e')),
+                  );
+                }
+              },
+              iconColor: Colors.green,
+              showArrow: false,
+            )
+                .animate()
+                .fadeIn(duration: 300.ms, delay: 280.ms)
+                .slideX(begin: 0.1, end: 0),
+            /*
+            _buildSettingsTile(
+              context: context,
+              icon: Icons.restart_alt,
+              title: 'Reset Onboarding',
+              subtitle: 'Show the onboarding screens again',
+              onTap: () {
+                // context.read<AppState>().setOnboardingComplete(false); // Method missing
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Feature coming soon!')),
+                );
+              },
+              iconColor: Colors.blue,
+            )
+                .animate()
+                .fadeIn(duration: 300.ms, delay: 280.ms)
+                .slideX(begin: 0.1, end: 0),
+            */
+
+            const SizedBox(height: 8),
+
             // Habit Chains Section
             _buildSectionHeader(context, 'Routines', Icons.link_rounded,
                     const Color(0xFF667EEA))
                 .animate()
-                .fadeIn(duration: 300.ms, delay: 270.ms)
+                .fadeIn(duration: 300.ms, delay: 285.ms)
                 .slideX(begin: -0.1, end: 0),
             _buildSettingsTile(
               context: context,
@@ -357,6 +589,32 @@ class SettingsScreen extends StatelessWidget {
             )
                 .animate()
                 .fadeIn(duration: 300.ms, delay: 290.ms)
+                .slideX(begin: 0.1, end: 0),
+
+            const SizedBox(height: 8),
+
+            // Social Section - Friends & Accountability
+            _buildSectionHeader(context, 'Social', Icons.people_rounded,
+                    const Color(0xFFEC4899))
+                .animate()
+                .fadeIn(duration: 300.ms, delay: 292.ms)
+                .slideX(begin: -0.1, end: 0),
+            _buildSettingsTile(
+              context: context,
+              icon: Icons.group_add_rounded,
+              iconColor: const Color(0xFFEC4899),
+              title: 'Friends & Accountability',
+              subtitle: 'Invite friends and stay motivated together',
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (_) => const AccountabilityPartnersScreen()),
+                );
+              },
+            )
+                .animate()
+                .fadeIn(duration: 300.ms, delay: 295.ms)
                 .slideX(begin: 0.1, end: 0),
 
             const SizedBox(height: 8),
@@ -422,6 +680,28 @@ class SettingsScreen extends StatelessWidget {
                 .animate()
                 .fadeIn(duration: 300.ms, delay: 450.ms)
                 .slideX(begin: 0.1, end: 0),
+            _buildSettingsTile(
+              context: context,
+              icon: Icons.replay_circle_filled_rounded,
+              iconColor: _secondaryTeal,
+              title: 'Show Welcome Tour Again',
+              subtitle: 'Replay the onboarding walkthrough',
+              onTap: () async {
+                await TourService.instance.resetAllTours();
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text(
+                          'Tours will appear again when you visit each screen!'),
+                      behavior: SnackBarBehavior.floating,
+                    ),
+                  );
+                }
+              },
+            )
+                .animate()
+                .fadeIn(duration: 300.ms, delay: 475.ms)
+                .slideX(begin: 0.1, end: 0),
 
             const SizedBox(height: 8),
 
@@ -458,15 +738,51 @@ class SettingsScreen extends StatelessWidget {
 
             // App version footer
             Center(
-              child: Text(
-                'Streakoo v1.0.0',
-                style: TextStyle(
-                  fontSize: 12,
-                  color: isDark ? Colors.grey[600] : Colors.grey[400],
-                ),
+              child: Column(
+                children: [
+                  Text(
+                    'Streakoo v1.0.0',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: isDark ? Colors.grey[600] : Colors.grey[400],
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      _buildFooterLink(
+                        context,
+                        'About Streakoo',
+                        () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (_) =>
+                                  const InfoScreen(type: InfoType.about)),
+                        ),
+                      ),
+                      Container(
+                        margin: const EdgeInsets.symmetric(horizontal: 12),
+                        width: 1,
+                        height: 12,
+                        color: Colors.grey.withValues(alpha: 0.3),
+                      ),
+                      _buildFooterLink(
+                        context,
+                        'Privacy Policy',
+                        () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (_) =>
+                                  const InfoScreen(type: InfoType.privacy)),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               ),
             ).animate().fadeIn(duration: 300.ms, delay: 650.ms),
-            const SizedBox(height: 16),
+            const SizedBox(height: 32),
           ],
         ),
       ),
@@ -590,35 +906,25 @@ class SettingsScreen extends StatelessWidget {
   Future<void> _performReset(BuildContext context) async {
     final confirm = await showDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Row(
-          children: [
-            Icon(Icons.warning_rounded, color: Colors.red, size: 28),
-            SizedBox(width: 10),
-            Text('Reset Everything?'),
-          ],
-        ),
-        content: const Text(
-          'This will permanently delete:\n\n'
-          '• All your habits\n'
-          '• All streaks & progress\n'
-          '• Level & XP data\n'
-          '• Health challenges\n\n'
-          'You will be signed out and returned to the welcome screen.',
-        ),
+      builder: (context) => AlertDialog(
+        title: const Text('Reset Everything? ⚠️'),
+        content: const Text('This will permanently delete:\n\n'
+            '• All your habits\n'
+            '• All streaks & progress\n'
+            '• Level & XP data\n'
+            '• Health challenges\n\n'
+            'You will be signed out and returned to the welcome screen.'),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
+            onPressed: () => Navigator.pop(context, false),
             child: Text('Cancel', style: TextStyle(color: Colors.grey[600])),
           ),
           FilledButton(
             style: FilledButton.styleFrom(
-              backgroundColor: Colors.red,
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12)),
+              backgroundColor: Colors.redAccent,
+              foregroundColor: Colors.white,
             ),
-            onPressed: () => Navigator.pop(ctx, true),
+            onPressed: () => Navigator.pop(context, true),
             child: const Text('Reset Everything'),
           ),
         ],
@@ -663,5 +969,20 @@ class SettingsScreen extends StatelessWidget {
         );
       }
     }
+  }
+
+  Widget _buildFooterLink(
+      BuildContext context, String text, VoidCallback onTap) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Text(
+        text,
+        style: TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.w500,
+          color: _primaryOrange.withValues(alpha: 0.8),
+        ),
+      ),
+    );
   }
 }

@@ -24,5 +24,7 @@ class AppConfig {
 
   // Check if API is configured
   static bool get isApiConfigured =>
-      groqApiKey != 'YOUR_GROQ_API_KEY_HERE' && groqApiKey.isNotEmpty;
+      groqApiKey != 'YOUR_GROQ_API_KEY_HERE' &&
+      groqApiKey != 'YOUR_GROQ_API_KEY' &&
+      groqApiKey.isNotEmpty;
 }

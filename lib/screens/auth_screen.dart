@@ -3,9 +3,14 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../services/supabase_service.dart';
 import '../services/guest_service.dart';
+import '../services/firebase_service.dart';
+import '../services/fcm_notification_service.dart';
 import 'profile_setup_screen.dart';
 import 'question_flow_screen.dart';
 import 'data_restoration_screen.dart';
+import 'sync_conflict_screen.dart';
+import 'package:provider/provider.dart';
+import '../state/app_state.dart';
 
 class AuthScreen extends StatefulWidget {
   const AuthScreen({super.key});
@@ -104,9 +109,35 @@ class _AuthScreenState extends State<AuthScreen> with TickerProviderStateMixin {
 
       if (mounted) {
         if (hasData) {
-          // Restore data flow
+          final appState = context.read<AppState>();
+          // Check for Sync Conflict: Guest Data (Local) exists AND Cloud Data exists
+          if (appState.habits.isNotEmpty) {
+            debugPrint(
+                '⚠️ Sync Conflict Detected: Local Guest Data + Cloud Data');
+
+            setState(() => _isLoading = true);
+            // Fetch cloud habits "quietly" for the conflict screen
+            final cloudHabits = await supabase.fetchHabitsFromCloud();
+
+            if (mounted) {
+              setState(() => _isLoading = false);
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => SyncConflictScreen(
+                    localHabits: appState.habits,
+                    cloudHabits: cloudHabits,
+                    userName: name,
+                  ),
+                ),
+              );
+              return; // Stop here, let Conflict Screen handle next steps
+            }
+          }
+
+          // Restore data flow (Standard)
           debugPrint(
-              '✅ Existing data found - navigating to DataRestorationScreen');
+              '✅ Existing data found (No local conflict) - navigating to DataRestorationScreen');
+          if (!mounted) return;
           Navigator.of(context).pushAndRemoveUntil(
             MaterialPageRoute(
               builder: (_) => DataRestorationScreen(userName: name),
@@ -147,6 +178,12 @@ class _AuthScreenState extends State<AuthScreen> with TickerProviderStateMixin {
         }
 
         await _checkAndCompleteProfile();
+
+        // Track login with Firebase Analytics
+        FirebaseService.instance.logLogin('google');
+
+        // Sync FCM token to Supabase for server-side notifications
+        FCMNotificationService.instance.syncTokenAfterLogin();
       }
     } catch (e) {
       if (mounted) {
@@ -597,7 +634,8 @@ class _AuthScreenState extends State<AuthScreen> with TickerProviderStateMixin {
           decoration: InputDecoration(
             labelText: 'Verification Code',
             labelStyle: TextStyle(color: subtitleColor),
-            prefixIcon: const Icon(Icons.lock_clock_outlined, color: _primaryOrange),
+            prefixIcon:
+                const Icon(Icons.lock_clock_outlined, color: _primaryOrange),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(14),
               borderSide:
@@ -665,7 +703,8 @@ class _AuthScreenState extends State<AuthScreen> with TickerProviderStateMixin {
         const SizedBox(height: 16),
         TextButton(
           onPressed: _isLoading ? null : _resendCode,
-          child: const Text('Resend Code', style: TextStyle(color: _primaryOrange)),
+          child: const Text('Resend Code',
+              style: TextStyle(color: _primaryOrange)),
         ),
         TextButton(
           onPressed: () {

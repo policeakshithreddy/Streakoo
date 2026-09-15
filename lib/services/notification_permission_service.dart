@@ -77,6 +77,10 @@ class NotificationPermissionService {
       if (androidImplementation != null) {
         final granted =
             await androidImplementation.requestNotificationsPermission();
+
+        // Also request exact alarm permission for Android 12+
+        await requestExactAlarmPermission();
+
         return granted ?? false;
       }
 
@@ -98,6 +102,47 @@ class NotificationPermissionService {
     } catch (e) {
       debugPrint('Error requesting notification permissions: $e');
       return false;
+    }
+  }
+
+  /// Check if exact alarm permission is granted (Android 12+)
+  Future<bool> canScheduleExactAlarms() async {
+    try {
+      final androidImplementation =
+          _notifications.resolvePlatformSpecificImplementation<
+              AndroidFlutterLocalNotificationsPlugin>();
+
+      if (androidImplementation != null) {
+        // Use the correct method for checking exact alarm permission
+        final canSchedule =
+            await androidImplementation.canScheduleExactNotifications();
+        debugPrint('📅 Can schedule exact alarms: $canSchedule');
+        return canSchedule ?? false;
+      }
+      return true; // Non-Android platforms don't need this
+    } catch (e) {
+      debugPrint('Error checking exact alarm permission: $e');
+      return false;
+    }
+  }
+
+  /// Request exact alarm permission (opens system settings on Android 12+)
+  Future<void> requestExactAlarmPermission() async {
+    try {
+      final androidImplementation =
+          _notifications.resolvePlatformSpecificImplementation<
+              AndroidFlutterLocalNotificationsPlugin>();
+
+      if (androidImplementation != null) {
+        final canSchedule = await canScheduleExactAlarms();
+        if (!canSchedule) {
+          debugPrint('⚠️ Exact alarm permission not granted, requesting...');
+          // This opens the system settings for the user to grant permission
+          await androidImplementation.requestExactAlarmsPermission();
+        }
+      }
+    } catch (e) {
+      debugPrint('Error requesting exact alarm permission: $e');
     }
   }
 

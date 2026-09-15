@@ -1,4 +1,6 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:provider/provider.dart';
 
@@ -13,7 +15,7 @@ import '../widgets/celebration_overlay.dart';
 import '../widgets/milestone_celebration_overlay.dart';
 import '../widgets/achievement_banner.dart';
 import '../widgets/guest_status_banner.dart';
-import '../services/notification_engine.dart';
+import '../services/smart_notification_service.dart';
 import '../widgets/level_badge.dart';
 import '../utils/slide_route.dart';
 import '../widgets/modern_ui.dart'
@@ -23,10 +25,22 @@ import 'habit_detail_screen.dart';
 import 'add_habit_screen.dart';
 import 'settings_screen.dart';
 import 'auth_screen.dart';
+import 'reorder_habits_screen.dart';
 import '../widgets/freeze_animation_overlay.dart';
 import '../widgets/whats_new_dialog.dart';
 import '../services/health_service.dart';
 import '../services/streak_predictor_service.dart';
+import '../services/duplicate_habit_service.dart';
+import '../widgets/duplicate_merge_dialog.dart';
+import '../services/tour_service.dart';
+import '../widgets/emoji_pet_widget.dart';
+import '../services/seasonal_event_service.dart';
+import 'pet_screen.dart';
+import '../services/guest_service.dart';
+import 'package:tutorial_coach_mark/tutorial_coach_mark.dart';
+import 'level_up_reward_screen.dart';
+import '../models/level_reward.dart';
+import 'loot_box_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -45,6 +59,12 @@ class _HomeScreenState extends State<HomeScreen> {
   static const _primaryOrange = Color(0xFFFFA94A);
   static const _secondaryTeal = Color(0xFF1FD1A5);
 
+  // Tour keys for targeting UI elements
+  final GlobalKey _addHabitButtonKey = GlobalKey();
+  final GlobalKey _settingsButtonKey = GlobalKey();
+  final GlobalKey _dailyProgressKey = GlobalKey();
+  TutorialCoachMark? _tutorialCoachMark;
+
   @override
   void initState() {
     super.initState();
@@ -52,6 +72,7 @@ class _HomeScreenState extends State<HomeScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _initializeNotifications();
       _showWhatsNewIfNeeded();
+      _showWelcomeTourIfNeeded();
     });
   }
 
@@ -63,53 +84,182 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  /// Show welcome tour for new users
+  Future<void> _showWelcomeTourIfNeeded() async {
+    // Wait for UI to be ready
+    await Future.delayed(const Duration(milliseconds: 1200));
+
+    if (!mounted) return;
+
+    // Check if tour has been shown
+    await TourService.instance.loadTourState();
+    if (TourService.instance.hasShownHomeTour) {
+      debugPrint('⏭️ Home tour already shown');
+      return;
+    }
+
+    debugPrint('🎓 Starting welcome tour...');
+
+    // Create tour targets
+    final targets = <TargetFocus>[];
+    int step = 0;
+    const totalSteps = 3;
+
+    // Target 1: Add habit button
+    step++;
+    targets.add(
+      TourService.instance.createTarget(
+        identify: 'add_habit',
+        keyTarget: _addHabitButtonKey,
+        title: 'Create Your First Habit',
+        description:
+            'Tap here to add a new habit. You can choose from templates or create custom habits with AI assistance!',
+        currentStep: step,
+        totalSteps: totalSteps,
+        onNext: () async {
+          await TourService.instance.scrollToTarget(_dailyProgressKey);
+          _tutorialCoachMark?.next();
+        },
+        onSkip: () => _tutorialCoachMark?.skip(),
+        align: ContentAlign.top,
+      ),
+    );
+
+    // Target 2: Daily progress
+    step++;
+    targets.add(
+      TourService.instance.createTarget(
+        identify: 'daily_progress',
+        keyTarget: _dailyProgressKey,
+        title: 'Track Your Progress',
+        description:
+            'See your daily progress here. Complete habits by swiping right, and watch your streak grow!',
+        currentStep: step,
+        totalSteps: totalSteps,
+        onNext: () async {
+          await TourService.instance.scrollToTarget(_settingsButtonKey);
+          _tutorialCoachMark?.next();
+        },
+        onSkip: () => _tutorialCoachMark?.skip(),
+        align: ContentAlign.bottom,
+      ),
+    );
+
+    // Target 3: Settings button
+    step++;
+    targets.add(
+      TourService.instance.createTarget(
+        identify: 'settings',
+        keyTarget: _settingsButtonKey,
+        title: 'Customize Your Experience',
+        description:
+            'Access settings, themes, backup options, and health integrations here. You can always replay this tour from settings!',
+        currentStep: step,
+        totalSteps: totalSteps,
+        onNext: () => _tutorialCoachMark?.next(),
+        onSkip: () => _tutorialCoachMark?.skip(),
+        align: ContentAlign.bottom,
+      ),
+    );
+
+    // Create and show tour
+    _tutorialCoachMark = TourService.instance.createTour(
+      targets: targets,
+      onFinish: () async {
+        debugPrint('✅ Welcome tour completed');
+        await TourService.instance.markTourAsShown('home');
+      },
+      onSkip: () async {
+        debugPrint('⏭️ Welcome tour skipped');
+        await TourService.instance.markTourAsShown('home');
+      },
+    );
+
+    // Scroll to first target before showing tour
+    await TourService.instance.scrollToTarget(_addHabitButtonKey);
+    if (mounted) _tutorialCoachMark?.show(context: context);
+  }
+
   Future<void> _initializeNotifications() async {
     try {
-      debugPrint('🔔 Starting notification engine initialization...');
+      debugPrint('🔔 Starting notification initialization...');
 
-      // Initialize notification engine
-      await NotificationEngine.instance.initialize();
-      debugPrint(
-          '✅ Notification engine initialized: ${NotificationEngine.instance.isInitialized}');
-
-      // Initialize sync service
-      await SyncService.instance.initialize();
-      debugPrint('✅ Sync service initialized');
-
-      // Schedule focus task reminders
+      // Run in parallel - don't wait for each to complete
       if (mounted) {
         final appState = context.read<AppState>();
 
-        try {
-          await NotificationEngine.instance
-              .scheduleFocusTaskReminders(appState.habits);
-          debugPrint(
-              '✅ Focus task reminders scheduled for ${appState.habits.length} habits');
+        // Group 1: Quick sync operations (run in parallel)
+        final syncFutures = <Future>[
+          SyncService.instance.initialize().then((_) {
+            debugPrint('✅ Sync service initialized');
+          }),
+        ];
 
-          // Schedule predictive streak warnings
-          await NotificationEngine.instance
-              .schedulePredictiveWarnings(appState.habits);
-          debugPrint('✅ Predictive streak warnings scheduled');
-        } catch (e) {
-          debugPrint('⚠️ Failed to schedule reminders: $e');
-        }
+        // Wait for sync service first as others depend on it
+        await Future.wait(syncFutures, eagerError: false);
 
-        // Sync health habits on startup
+        // Group 2: Notification scheduling (non-blocking - don't await)
+        Future(() async {
+          try {
+            await SmartNotificationService.instance
+                .scheduleAllHabitReminders(appState.habits);
+            debugPrint(
+                '✅ Habit reminders scheduled for ${appState.habits.length} habits');
+          } catch (e) {
+            debugPrint('⚠️ Failed to schedule reminders: $e');
+          }
+        });
+
+        // Sync health habits on startup (non-blocking)
         appState.syncHealthHabits();
 
-        // Auto-sync to cloud on app open
-        await SyncService.instance.syncOnAppOpen(
-          appState.habits,
-          appState.userLevel,
-        );
+        // Cloud sync (non-blocking - run in background)
+        Future(() async {
+          await SyncService.instance.syncOnAppOpen(
+            appState.habits,
+            appState.userLevel,
+          );
+        });
 
         debugPrint('✅ All initialization complete!');
 
-        // Show streak warning popup if there are at-risk habits
-        if (!appState.hasShownStreakWarningSession) {
-          _showStreakWarningPopup(appState);
-          appState.markStreakWarningShown();
-        }
+        // UI-related checks - defer slightly to ensure smooth rendering
+        Future.delayed(const Duration(milliseconds: 500), () {
+          if (!mounted) return;
+
+          // Show streak warning popup if there are at-risk habits
+          if (!appState.hasShownStreakWarningSession) {
+            _showStreakWarningPopup(appState);
+            appState.markStreakWarningShown();
+          }
+
+          // Check for duplicate habits
+          debugPrint(
+              '🔍 Duplicate check - hasShownSession: ${appState.hasShownDuplicateWarningSession}, habits: ${appState.habits.length}');
+          if (!appState.hasShownDuplicateWarningSession) {
+            _checkForDuplicates(appState);
+          } else {
+            debugPrint(
+                '⏭️ Skipping duplicate check - already shown this session');
+          }
+        });
+
+        // Run daily notifications in background (non-blocking) - only for signed-in users
+        Future(() async {
+          // Skip notifications for guest users
+          final isGuest = await GuestService.instance.isGuestUser();
+          if (isGuest) {
+            debugPrint('⏭️ Skipping notifications - user is guest');
+            return;
+          }
+
+          await SmartNotificationService.instance.runDailyNotifications(
+            appState.habits,
+            morningQuotesEnabled: appState.morningQuotesEnabled,
+            streakAlertsEnabled: appState.streakAlertsEnabled,
+            milestoneCelebrationEnabled: appState.milestoneCelebrationEnabled,
+          );
+        });
       }
     } catch (e, stackTrace) {
       debugPrint('❌ Notification initialization failed: $e');
@@ -135,6 +285,101 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  /// Check for duplicate habits and show merge dialog if any are found
+  void _checkForDuplicates(AppState appState) {
+    debugPrint(
+        '🔍 Running duplicate detection on ${appState.habits.length} habits:');
+    for (final h in appState.habits) {
+      debugPrint('   - ${h.emoji} ${h.name} (category: ${h.category})');
+    }
+
+    final duplicates =
+        DuplicateHabitService.instance.detectDuplicates(appState.habits);
+
+    if (duplicates.isEmpty) {
+      debugPrint('✅ No duplicate habits found');
+      return;
+    }
+
+    debugPrint('⚠️ Found ${duplicates.length} potential duplicate habit pairs');
+
+    // Mark as shown for this session
+    appState.markDuplicateWarningShown();
+
+    // Small delay to let UI settle before showing dialog
+    Future.delayed(const Duration(milliseconds: 500), () {
+      if (!mounted) return;
+
+      debugPrint('📋 Showing DuplicateMergeDialog now...');
+      DuplicateMergeDialog.show(
+        context,
+        duplicates: duplicates,
+        onMergeAll: (mergeRequests) async {
+          // Process all merge requests
+          int successCount = 0;
+
+          for (final request in mergeRequests) {
+            try {
+              // Find the habits
+              final primary =
+                  appState.habits.firstWhere((h) => h.id == request.primaryId);
+              final secondary = appState.habits
+                  .firstWhere((h) => h.id == request.secondaryId);
+
+              // Merge using service
+              final merged = DuplicateHabitService.instance.mergeHabits(
+                primary,
+                secondary,
+                request.options,
+              );
+
+              // Update in app state
+              await appState.mergeHabits(
+                  request.primaryId, request.secondaryId, merged);
+              successCount++;
+            } catch (e) {
+              debugPrint('❌ Failed to merge: $e');
+            }
+          }
+
+          // Show single snackbar for all merges
+          if (mounted && successCount > 0) {
+            final isDark = Theme.of(context).brightness == Brightness.dark;
+            final bgColor = isDark ? const Color(0xFF191919) : Colors.white;
+            final txtColor = isDark ? Colors.white : const Color(0xFF191919);
+
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(
+                  '✅ Merged $successCount habit${successCount > 1 ? 's' : ''} successfully',
+                  style: TextStyle(
+                    color: txtColor,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                behavior: SnackBarBehavior.floating,
+                backgroundColor: bgColor,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  side: isDark
+                      ? BorderSide(
+                          color: Colors.white.withAlpha(0x1A), width: 1)
+                      : BorderSide(
+                          color: Colors.black.withAlpha(0x0D),
+                          width: 1), // Subtle border
+                ),
+                elevation: isDark ? 0 : 4,
+              ),
+            );
+          }
+        },
+        onDismiss: () {
+          debugPrint('📝 Duplicate merge dialog dismissed');
+        },
+      );
+    });
+  }
+
   String _getHealthMetricUnit(HealthMetricType metric) {
     switch (metric) {
       case HealthMetricType.steps:
@@ -145,8 +390,6 @@ class _HomeScreenState extends State<HomeScreen> {
         return 'km';
       case HealthMetricType.calories:
         return 'calories';
-      case HealthMetricType.heartRate:
-        return 'bpm';
     }
   }
 
@@ -158,8 +401,8 @@ class _HomeScreenState extends State<HomeScreen> {
     // Complete the habit
     appState.completeHabit(habit);
 
-    // Update notification pattern (for learning, but don't auto-schedule)
-    NotificationEngine.instance.updatePattern(habit);
+    // Cancel streak alert since habit is now completed
+    SmartNotificationService.instance.cancelStreakAlert(habit.id);
 
     // Check state after completion
     final newLevel = appState.userLevel.level;
@@ -174,41 +417,49 @@ class _HomeScreenState extends State<HomeScreen> {
 
       CelebrationEngine.instance.celebrateLevelUp(newLevel, title);
 
-      // Show spectacular level-up screen immediately
+      // Show spectacular level-up screen
       await Future.delayed(const Duration(milliseconds: 300));
       if (!mounted) return;
-      // Show level up dialog
-      if (!mounted) return;
-      await showDialog(
-        context: context,
-        builder: (context) => AlertDialog(
-          title: const Text('Level Up! 🚀'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                'Congratulations! You reached Level $newLevel!',
-                textAlign: TextAlign.center,
-                style: const TextStyle(fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 16),
-              LevelBadge(
-                userLevel: appState.userLevel,
-                showProgress: false,
-                size: 100,
-              ),
-              const SizedBox(height: 16),
-              Text('Title: $title'),
-            ],
+
+      await Navigator.of(context).push(
+        PageRouteBuilder(
+          opaque: false,
+          barrierDismissible: false,
+          pageBuilder: (context, animation, secondaryAnimation) =>
+              LevelUpRewardScreen(
+            newLevel: newLevel,
+            title: title,
+            userLevel: appState.userLevel,
+            rewards: LevelReward.getRewardsForLevel(newLevel),
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Awesome!'),
-            ),
-          ],
+          transitionsBuilder: (context, animation, secondaryAnimation, child) {
+            return FadeTransition(opacity: animation, child: child);
+          },
         ),
       );
+
+      // Check for loot box after level up
+      if (mounted && appState.hasPendingLootBox) {
+        final lootBox = appState.pendingLootBox!;
+        await Navigator.of(context).push(
+          PageRouteBuilder(
+            opaque: false,
+            barrierDismissible: false,
+            pageBuilder: (context, animation, secondaryAnimation) =>
+                LootBoxScreen(
+              lootBox: lootBox,
+              onClaimed: () {
+                // Reward will be applied from the returned result
+              },
+            ),
+            transitionsBuilder:
+                (context, animation, secondaryAnimation, child) {
+              return FadeTransition(opacity: animation, child: child);
+            },
+          ),
+        );
+        appState.clearPendingLootBox();
+      }
     }
     // Priority 2: Check for streak milestones
     else if (StreakMilestone.isMilestone(habit.streak)) {
@@ -223,7 +474,7 @@ class _HomeScreenState extends State<HomeScreen> {
       }
     }
     // Priority 3: Check for all habits completed
-    else if (wasAllDoneBefore && isAllDoneAfter) {
+    else if (!wasAllDoneBefore && isAllDoneAfter) {
       CelebrationEngine.instance.celebrateAllHabits();
 
       // Show Day Completed Toast
@@ -263,6 +514,18 @@ class _HomeScreenState extends State<HomeScreen> {
           backgroundColor:
               isDark ? const Color(0xFF121212) : const Color(0xFFF8F9FA),
           appBar: AppBar(
+            leading: Padding(
+              padding: const EdgeInsets.only(left: 8),
+              child: Center(
+                child: CompactEmojiPet(
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const PetScreen()),
+                  ),
+                ),
+              ),
+            ),
+            leadingWidth: 120,
             title: const Text('Streakoo 🔥'),
             actions: [
               // Level badge in app bar
@@ -306,7 +569,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     userLevel: userLevel,
                     showProgress: false,
                     showTitle: false,
-                    size: 40,
+                    size: 36,
                   ),
                 ),
               ),
@@ -327,7 +590,17 @@ class _HomeScreenState extends State<HomeScreen> {
                         MaterialPageRoute(builder: (_) => const AuthScreen()),
                       ),
                     ),
+                    // Seasonal event banner (if active)
+                    _buildSeasonalEventBanner(),
                     // Daily progress header
+                    const Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 16),
+                      child: Row(
+                        children: [
+                          Spacer(),
+                        ],
+                      ),
+                    ),
                     _buildDailyProgressHeader(appState,
                         Theme.of(context).brightness == Brightness.dark),
                     // Health summary - removed for cleaner UI
@@ -348,24 +621,53 @@ class _HomeScreenState extends State<HomeScreen> {
                           await Future.delayed(
                               const Duration(milliseconds: 300));
                         },
-                        child: ListView.builder(
+                        child: ReorderableListView.builder(
+                          onReorder: (oldIndex, newIndex) {
+                            appState.reorderHabits(oldIndex, newIndex);
+                            HapticFeedback.mediumImpact();
+                          },
+                          proxyDecorator: (child, index, animation) {
+                            return AnimatedBuilder(
+                              animation: animation,
+                              builder: (context, child) {
+                                final scale =
+                                    lerpDouble(1.0, 1.03, animation.value)!;
+                                final elevation =
+                                    lerpDouble(0, 12, animation.value)!;
+                                return Transform.scale(
+                                  scale: scale,
+                                  child: Material(
+                                    elevation: elevation,
+                                    borderRadius: BorderRadius.circular(22),
+                                    shadowColor:
+                                        _primaryOrange.withValues(alpha: 0.4),
+                                    color: Colors.transparent,
+                                    child: child,
+                                  ),
+                                );
+                              },
+                              child: child,
+                            );
+                          },
                           physics: const ClampingScrollPhysics(),
+                          buildDefaultDragHandles: false,
                           padding: const EdgeInsets.all(16),
                           itemCount: habits.length,
                           itemBuilder: (context, index) {
                             final habit = habits[index];
 
-                            return Padding(
-                              padding: const EdgeInsets.only(bottom: 12),
-                              child: BouncyButton(
-                                onTap: () => _openDetails(context, habit),
+                            return ReorderableDelayedDragStartListener(
+                              key: ValueKey(habit.id),
+                              index: index,
+                              child: Padding(
+                                padding: const EdgeInsets.only(bottom: 12),
                                 child: GestureDetector(
-                                  key: ValueKey(habit.id),
                                   onLongPress: () {
+                                    HapticFeedback.mediumImpact();
                                     showModalBottomSheet(
                                       context: context,
                                       backgroundColor: Colors.transparent,
-                                      builder: (context) => Container(
+                                      builder: (ctx) => Container(
                                         decoration: BoxDecoration(
                                           color: Theme.of(context).cardColor,
                                           borderRadius:
@@ -377,6 +679,61 @@ class _HomeScreenState extends State<HomeScreen> {
                                         child: Column(
                                           mainAxisSize: MainAxisSize.min,
                                           children: [
+                                            // Reorder button
+                                            GestureDetector(
+                                              onTap: () {
+                                                Navigator.pop(ctx);
+                                                Navigator.push(
+                                                  context,
+                                                  MaterialPageRoute(
+                                                    builder: (_) =>
+                                                        const ReorderHabitsScreen(),
+                                                  ),
+                                                );
+                                              },
+                                              child: Container(
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                        horizontal: 16,
+                                                        vertical: 12),
+                                                margin: const EdgeInsets.only(
+                                                    bottom: 16),
+                                                decoration: BoxDecoration(
+                                                  color: _primaryOrange
+                                                      .withValues(alpha: 0.1),
+                                                  borderRadius:
+                                                      BorderRadius.circular(12),
+                                                  border: Border.all(
+                                                    color: _primaryOrange
+                                                        .withValues(alpha: 0.3),
+                                                  ),
+                                                ),
+                                                child: const Row(
+                                                  mainAxisAlignment:
+                                                      MainAxisAlignment.center,
+                                                  children: [
+                                                    Icon(Icons.swap_vert,
+                                                        color: _primaryOrange,
+                                                        size: 22),
+                                                    SizedBox(width: 8),
+                                                    Text(
+                                                      'Reorder Habits',
+                                                      style: TextStyle(
+                                                        color: _primaryOrange,
+                                                        fontWeight:
+                                                            FontWeight.w600,
+                                                        fontSize: 15,
+                                                      ),
+                                                    ),
+                                                    SizedBox(width: 4),
+                                                    Icon(
+                                                        Icons.arrow_forward_ios,
+                                                        color: _primaryOrange,
+                                                        size: 14),
+                                                  ],
+                                                ),
+                                              ),
+                                            ),
                                             ListTile(
                                               leading: Icon(Icons.edit,
                                                   color: Theme.of(context)
@@ -391,7 +748,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                                         ?.color),
                                               ),
                                               onTap: () {
-                                                Navigator.pop(context);
+                                                Navigator.pop(ctx);
                                                 Navigator.of(context).push(
                                                   slideFromRight(AddHabitScreen(
                                                       existing: habit)),
@@ -407,10 +764,10 @@ class _HomeScreenState extends State<HomeScreen> {
                                                     color: Colors.red),
                                               ),
                                               onTap: () {
-                                                Navigator.pop(context);
+                                                Navigator.pop(ctx);
                                                 showDialog(
                                                   context: context,
-                                                  builder: (context) =>
+                                                  builder: (dialogCtx) =>
                                                       AlertDialog(
                                                     title: const Text(
                                                         'Delete Habit?'),
@@ -421,7 +778,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                                       TextButton(
                                                         onPressed: () =>
                                                             Navigator.pop(
-                                                                context),
+                                                                dialogCtx),
                                                         child: const Text(
                                                             'Cancel'),
                                                       ),
@@ -430,7 +787,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                                           appState.deleteHabit(
                                                               habit.id);
                                                           Navigator.pop(
-                                                              context);
+                                                              dialogCtx);
                                                         },
                                                         child: const Text(
                                                           'Delete',
@@ -449,216 +806,372 @@ class _HomeScreenState extends State<HomeScreen> {
                                       ),
                                     );
                                   },
-                                  child: Dismissible(
-                                    key: ValueKey('dismissible_${habit.id}'),
-                                    direction: habit.completedToday
-                                        ? DismissDirection
-                                            .endToStart // Only allow uncomplete if already done
-                                        : DismissDirection
-                                            .horizontal, // Allow both directions
-                                    confirmDismiss: (direction) async {
-                                      final appState = context.read<AppState>();
+                                  child: BouncyButton(
+                                    onTap: () => _openDetails(context, habit),
+                                    child: Dismissible(
+                                      key: ValueKey('dismissible_${habit.id}'),
+                                      direction: habit.completedToday
+                                          ? DismissDirection
+                                              .endToStart // Only allow uncomplete if already done
+                                          : DismissDirection
+                                              .horizontal, // Allow both directions
+                                      confirmDismiss: (direction) async {
+                                        final appState =
+                                            context.read<AppState>();
 
-                                      if (direction ==
-                                          DismissDirection.startToEnd) {
-                                        // Swipe RIGHT → Complete the habit
-                                        if (!habit.completedToday) {
-                                          // Check if this is a health-tracked habit with goals
-                                          if (habit.isHealthTracked &&
-                                              habit.healthGoalValue != null &&
-                                              habit.healthMetric != null) {
-                                            // Show informative dialog
-                                            if (mounted) {
-                                              final metricUnit =
-                                                  _getHealthMetricUnit(
-                                                      habit.healthMetric!);
-                                              await showDialog(
-                                                context: context,
-                                                builder: (context) =>
-                                                    AlertDialog(
-                                                  title: const Row(
-                                                    children: [
-                                                      Icon(
-                                                          Icons
-                                                              .health_and_safety,
-                                                          color: Color(
-                                                              0xFF1FD1A5)),
-                                                      SizedBox(width: 8),
-                                                      Text(
-                                                          'Auto-Tracked Habit'),
-                                                    ],
-                                                  ),
-                                                  content: Text(
-                                                    'This habit is automatically completed when you meet your health goal of ${habit.healthGoalValue} $metricUnit.\n\n'
-                                                    'Your progress is tracked by AI using your health data. Keep going! 💪',
-                                                    style: const TextStyle(
-                                                        height: 1.5),
-                                                  ),
-                                                  actions: [
-                                                    TextButton(
-                                                      onPressed: () =>
-                                                          Navigator.pop(
-                                                              context),
-                                                      child: const Text('OK'),
+                                        if (direction ==
+                                            DismissDirection.startToEnd) {
+                                          // Swipe RIGHT → Complete the habit
+                                          if (!habit.completedToday) {
+                                            // Check if this is a health-tracked habit with goals
+                                            if (habit.isHealthTracked &&
+                                                habit.healthGoalValue != null &&
+                                                habit.healthMetric != null) {
+                                              // Show confirmation dialog with "Don't show again" option
+                                              bool? shouldComplete = true;
+
+                                              // Check preference - if user hid warning, skip dialog
+                                              if (appState
+                                                  .hideManualCompletionWarning) {
+                                                shouldComplete = true;
+                                              } else if (mounted) {
+                                                final metricUnit =
+                                                    _getHealthMetricUnit(
+                                                        habit.healthMetric!);
+
+                                                // Use StatefulBuilder inside showDialog to handle checkbox state
+                                                shouldComplete =
+                                                    await showDialog<bool>(
+                                                  context: context,
+                                                  builder: (context) {
+                                                    bool doNotShowAgain = false;
+                                                    return StatefulBuilder(
+                                                      builder:
+                                                          (context, setState) {
+                                                        return AlertDialog(
+                                                          title: const Row(
+                                                            children: [
+                                                              Icon(
+                                                                  Icons
+                                                                      .edit_note_rounded,
+                                                                  color: Color(
+                                                                      0xFFFFA94A)), // Orange for manual override
+                                                              SizedBox(
+                                                                  width: 8),
+                                                              Text(
+                                                                  'Manual Completion?'),
+                                                            ],
+                                                          ),
+                                                          content: Column(
+                                                            mainAxisSize:
+                                                                MainAxisSize
+                                                                    .min,
+                                                            crossAxisAlignment:
+                                                                CrossAxisAlignment
+                                                                    .start,
+                                                            children: [
+                                                              Text(
+                                                                'This habit is usually tracked automatically by your health data (${habit.healthGoalValue} $metricUnit).\n\n'
+                                                                'Do you want to mark it as complete manually?',
+                                                                style:
+                                                                    const TextStyle(
+                                                                        height:
+                                                                            1.5),
+                                                              ),
+                                                              const SizedBox(
+                                                                  height: 16),
+                                                              InkWell(
+                                                                onTap: () {
+                                                                  setState(() {
+                                                                    doNotShowAgain =
+                                                                        !doNotShowAgain;
+                                                                  });
+                                                                },
+                                                                borderRadius:
+                                                                    BorderRadius
+                                                                        .circular(
+                                                                            4),
+                                                                child: Row(
+                                                                  children: [
+                                                                    SizedBox(
+                                                                      height:
+                                                                          24,
+                                                                      width: 24,
+                                                                      child:
+                                                                          Checkbox(
+                                                                        value:
+                                                                            doNotShowAgain,
+                                                                        onChanged:
+                                                                            (val) {
+                                                                          setState(
+                                                                              () {
+                                                                            doNotShowAgain =
+                                                                                val ?? false;
+                                                                          });
+                                                                        },
+                                                                        activeColor:
+                                                                            const Color(0xFFFFA94A),
+                                                                        shape:
+                                                                            RoundedRectangleBorder(
+                                                                          borderRadius:
+                                                                              BorderRadius.circular(4),
+                                                                        ),
+                                                                      ),
+                                                                    ),
+                                                                    const SizedBox(
+                                                                        width:
+                                                                            8),
+                                                                    const Text(
+                                                                      "Don't show again",
+                                                                      style: TextStyle(
+                                                                          fontSize:
+                                                                              14),
+                                                                    ),
+                                                                  ],
+                                                                ),
+                                                              ),
+                                                            ],
+                                                          ),
+                                                          actions: [
+                                                            TextButton(
+                                                              onPressed: () =>
+                                                                  Navigator.pop(
+                                                                      context,
+                                                                      false),
+                                                              child: Text(
+                                                                'Cancel',
+                                                                style:
+                                                                    TextStyle(
+                                                                  color: Colors
+                                                                          .grey[
+                                                                      600],
+                                                                ),
+                                                              ),
+                                                            ),
+                                                            TextButton(
+                                                              onPressed: () {
+                                                                // Save preference if checked
+                                                                if (doNotShowAgain) {
+                                                                  appState
+                                                                      .setHideManualCompletionWarning(
+                                                                          true);
+                                                                }
+                                                                Navigator.pop(
+                                                                    context,
+                                                                    true);
+                                                              },
+                                                              child: const Text(
+                                                                'Complete Manually',
+                                                                style:
+                                                                    TextStyle(
+                                                                  fontWeight:
+                                                                      FontWeight
+                                                                          .bold,
+                                                                  color: Color(
+                                                                      0xFFFFA94A),
+                                                                ),
+                                                              ),
+                                                            ),
+                                                          ],
+                                                        );
+                                                      },
+                                                    );
+                                                  },
+                                                );
+                                              }
+
+                                              if (shouldComplete == true) {
+                                                try {
+                                                  await _handleComplete(
+                                                      appState, habit);
+                                                } catch (e) {
+                                                  if (context.mounted) {
+                                                    ScaffoldMessenger.of(
+                                                            context)
+                                                        .showSnackBar(
+                                                      SnackBar(
+                                                        content: Text(
+                                                            'Failed to complete habit: ${e.toString()}'),
+                                                        backgroundColor:
+                                                            Colors.red,
+                                                      ),
+                                                    );
+                                                  }
+                                                }
+                                              }
+                                            } else {
+                                              // Regular habit - complete normally
+                                              try {
+                                                await _handleComplete(
+                                                    appState, habit);
+                                              } catch (e) {
+                                                if (context.mounted) {
+                                                  ScaffoldMessenger.of(context)
+                                                      .showSnackBar(
+                                                    SnackBar(
+                                                      content: Text(
+                                                          'Failed to complete habit: ${e.toString()}'),
+                                                      backgroundColor:
+                                                          Colors.red,
                                                     ),
-                                                  ],
+                                                  );
+                                                }
+                                              }
+                                            }
+                                          }
+                                        } else {
+                                          // Swipe LEFT → Skip/Uncomplete
+                                          if (habit.completedToday) {
+                                            // Undo completion
+                                            appState.uncompleteHabit(habit);
+                                            if (mounted) {
+                                              ScaffoldMessenger.of(context)
+                                                  .showSnackBar(
+                                                SnackBar(
+                                                  content: Text(
+                                                      '↩️ "${habit.name}" unmarked'),
+                                                  behavior:
+                                                      SnackBarBehavior.floating,
+                                                  shape: RoundedRectangleBorder(
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                            12),
+                                                  ),
+                                                  duration: const Duration(
+                                                      milliseconds: 1500),
                                                 ),
                                               );
                                             }
                                           } else {
-                                            // Regular habit - complete normally
-                                            await _handleComplete(
-                                                appState, habit);
+                                            // Skip for today
+                                            appState.skipHabit(habit);
+                                            if (mounted) {
+                                              ScaffoldMessenger.of(context)
+                                                  .showSnackBar(
+                                                SnackBar(
+                                                  content: Text(
+                                                      '⏭️ "${habit.name}" skipped for today'),
+                                                  behavior:
+                                                      SnackBarBehavior.floating,
+                                                  shape: RoundedRectangleBorder(
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                            12),
+                                                  ),
+                                                  duration: const Duration(
+                                                      milliseconds: 1500),
+                                                ),
+                                              );
+                                            }
                                           }
                                         }
-                                      } else {
-                                        // Swipe LEFT → Skip/Uncomplete
-                                        if (habit.completedToday) {
-                                          // Undo completion
-                                          appState.uncompleteHabit(habit);
-                                          if (mounted) {
-                                            ScaffoldMessenger.of(context)
-                                                .showSnackBar(
-                                              SnackBar(
-                                                content: Text(
-                                                    '↩️ "${habit.name}" unmarked'),
-                                                behavior:
-                                                    SnackBarBehavior.floating,
-                                                shape: RoundedRectangleBorder(
-                                                  borderRadius:
-                                                      BorderRadius.circular(12),
-                                                ),
-                                                duration: const Duration(
-                                                    milliseconds: 1500),
-                                              ),
-                                            );
-                                          }
-                                        } else {
-                                          // Skip for today
-                                          appState.skipHabit(habit);
-                                          if (mounted) {
-                                            ScaffoldMessenger.of(context)
-                                                .showSnackBar(
-                                              SnackBar(
-                                                content: Text(
-                                                    '⏭️ "${habit.name}" skipped for today'),
-                                                behavior:
-                                                    SnackBarBehavior.floating,
-                                                shape: RoundedRectangleBorder(
-                                                  borderRadius:
-                                                      BorderRadius.circular(12),
-                                                ),
-                                                duration: const Duration(
-                                                    milliseconds: 1500),
-                                              ),
-                                            );
-                                          }
-                                        }
-                                      }
-                                      // Don't remove the tile from UI
-                                      return false;
-                                    },
-                                    // Right swipe background (Complete) - Green
-                                    background: Container(
-                                      margin: const EdgeInsets.only(bottom: 16),
-                                      decoration: BoxDecoration(
-                                        borderRadius: BorderRadius.circular(22),
-                                        gradient: const LinearGradient(
-                                          colors: [
-                                            Color(0xFF4CAF50),
-                                            Color(0xFF81C784)
+                                        // Don't remove the tile from UI
+                                        return false;
+                                      },
+                                      // Right swipe background (Complete) - Green
+                                      background: Container(
+                                        margin:
+                                            const EdgeInsets.only(bottom: 16),
+                                        decoration: BoxDecoration(
+                                          borderRadius:
+                                              BorderRadius.circular(22),
+                                          gradient: const LinearGradient(
+                                            colors: [
+                                              Color(0xFF4CAF50),
+                                              Color(0xFF81C784)
+                                            ],
+                                          ),
+                                          boxShadow: [
+                                            BoxShadow(
+                                              color: const Color(0xFF4CAF50)
+                                                  .withValues(alpha: 0.4),
+                                              blurRadius: 20,
+                                              spreadRadius: 2,
+                                            ),
                                           ],
                                         ),
-                                        boxShadow: [
-                                          BoxShadow(
-                                            color: const Color(0xFF4CAF50)
-                                                .withValues(alpha: 0.4),
-                                            blurRadius: 20,
-                                            spreadRadius: 2,
-                                          ),
-                                        ],
-                                      ),
-                                      alignment: Alignment.centerLeft,
-                                      padding: const EdgeInsets.symmetric(
-                                          horizontal: 24),
-                                      child: const Row(
-                                        children: [
-                                          Icon(Icons.check_circle,
-                                              color: Colors.white, size: 32),
-                                          SizedBox(width: 8),
-                                          Text('Complete',
-                                              style: TextStyle(
-                                                  color: Colors.white,
-                                                  fontWeight: FontWeight.bold,
-                                                  fontSize: 16)),
-                                        ],
-                                      ),
-                                    ),
-                                    // Left swipe background (Skip/Uncomplete) - Orange/Red
-                                    secondaryBackground: Container(
-                                      margin: const EdgeInsets.only(bottom: 16),
-                                      decoration: BoxDecoration(
-                                        borderRadius: BorderRadius.circular(22),
-                                        gradient: LinearGradient(
-                                          colors: habit.completedToday
-                                              ? [
-                                                  const Color(0xFFFF9800),
-                                                  const Color(0xFFFFB74D)
-                                                ] // Orange for undo
-                                              : [
-                                                  const Color(0xFFE57373),
-                                                  const Color(0xFFEF5350)
-                                                ], // Red for skip
+                                        alignment: Alignment.centerLeft,
+                                        padding: const EdgeInsets.symmetric(
+                                            horizontal: 24),
+                                        child: const Row(
+                                          children: [
+                                            Icon(Icons.check_circle,
+                                                color: Colors.white, size: 32),
+                                            SizedBox(width: 8),
+                                            Text('Complete',
+                                                style: TextStyle(
+                                                    color: Colors.white,
+                                                    fontWeight: FontWeight.bold,
+                                                    fontSize: 16)),
+                                          ],
                                         ),
-                                        boxShadow: [
-                                          BoxShadow(
-                                            color: (habit.completedToday
-                                                    ? const Color(0xFFFF9800)
-                                                    : const Color(0xFFE57373))
-                                                .withValues(alpha: 0.4),
-                                            blurRadius: 20,
-                                            spreadRadius: 2,
+                                      ),
+                                      // Left swipe background (Skip/Uncomplete) - Orange/Red
+                                      secondaryBackground: Container(
+                                        margin:
+                                            const EdgeInsets.only(bottom: 16),
+                                        decoration: BoxDecoration(
+                                          borderRadius:
+                                              BorderRadius.circular(22),
+                                          gradient: LinearGradient(
+                                            colors: habit.completedToday
+                                                ? [
+                                                    const Color(0xFFFF9800),
+                                                    const Color(0xFFFFB74D)
+                                                  ] // Orange for undo
+                                                : [
+                                                    const Color(0xFFE57373),
+                                                    const Color(0xFFEF5350)
+                                                  ], // Red for skip
                                           ),
-                                        ],
+                                          boxShadow: [
+                                            BoxShadow(
+                                              color: (habit.completedToday
+                                                      ? const Color(0xFFFF9800)
+                                                      : const Color(0xFFE57373))
+                                                  .withValues(alpha: 0.4),
+                                              blurRadius: 20,
+                                              spreadRadius: 2,
+                                            ),
+                                          ],
+                                        ),
+                                        alignment: Alignment.centerRight,
+                                        padding: const EdgeInsets.symmetric(
+                                            horizontal: 24),
+                                        child: Row(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.end,
+                                          children: [
+                                            Text(
+                                                habit.completedToday
+                                                    ? 'Undo'
+                                                    : 'Skip',
+                                                style: const TextStyle(
+                                                    color: Colors.white,
+                                                    fontWeight: FontWeight.bold,
+                                                    fontSize: 16)),
+                                            const SizedBox(width: 8),
+                                            Icon(
+                                                habit.completedToday
+                                                    ? Icons.undo
+                                                    : Icons.close,
+                                                color: Colors.white,
+                                                size: 32),
+                                          ],
+                                        ),
                                       ),
-                                      alignment: Alignment.centerRight,
-                                      padding: const EdgeInsets.symmetric(
-                                          horizontal: 24),
-                                      child: Row(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.end,
-                                        children: [
-                                          Text(
-                                              habit.completedToday
-                                                  ? 'Undo'
-                                                  : 'Skip',
-                                              style: const TextStyle(
-                                                  color: Colors.white,
-                                                  fontWeight: FontWeight.bold,
-                                                  fontSize: 16)),
-                                          const SizedBox(width: 8),
-                                          Icon(
-                                              habit.completedToday
-                                                  ? Icons.undo
-                                                  : Icons.close,
-                                              color: Colors.white,
-                                              size: 32),
-                                        ],
-                                      ),
+                                      child: HabitCard(
+                                        habit: habit,
+                                        onTap: () =>
+                                            _openDetails(context, habit),
+                                      )
+                                          .animate()
+                                          .fadeIn(
+                                            duration: 350.ms,
+                                            delay: (index * 70).ms,
+                                          )
+                                          .slideY(begin: 0.08, end: 0),
                                     ),
-                                    child: HabitCard(
-                                      habit: habit,
-                                      // Pass null or empty callback if we want BouncyButton to handle tap
-                                      // But HabitCard might need it for ripple.
-                                      // Let's pass the same callback just in case.
-                                      onTap: () => _openDetails(context, habit),
-                                    )
-                                        .animate()
-                                        .fadeIn(
-                                          duration: 350.ms,
-                                          delay: (index * 70).ms,
-                                        )
-                                        .slideY(begin: 0.08, end: 0),
                                   ),
                                 ),
                               ),
@@ -670,6 +1183,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   ],
                 ),
           floatingActionButton: FloatingActionButton(
+            key: _addHabitButtonKey,
             onPressed: () => _openAddHabit(context),
             backgroundColor: const Color(0xFF191919),
             foregroundColor: Colors.white,
@@ -845,6 +1359,7 @@ class _HomeScreenState extends State<HomeScreen> {
     final progress = total > 0 ? completed / total : 0.0;
 
     return Container(
+      key: _dailyProgressKey,
       margin: const EdgeInsets.fromLTRB(16, 8, 16, 8),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -1183,4 +1698,78 @@ class _HomeScreenState extends State<HomeScreen> {
   //     ),
   //   ).animate().fadeIn(duration: 300.ms).slideY(begin: -0.1, end: 0);
   // }
+
+  /// Build seasonal event banner if there's an active event
+  Widget _buildSeasonalEventBanner() {
+    final event = SeasonalEventService.instance.activeEvent;
+    if (event == null) return const SizedBox.shrink();
+
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return Container(
+      margin: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            event.primaryColor.withValues(alpha: isDark ? 0.3 : 0.15),
+            event.secondaryColor.withValues(alpha: isDark ? 0.3 : 0.15),
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: event.primaryColor.withValues(alpha: 0.3),
+        ),
+      ),
+      child: Row(
+        children: [
+          Text(
+            event.type.emoji,
+            style: const TextStyle(fontSize: 32),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  event.name,
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                    color: isDark ? Colors.white : Colors.black87,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  '${event.daysRemaining} days left • ${event.xpMultiplier}x XP',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: isDark ? Colors.white70 : Colors.black54,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            decoration: BoxDecoration(
+              color: event.primaryColor,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Text(
+              '${event.exclusiveBadges.length} 🏅',
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+                fontSize: 12,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }

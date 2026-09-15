@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'home_screen.dart';
 import 'stats_screen.dart';
 import 'coach_overview_screen.dart';
+import '../services/whats_new_service.dart';
 
 class NavWrapper extends StatefulWidget {
   final int initialIndex;
@@ -22,6 +23,18 @@ class _NavWrapperState extends State<NavWrapper> {
   void initState() {
     super.initState();
     index = widget.initialIndex;
+    _checkWhatsNew();
+  }
+
+  Future<void> _checkWhatsNew() async {
+    // Small delay to ensure context is ready
+    await Future.delayed(const Duration(milliseconds: 500));
+    if (!mounted) return;
+
+    final shouldShow = await WhatsNewService.instance.shouldShowWhatsNew();
+    if (shouldShow && mounted) {
+      showWhatsNewDialog(context);
+    }
   }
 
   final screens = const [

@@ -194,10 +194,9 @@ class WeeklyReportService {
       // Aggregate health data for the week
       int totalSteps = 0;
       double totalSleep = 0;
-      int totalHeartRate = 0;
+
       int stepDays = 0;
       int sleepDays = 0;
-      int heartDays = 0;
 
       // Get data for each day of the week
       for (int i = 0; i < 7; i++) {
@@ -206,10 +205,6 @@ class WeeklyReportService {
 
         final steps = await healthService.getStepCount(day);
         final sleep = await healthService.getSleepHours(day);
-        // Heart rate only for today
-        final heart = day.day == DateTime.now().day
-            ? await healthService.getTodayHeartRate()
-            : null;
 
         if (steps > 0) {
           totalSteps += steps;
@@ -219,17 +214,11 @@ class WeeklyReportService {
           totalSleep += sleep;
           sleepDays++;
         }
-        if (heart != null && heart > 0) {
-          totalHeartRate += heart;
-          heartDays++;
-        }
       }
 
       return WeeklyHealthStats(
         averageSteps: stepDays > 0 ? (totalSteps / stepDays).round() : null,
         averageSleep: sleepDays > 0 ? totalSleep / sleepDays : null,
-        averageHeartRate:
-            heartDays > 0 ? (totalHeartRate / heartDays).round() : null,
       );
     } catch (e) {
       debugPrint('Error getting weekly health stats: $e');

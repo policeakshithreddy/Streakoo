@@ -17,6 +17,7 @@ class BadgeGalleryScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    // Show unlocked achievements FIRST, then locked ones
     final allAchievements = [...achievements, ...lockedAchievements];
 
     return Scaffold(
